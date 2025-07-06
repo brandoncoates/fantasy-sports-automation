@@ -1,0 +1,43 @@
+name: Fantasy Sports Automation
+
+on:
+  schedule:
+    - cron: '0 14 * * *'   # Runs every day at 2 PM UTC (9 AM Central)
+  workflow_dispatch:        # Allows manual run from GitHub website
+
+jobs:
+  run-fantasy-scripts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Box Scores Scraper
+        run: python mlb_box_scraper.py
+
+      - name: Run Daily Rosters Scraper
+        run: python mlb_daily_rosters_scraper.py
+
+      - name: Run Weather Scraper
+        run: python mlb_daily_weather_scraper.py
+
+      - name: Run Season Stats Scraper
+        run: python mlb_season_stats_scraper.py
+
+      - name: Upload CSV Outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: fantasy-csvs
+          path: |
+            *.csv
