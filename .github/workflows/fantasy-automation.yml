@@ -2,8 +2,8 @@ name: Fantasy Sports Automation
 
 on:
   schedule:
-    - cron: '0 14 * * *'   # Runs every day at 2 PM UTC (9 AM Central)
-  workflow_dispatch:        # Allows manual run from GitHub website
+    - cron: '0 14 * * *'  # Runs every day at 2 PM UTC (9 AM Central)
+  workflow_dispatch:      # Allows manual run from GitHub website
 
 jobs:
   run-fantasy-scripts:
@@ -38,6 +38,9 @@ jobs:
       - name: Upload CSV Outputs
         uses: actions/upload-artifact@v4
         with:
-          name: fantasy-csvs
+          name: fantasy-csv-outputs
           path: |
-            *.csv
+            mlb_boxscores_*.csv
+            mlb_rosters_*.csv
+            mlb_weather_*.csv
+            mlb_season_stats_*.csv
