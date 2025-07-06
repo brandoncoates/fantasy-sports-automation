@@ -36,7 +36,7 @@ jobs:
         run: python mlb_season_stats_scraper.py
 
       - name: Upload CSV Outputs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: fantasy-csvs
           path: |
