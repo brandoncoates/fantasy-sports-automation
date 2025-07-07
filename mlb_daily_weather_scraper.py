@@ -4,8 +4,7 @@ from datetime import datetime
 
 # === Config ===
 target_date = datetime.now().strftime('%Y-%m-%d')
-save_path = r'C:\Users\brand\OneDrive\Documents\Python Projects\Fantasy Baseball\MLB Daily Weather'
-filename = f"{save_path}\\mlb_weather_{target_date}.csv"
+filename = f"mlb_weather_{target_date}.csv"  # Save directly in current directory
 
 # Dome stadiums where weather doesn't matter
 domes = {
@@ -19,7 +18,7 @@ domes = {
     'T-Mobile Park': 'Dome'
 }
 
-# Stadium locations (lat, lon) — simplified list (expand if needed)
+# Stadium locations (lat, lon)
 stadium_coords = {
     'Oriole Park at Camden Yards': (39.2839, -76.6218),
     'Fenway Park': (42.3467, -71.0972),
@@ -51,34 +50,27 @@ stadium_coords = {
     'Wrigley Field': (41.9484, -87.6553),
     'Great American Ball Park': (39.0979, -84.5075),
     'Citizens Bank Park': (39.9057, -75.1665),
-    'Busch Stadium': (38.6226, -90.1928),
-    'Sutter Health Park': (38.5802, -121.5137),  # Athletics temporary home in Sacramento
+    'Sutter Health Park': (38.5802, -121.5137),
 }
-
 
 all_weather = []
 
-# Step 1: Get Today's MLB Schedule
+# Step 1: Get Schedule
 schedule_url = f"https://statsapi.mlb.com/api/v1/schedule?sportId=1&date={target_date}"
 schedule_resp = requests.get(schedule_url).json()
 dates = schedule_resp.get('dates', [])
 
 for date_info in dates:
     games = date_info.get('games', [])
-    
+
     for game in games:
-        game_time = game.get('gameDate', '')[11:16]  # Just HH:MM
+        game_time = game.get('gameDate', '')[11:16]
         teams = game.get('teams', {})
-        home_info = teams.get('home', {}).get('team', {})
-        away_info = teams.get('away', {}).get('team', {})
-        
-        home_team = home_info.get('name', '')
-        away_team = away_info.get('name', '')
+        home_team = teams.get('home', {}).get('team', {}).get('name', '')
+        away_team = teams.get('away', {}).get('team', {}).get('name', '')
         venue = game.get('venue', {}).get('name', '')
-        
         matchup = f"{away_team} @ {home_team}"
-        
-        # Step 2: Check for Dome
+
         if venue in domes:
             all_weather.append({
                 'Matchup': matchup,
@@ -91,28 +83,26 @@ for date_info in dates:
                 'Forecast': 'Dome—No Weather Impact'
             })
             continue
-        
-        # Step 3: Pull Weather if Outdoor Stadium
+
         coords = stadium_coords.get(venue)
-        
         if coords:
             lat, lon = coords
             weather_url = f"https://api.weather.gov/points/{lat},{lon}"
+
             try:
                 grid_resp = requests.get(weather_url, timeout=10).json()
                 forecast_url = grid_resp['properties']['forecastHourly']
                 forecast_resp = requests.get(forecast_url, timeout=10).json()
                 periods = forecast_resp.get('properties', {}).get('periods', [])
-                
-                # Just grab first available forecast
+
                 if periods:
                     first = periods[0]
                     temp = first.get('temperature', '')
                     wind = first.get('windSpeed', '')
-                    short_forecast = first.get('shortForecast', '')
+                    forecast = first.get('shortForecast', '')
                     rain = first.get('probabilityOfPrecipitation', {}).get('value', '')
                     rain = rain if rain is not None else ''
-                    
+
                     all_weather.append({
                         'Matchup': matchup,
                         'Venue': venue,
@@ -121,7 +111,7 @@ for date_info in dates:
                         'Temp (°F)': temp,
                         'Rain Chance (%)': rain,
                         'Wind (mph)': wind,
-                        'Forecast': short_forecast
+                        'Forecast': forecast
                     })
                 else:
                     all_weather.append({
@@ -134,6 +124,7 @@ for date_info in dates:
                         'Wind (mph)': '',
                         'Forecast': 'No forecast available'
                     })
+
             except Exception as e:
                 all_weather.append({
                     'Matchup': matchup,
@@ -145,6 +136,7 @@ for date_info in dates:
                     'Wind (mph)': '',
                     'Forecast': f'Error: {e}'
                 })
+
         else:
             all_weather.append({
                 'Matchup': matchup,
@@ -157,7 +149,9 @@ for date_info in dates:
                 'Forecast': 'Unknown Stadium—No Data'
             })
 
-# Save to CSV
+# Save to CSV (no path, current folder)
 df = pd.DataFrame(all_weather)
 df.to_csv(filename, index=False)
+
 print(f"\n✅ Done! Weather saved to {filename} with {len(df)} games.")
+
