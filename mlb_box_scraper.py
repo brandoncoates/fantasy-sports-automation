@@ -88,9 +88,10 @@ for game_id in game_ids:
     except Exception as e:
         print(f"❌ Skipped game {game_id} due to error: {e}")
 
-# Step 3: Save to CSV
+# Step 3: Save to CSV in current directory (no file path)
 df = pd.DataFrame(all_boxscores)
 filename = f'mlb_boxscores_{target_date}.csv'
 df.to_csv(filename, index=False)
 
 print(f'✅ Saved {len(df)} player rows to {filename}')
+
