@@ -4,8 +4,7 @@ from datetime import datetime
 
 # Set up target date for filename
 target_date = datetime.now().strftime('%Y-%m-%d')
-save_path = r'C:\Users\brand\OneDrive\Documents\Python Projects\Fantasy Baseball\MLB Season Stats'
-filename = f"{save_path}\\mlb_season_stats_{target_date}.csv"
+filename = f"mlb_season_stats_{target_date}.csv"  # Save directly in current folder
 
 # Hardcoded Team IDs and Names
 teams = {
@@ -45,16 +44,17 @@ for team_id, team_name in teams.items():
             bat_side = profile_data.get("batSide", {}).get("description", "Unknown")
             throw_side = profile_data.get("pitchHand", {}).get("description", "Unknown")
 
-            # Extract season hitting stats
+            # Extract season hitting and pitching stats
             hitting_stats = {}
             pitching_stats = {}
 
             stats_list = profile_data.get('stats', [])
 
             for stats in stats_list:
-                if stats.get('group', {}).get('displayName') == 'hitting':
+                group_name = stats.get('group', {}).get('displayName')
+                if group_name == 'hitting':
                     hitting_stats = stats.get('stats', {})
-                elif stats.get('group', {}).get('displayName') == 'pitching':
+                elif group_name == 'pitching':
                     pitching_stats = stats.get('stats', {})
 
             player_row = {
@@ -68,7 +68,7 @@ for team_id, team_name in teams.items():
                 "Bat Side": str(bat_side) or "Unknown",
                 "Throw Side": str(throw_side) or "Unknown",
                 "Status": str(status),
-                # Hitting
+                # Hitting stats
                 "AVG": hitting_stats.get('avg', ''),
                 "OBP": hitting_stats.get('obp', ''),
                 "SLG": hitting_stats.get('slg', ''),
@@ -76,7 +76,7 @@ for team_id, team_name in teams.items():
                 "HR": hitting_stats.get('homeRuns', ''),
                 "RBI": hitting_stats.get('rbi', ''),
                 "SB": hitting_stats.get('stolenBases', ''),
-                # Pitching
+                # Pitching stats
                 "ERA": pitching_stats.get('era', ''),
                 "W": pitching_stats.get('wins', ''),
                 "L": pitching_stats.get('losses', ''),
@@ -90,8 +90,9 @@ for team_id, team_name in teams.items():
     except Exception as e:
         print(f"⚠️ Error processing team {team_name} (ID {team_id}): {e}")
 
-# Create DataFrame and Save
+# Create DataFrame and Save CSV to repo directory
 df = pd.DataFrame(all_players)
 df.to_csv(filename, index=False)
 
 print(f"\n✅ Done! Saved {len(df)} player rows to {filename}")
+
