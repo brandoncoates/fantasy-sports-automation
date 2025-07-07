@@ -1,11 +1,11 @@
 Matchup,Venue,City,Game Time (UTC),Temp (°F),Rain Chance (%),Wind (mph),Forecast
-Tampa Bay Rays @ Detroit Tigers,Comerica Park,Hamtramck,22:40,77,34,6 mph,Chance Showers And Thunderstorms
-Colorado Rockies @ Boston Red Sox,Fenway Park,Cambridge,23:10,86,1,10 mph,Mostly Clear
-Miami Marlins @ Cincinnati Reds,Great American Ball Park,Newport,23:10,79,12,2 mph,Mostly Clear
-Pittsburgh Pirates @ Kansas City Royals,Kauffman Stadium,Raytown,23:40,79,5,2 mph,Mostly Clear
+Tampa Bay Rays @ Detroit Tigers,Comerica Park,Hamtramck,22:40,72,23,7 mph,Slight Chance Rain Showers
+Colorado Rockies @ Boston Red Sox,Fenway Park,Cambridge,23:10,81,1,9 mph,Partly Sunny
+Miami Marlins @ Cincinnati Reds,Great American Ball Park,Newport,23:10,82,8,5 mph,Sunny
+Pittsburgh Pirates @ Kansas City Royals,Kauffman Stadium,Raytown,23:40,71,9,1 mph,Patchy Fog
 Toronto Blue Jays @ Chicago White Sox,Rate Field,,23:40,,,,Unknown Stadium—No Data
 Los Angeles Dodgers @ Milwaukee Brewers,American Family Field,,23:40,,,,Dome—No Weather Impact
 Cleveland Guardians @ Houston Astros,Daikin Park,,00:10,,,,Unknown Stadium—No Data
-Texas Rangers @ Los Angeles Angels,Angel Stadium,Orange,01:38,68,0,5 mph,Mostly Clear
-Arizona Diamondbacks @ San Diego Padres,Petco Park,Coronado,01:40,65,0,5 mph,Mostly Cloudy
-Philadelphia Phillies @ San Francisco Giants,Oracle Park,Emeryville,01:45,59,1,10 mph,Sunny
+Texas Rangers @ Los Angeles Angels,Angel Stadium,Orange,01:38,64,0,0 mph,Partly Cloudy
+Arizona Diamondbacks @ San Diego Padres,Petco Park,Coronado,01:40,63,0,0 mph,Mostly Cloudy
+Philadelphia Phillies @ San Francisco Giants,Oracle Park,Emeryville,01:45,54,1,6 mph,Mostly Cloudy
