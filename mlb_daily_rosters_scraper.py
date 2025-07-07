@@ -5,11 +5,10 @@ from datetime import datetime
 # Set up target date
 target_date = datetime.now().strftime('%Y-%m-%d')
 
-# Save location
-save_path = r'C:\Users\brand\OneDrive\Documents\Python Projects\Fantasy Baseball\MLB Daily Rosters'
-filename = f"{save_path}\\mlb_rosters_{target_date}.csv"
+# Set filename (saved in current directory)
+filename = f"mlb_rosters_{target_date}.csv"
 
-# Hardcoded Team IDs and Names (bulletproof)
+# Hardcoded Team IDs and Names
 teams = {
     108: 'Angels', 109: 'Diamondbacks', 110: 'Braves', 111: 'Orioles',
     112: 'Red Sox', 113: 'Cubs', 114: 'White Sox', 115: 'Reds',
@@ -41,7 +40,7 @@ for team_id, team_name in teams.items():
             position_type = player.get("position", {}).get("type", "")
             status = player.get("status", {}).get("description", "")
 
-            # Get player profile for bat/throw (may or may not exist)
+            # Get player profile for bat/throw
             profile_url = f"https://statsapi.mlb.com/api/v1/people/{player_id}"
             profile_resp = requests.get(profile_url)
             profile_data = profile_resp.json().get("people", [{}])[0]
@@ -51,7 +50,7 @@ for team_id, team_name in teams.items():
 
             player_row = {
                 "Team ID": str(team_id),
-                "Team Name": str(team_name),  # <- FORCED NAME HERE
+                "Team Name": str(team_name),
                 "Player ID": str(player_id),
                 "Player Name": str(player_name),
                 "Jersey Number": str(jersey_number),
@@ -67,12 +66,12 @@ for team_id, team_name in teams.items():
     except Exception as e:
         print(f"⚠️ Error processing {team_name} ({team_id}): {e}")
 
-# 🚨 DEBUG: Check first 5 rows before saving
+# Preview first few rows
 print("\n🚨 First 5 rows before saving:")
 for row in all_players[:5]:
     print(row)
 
-# Create DataFrame with locked columns
+# Save to CSV in current directory
 columns = [
     "Team ID", "Team Name", "Player ID", "Player Name", "Jersey Number",
     "Position", "Position Type", "Bat Side", "Throw Side", "Status"
@@ -82,3 +81,4 @@ df = pd.DataFrame(all_players, columns=columns)
 df.to_csv(filename, index=False)
 
 print(f"\n✅ Done! Saved {len(df)} players to {filename}")
+
