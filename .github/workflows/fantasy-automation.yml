@@ -2,7 +2,7 @@ name: Fantasy Sports Automation
 
 on:
   schedule:
-    - cron: '0 14 * * *'  # 9 AM Central
+    - cron: '0 14 * * *'  # Runs every day at 9 AM Central
   workflow_dispatch:
 
 jobs:
@@ -23,6 +23,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install boto3
+          pip install feedparser
 
       - name: Run Box Scores Scraper
         run: python mlb_box_scraper.py
@@ -51,10 +52,10 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-2
         run: |
-          aws s3 cp mlb_boxscores_*.csv s3://fantasy-sports-csvs/baseball/boxscores/ --recursive --exclude "*" --include "*.csv"
-          aws s3 cp mlb_rosters_*.csv s3://fantasy-sports-csvs/baseball/rosters/ --recursive --exclude "*" --include "*.csv"
-          aws s3 cp mlb_weather_*.csv s3://fantasy-sports-csvs/baseball/weather/ --recursive --exclude "*" --include "*.csv"
-          aws s3 cp mlb_season_stats_*.csv s3://fantasy-sports-csvs/baseball/seasonstats/ --recursive --exclude "*" --include "*.csv"
-          aws s3 cp mlb_betting_odds_*.csv s3://fantasy-sports-csvs/baseball/betting/ --recursive --exclude "*" --include "*.csv"
-          aws s3 cp mlb_news_*.csv s3://fantasy-sports-csvs/baseball/news/ --recursive --exclude "*" --include "*.csv"
-          aws s3 cp mlb_probable_starters_*.csv s3://fantasy-sports-csvs/baseball/starters/ --recursive --exclude "*" --include "*.csv"
+          aws s3 sync . s3://fantasy-sports-csvs/baseball/boxscores/ --exclude "*" --include "mlb_boxscores_*.csv"
+          aws s3 sync . s3://fantasy-sports-csvs/baseball/rosters/ --exclude "*" --include "mlb_rosters_*.csv"
+          aws s3 sync . s3://fantasy-sports-csvs/baseball/weather/ --exclude "*" --include "mlb_weather_*.csv"
+          aws s3 sync . s3://fantasy-sports-csvs/baseball/seasonstats/ --exclude "*" --include "mlb_season_stats_*.csv"
+          aws s3 sync . s3://fantasy-sports-csvs/baseball/betting/ --exclude "*" --include "mlb_betting_odds_*.csv"
+          aws s3 sync . s3://fantasy-sports-csvs/baseball/news/ --exclude "*" --include "mlb_news_*.csv"
+          aws s3 sync . s3://fantasy-sports-csvs/baseball/starters/ --exclude "*" --include "mlb_probable_starters_*.csv"
