@@ -2,7 +2,7 @@ name: Fantasy Sports Automation
 
 on:
   schedule:
-    - cron: '0 14 * * *'  # Runs every day at 2 PM UTC (9 AM Central)
+    - cron: '0 14 * * *'  # 9 AM Central
   workflow_dispatch:
 
 jobs:
@@ -22,6 +22,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install boto3
 
       - name: Run Box Scores Scraper
         run: python mlb_box_scraper.py
@@ -35,12 +36,25 @@ jobs:
       - name: Run Season Stats Scraper
         run: python mlb_season_stats_scraper.py
 
-      - name: Commit and Push CSV Files
+      - name: Run Betting Odds Scraper
+        run: python mlb_betting_odds_scraper.py
+
+      - name: Run ESPN Articles Scraper
+        run: python mlb_espn_articles_scraper.py
+
+      - name: Run Probable Starters Scraper
+        run: python mlb_probable_starters_scraper.py
+
+      - name: Upload CSVs to S3
         env:
-          TOKEN: ${{ secrets.GH_PAT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-2
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add *.csv
-          git commit -m "Add updated CSV files" || echo "No changes to commit"
-          git push https://x-access-token:${TOKEN}@github.com/brandoncoates/fantasy-sports-automation.git HEAD:main
+          aws s3 cp mlb_boxscores_*.csv s3://fantasy-sports-csvs/baseball/boxscores/ --recursive --exclude "*" --include "*.csv"
+          aws s3 cp mlb_rosters_*.csv s3://fantasy-sports-csvs/baseball/rosters/ --recursive --exclude "*" --include "*.csv"
+          aws s3 cp mlb_weather_*.csv s3://fantasy-sports-csvs/baseball/weather/ --recursive --exclude "*" --include "*.csv"
+          aws s3 cp mlb_season_stats_*.csv s3://fantasy-sports-csvs/baseball/seasonstats/ --recursive --exclude "*" --include "*.csv"
+          aws s3 cp mlb_betting_odds_*.csv s3://fantasy-sports-csvs/baseball/betting/ --recursive --exclude "*" --include "*.csv"
+          aws s3 cp mlb_news_*.csv s3://fantasy-sports-csvs/baseball/news/ --recursive --exclude "*" --include "*.csv"
+          aws s3 cp mlb_probable_starters_*.csv s3://fantasy-sports-csvs/baseball/starters/ --recursive --exclude "*" --include "*.csv"
