@@ -1,88 +1,78 @@
+import os
 import requests
 import pandas as pd
 from datetime import datetime
-import pytz
 
-# === CONFIG ===
-API_KEY = '32c95ea767253beab2da2d1563a9150e'  # Replace with your actual Odds API key
-SPORT = 'baseball_mlb'
-REGION = 'us'
-MARKETS = 'h2h,spreads,totals'
+# === CONFIG: Set True to pull today's games ===
+use_today = True
 
-# Get current date in Eastern Time
-eastern = pytz.timezone('US/Eastern')
-current_date = datetime.now(eastern).strftime('%Y-%m-%d')
+# Get date in YYYY-MM-DD format
+target_date = datetime.now().strftime('%Y-%m-%d')
 
-# File name
-filename = f"mlb_betting_odds_{current_date}.csv"
+# Step 1: Get Schedule for the target date
+schedule_url = f'https://statsapi.mlb.com/api/v1/schedule?sportId=1&date={target_date}'
+response = requests.get(schedule_url)
+schedule_data = response.json()
 
-# Odds API endpoint
-url = f"https://api.the-odds-api.com/v4/sports/{SPORT}/odds/?apiKey={API_KEY}&regions={REGION}&markets={MARKETS}&oddsFormat=american"
+games = schedule_data.get('dates', [])[0].get('games', []) if schedule_data.get('dates') else []
+game_ids = [game['gamePk'] for game in games]
 
-response = requests.get(url)
-if response.status_code != 200:
-    print(f"❌ Failed to fetch data: {response.status_code} - {response.text}")
-    exit()
+print(f"Found {len(game_ids)} games for {target_date}.")
 
-games = response.json()
+odds_data = []
 
-all_odds = []
-
-for game in games:
-    home_team = game.get('home_team', '')
-    away_team = game.get('away_team', '')
-    commence_time_utc = game.get('commence_time', '')
-
-    # Convert time to Eastern
+# Step 2: Loop through each game's odds
+for game_id in game_ids:
     try:
-        utc_time = datetime.strptime(commence_time_utc, "%Y-%m-%dT%H:%M:%SZ")
-        eastern_time = utc_time.replace(tzinfo=pytz.utc).astimezone(eastern)
-        game_time = eastern_time.strftime('%Y-%m-%d %I:%M %p %Z')
-    except:
-        game_time = ''
+        odds_url = f'https://statsapi.mlb.com/api/v1/game/{game_id}/linescore'
+        odds_response = requests.get(odds_url)
+        odds_json = odds_response.json()
 
-    for bookmaker in game.get('bookmakers', []):
-        site = bookmaker.get('title', '')
+        game_url = f'https://statsapi.mlb.com/api/v1.1/game/{game_id}/feed/live'
+        game_response = requests.get(game_url)
+        game_data = game_response.json()
 
-        h2h = bookmaker.get('markets', [])[0].get('outcomes', []) if bookmaker.get('markets') else []
-        spreads = next((m['outcomes'] for m in bookmaker.get('markets', []) if m['key'] == 'spreads'), [])
-        totals = next((m['outcomes'] for m in bookmaker.get('markets', []) if m['key'] == 'totals'), [])
+        game_info = game_data.get("gameData", {})
+        teams_info = game_info.get("teams", {})
+        home_team = teams_info.get("home", {}).get("name", "")
+        away_team = teams_info.get("away", {}).get("name", "")
 
-        # Prepare odds dict
+        # Extract betting info from metadata
+        metadata = game_data.get("gameData", {}).get("metadata", {})
+        betting_info = game_data.get("liveData", {}).get("boxscore", {}).get("info", [])
+
+        # Fallback: some odds might be embedded in 'info' or 'metadata'
         odds_entry = {
-            'Game': f"{away_team} @ {home_team}",
-            'Game Time (ET)': game_time,
-            'Sportsbook': site
+            "Game ID": game_id,
+            "Date": target_date,
+            "Home Team": home_team,
+            "Away Team": away_team,
+            "Spread": None,
+            "Over/Under": None
         }
 
-        # Moneyline
-        for outcome in h2h:
-            if outcome['name'] == home_team:
-                odds_entry['Home Moneyline'] = outcome['price']
-            elif outcome['name'] == away_team:
-                odds_entry['Away Moneyline'] = outcome['price']
+        for item in betting_info:
+            label = item.get("label", "").lower()
+            value = item.get("value", [""])[0]
 
-        # Spread
-        for outcome in spreads:
-            if outcome['name'] == home_team:
-                odds_entry['Home Spread'] = outcome.get('point', '')
-                odds_entry['Home Spread Odds'] = outcome.get('price', '')
-            elif outcome['name'] == away_team:
-                odds_entry['Away Spread'] = outcome.get('point', '')
-                odds_entry['Away Spread Odds'] = outcome.get('price', '')
+            if "over/under" in label:
+                odds_entry["Over/Under"] = value
+            elif "spread" in label:
+                odds_entry["Spread"] = value
 
-        # Total
-        for outcome in totals:
-            if 'Over' in outcome['name']:
-                odds_entry['Over'] = outcome.get('point', '')
-                odds_entry['Over Odds'] = outcome.get('price', '')
-            elif 'Under' in outcome['name']:
-                odds_entry['Under'] = outcome.get('point', '')
-                odds_entry['Under Odds'] = outcome.get('price', '')
+        odds_data.append(odds_entry)
 
-        all_odds.append(odds_entry)
+    except Exception as e:
+        print(f"❌ Skipped game {game_id} due to error: {e}")
 
-# Save to CSV
-df = pd.DataFrame(all_odds)
-df.to_csv(filename, index=False)
-print(f"✅ Betting odds saved to {filename} ({len(df)} games)")
+# Step 3: Save to folder
+output_dir = "MLB Daily Odds"
+os.makedirs(output_dir, exist_ok=True)
+
+filename = f"mlb_betting_odds_{target_date}.csv"
+output_path = os.path.join(output_dir, filename)
+
+df = pd.DataFrame(odds_data)
+df.to_csv(output_path, index=False)
+
+print(f"✅ Betting odds saved to {output_path} ({len(odds_data)} games)")
