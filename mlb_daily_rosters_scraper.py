@@ -1,84 +1,57 @@
+import os
 import requests
 import pandas as pd
 from datetime import datetime
 
-# Set up target date
-target_date = datetime.now().strftime('%Y-%m-%d')
+# Step 1: Get all teams
+teams_url = 'https://statsapi.mlb.com/api/v1/teams?sportId=1'
+teams_response = requests.get(teams_url)
+teams_data = teams_response.json()
 
-# Set filename (saved in current directory)
-filename = f"mlb_rosters_{target_date}.csv"
-
-# Hardcoded Team IDs and Names
-teams = {
-    108: 'Angels', 109: 'Diamondbacks', 110: 'Braves', 111: 'Orioles',
-    112: 'Red Sox', 113: 'Cubs', 114: 'White Sox', 115: 'Reds',
-    116: 'Guardians', 117: 'Rockies', 118: 'Tigers', 119: 'Astros',
-    120: 'Royals', 121: 'Dodgers', 133: 'Marlins', 134: 'Brewers',
-    135: 'Twins', 136: 'Yankees', 137: 'Mets', 138: 'Athletics',
-    139: 'Phillies', 140: 'Pirates', 141: 'Padres', 142: 'Giants',
-    143: 'Mariners', 144: 'Cardinals', 145: 'Rays', 146: 'Rangers',
-    147: 'Blue Jays', 158: 'Nationals'
-}
+teams = teams_data.get('teams', [])
 
 all_players = []
 
-# Fetch each team's roster
-for team_id, team_name in teams.items():
-    print(f"🔄 Fetching roster for {team_name} (ID {team_id})")
+# Step 2: Loop through teams and get rosters
+for team in teams:
+    team_id = team['id']
+    team_name = team['name']
+    
+    roster_url = f'https://statsapi.mlb.com/api/v1/teams/{team_id}/roster?rosterType=all'
+    roster_response = requests.get(roster_url)
+    if roster_response.status_code != 200:
+        print(f"❌ Skipped team {team_name} due to error: {roster_response.status_code}")
+        continue
+    
+    roster_data = roster_response.json().get('roster', [])
 
-    try:
-        roster_url = f"https://statsapi.mlb.com/api/v1/teams/{team_id}/roster?rosterType=fullRoster"
-        roster_response = requests.get(roster_url)
-        roster_data = roster_response.json().get("roster", [])
+    for player in roster_data:
+        person = player.get('person', {})
+        jersey = player.get('jerseyNumber', '')
+        position = player.get('position', {}).get('abbreviation', '')
+        status = player.get('status', {}).get('code', 'Unknown')
 
-        for player in roster_data:
-            person = player.get("person", {})
-            player_id = person.get("id", "")
-            player_name = person.get("fullName", "")
-            jersey_number = player.get("jerseyNumber", "")
-            position = player.get("position", {}).get("abbreviation", "")
-            position_type = player.get("position", {}).get("type", "")
-            status = player.get("status", {}).get("description", "")
+        all_players.append({
+            'Team ID': team_id,
+            'Team Name': team_name,
+            'Player ID': person.get('id'),
+            'Player Name': person.get('fullName'),
+            'Jersey Number': jersey,
+            'Position': position,
+            'Bat Side': person.get('batSide', {}).get('description', ''),
+            'Throw Side': person.get('pitchHand', {}).get('description', ''),
+            'Status': status
+        })
 
-            # Get player profile for bat/throw
-            profile_url = f"https://statsapi.mlb.com/api/v1/people/{player_id}"
-            profile_resp = requests.get(profile_url)
-            profile_data = profile_resp.json().get("people", [{}])[0]
+# Step 3: Save to CSV in "MLB Daily Rosters" folder
+output_dir = "MLB Daily Rosters"
+os.makedirs(output_dir, exist_ok=True)
 
-            bat_side = profile_data.get("batSide", {}).get("description", "Unknown")
-            throw_side = profile_data.get("pitchHand", {}).get("description", "Unknown")
+date_str = datetime.now().strftime('%Y-%m-%d')
+filename = f"mlb_rosters_{date_str}.csv"
+output_path = os.path.join(output_dir, filename)
 
-            player_row = {
-                "Team ID": str(team_id),
-                "Team Name": str(team_name),
-                "Player ID": str(player_id),
-                "Player Name": str(player_name),
-                "Jersey Number": str(jersey_number),
-                "Position": str(position),
-                "Position Type": str(position_type),
-                "Bat Side": str(bat_side) or "Unknown",
-                "Throw Side": str(throw_side) or "Unknown",
-                "Status": str(status)
-            }
+df = pd.DataFrame(all_players)
+df.to_csv(output_path, index=False)
 
-            all_players.append(player_row)
-
-    except Exception as e:
-        print(f"⚠️ Error processing {team_name} ({team_id}): {e}")
-
-# Preview first few rows
-print("\n🚨 First 5 rows before saving:")
-for row in all_players[:5]:
-    print(row)
-
-# Save to CSV in current directory
-columns = [
-    "Team ID", "Team Name", "Player ID", "Player Name", "Jersey Number",
-    "Position", "Position Type", "Bat Side", "Throw Side", "Status"
-]
-
-df = pd.DataFrame(all_players, columns=columns)
-df.to_csv(filename, index=False)
-
-print(f"\n✅ Done! Saved {len(df)} players to {filename}")
-
+print(f"✅ Done! Saved {len(all_players)} players to {output_path}")
