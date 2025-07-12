@@ -1,98 +1,58 @@
-import requests
+import os
 import pandas as pd
+import requests
 from datetime import datetime
 
-# Set up target date for filename
-target_date = datetime.now().strftime('%Y-%m-%d')
-filename = f"mlb_season_stats_{target_date}.csv"  # Save directly in current folder
+# === CONFIG ===
+season = datetime.now().year
+output_dir = "mlb_season_stats"
+os.makedirs(output_dir, exist_ok=True)
+filename = f"mlb_season_stats_{season}.csv"
+output_path = os.path.join(output_dir, filename)
 
-# Hardcoded Team IDs and Names
-teams = {
-    108: 'Angels', 109: 'Diamondbacks', 110: 'Braves', 111: 'Orioles',
-    112: 'Red Sox', 113: 'Cubs', 114: 'White Sox', 115: 'Reds',
-    116: 'Guardians', 117: 'Rockies', 118: 'Tigers', 119: 'Astros',
-    120: 'Royals', 121: 'Dodgers', 133: 'Marlins', 134: 'Brewers',
-    135: 'Twins', 136: 'Yankees', 137: 'Mets', 138: 'Athletics',
-    139: 'Phillies', 140: 'Pirates', 141: 'Padres', 142: 'Giants',
-    143: 'Mariners', 144: 'Cardinals', 145: 'Rays', 146: 'Rangers',
-    147: 'Blue Jays', 158: 'Nationals'
-}
+# === MLB API Endpoint (Batting stats across entire league) ===
+url = (
+    f"https://statsapi.mlb.com/api/v1/stats"
+    f"?stats=season&group=hitting&gameType=R&season={season}&limit=10000"
+)
 
-all_players = []
+response = requests.get(url)
+if response.status_code != 200:
+    print(f"❌ Failed to fetch MLB season stats. Status code: {response.status_code}")
+    exit()
 
-for team_id, team_name in teams.items():
-    print(f"🔄 Fetching players from {team_name}...")
+data = response.json().get("stats", [])[0].get("splits", [])
 
-    try:
-        roster_url = f"https://statsapi.mlb.com/api/v1/teams/{team_id}/roster?rosterType=fullRoster"
-        roster_resp = requests.get(roster_url)
-        roster_data = roster_resp.json().get('roster', [])
+# === Convert to flat table ===
+players = []
+for player in data:
+    stat = player.get("stat", {})
+    player_info = player.get("player", {})
+    team_info = player.get("team", {})
 
-        for player in roster_data:
-            person = player.get("person", {})
-            player_id = person.get("id", "")
-            player_name = person.get("fullName", "")
-            jersey_number = player.get("jerseyNumber", "")
-            position = player.get("position", {}).get("abbreviation", "")
-            position_type = player.get("position", {}).get("type", "")
-            status = player.get("status", {}).get("description", "")
+    players.append({
+        "Player": player_info.get("fullName"),
+        "Team": team_info.get("name"),
+        "Position": player_info.get("primaryPosition", {}).get("abbreviation", ""),
+        "Games Played": stat.get("gamesPlayed"),
+        "Plate Appearances": stat.get("plateAppearances"),
+        "At Bats": stat.get("atBats"),
+        "Runs": stat.get("runs"),
+        "Hits": stat.get("hits"),
+        "Doubles": stat.get("doubles"),
+        "Triples": stat.get("triples"),
+        "Home Runs": stat.get("homeRuns"),
+        "RBIs": stat.get("rbi"),
+        "Stolen Bases": stat.get("stolenBases"),
+        "Walks": stat.get("baseOnBalls"),
+        "Strikeouts": stat.get("strikeOuts"),
+        "AVG": stat.get("avg"),
+        "OBP": stat.get("obp"),
+        "SLG": stat.get("slg"),
+        "OPS": stat.get("ops"),
+    })
 
-            profile_url = f"https://statsapi.mlb.com/api/v1/people/{player_id}?hydrate=stats(group=[hitting,pitching],type=season)"
-            profile_resp = requests.get(profile_url)
-            profile_data = profile_resp.json().get('people', [{}])[0]
-
-            bat_side = profile_data.get("batSide", {}).get("description", "Unknown")
-            throw_side = profile_data.get("pitchHand", {}).get("description", "Unknown")
-
-            # Extract season hitting and pitching stats
-            hitting_stats = {}
-            pitching_stats = {}
-
-            stats_list = profile_data.get('stats', [])
-
-            for stats in stats_list:
-                group_name = stats.get('group', {}).get('displayName')
-                if group_name == 'hitting':
-                    hitting_stats = stats.get('stats', {})
-                elif group_name == 'pitching':
-                    pitching_stats = stats.get('stats', {})
-
-            player_row = {
-                "Team ID": str(team_id),
-                "Team Name": str(team_name),
-                "Player ID": str(player_id),
-                "Player Name": str(player_name),
-                "Jersey Number": str(jersey_number),
-                "Position": str(position),
-                "Position Type": str(position_type),
-                "Bat Side": str(bat_side) or "Unknown",
-                "Throw Side": str(throw_side) or "Unknown",
-                "Status": str(status),
-                # Hitting stats
-                "AVG": hitting_stats.get('avg', ''),
-                "OBP": hitting_stats.get('obp', ''),
-                "SLG": hitting_stats.get('slg', ''),
-                "OPS": hitting_stats.get('ops', ''),
-                "HR": hitting_stats.get('homeRuns', ''),
-                "RBI": hitting_stats.get('rbi', ''),
-                "SB": hitting_stats.get('stolenBases', ''),
-                # Pitching stats
-                "ERA": pitching_stats.get('era', ''),
-                "W": pitching_stats.get('wins', ''),
-                "L": pitching_stats.get('losses', ''),
-                "SV": pitching_stats.get('saves', ''),
-                "IP": pitching_stats.get('inningsPitched', ''),
-                "K": pitching_stats.get('strikeOuts', '')
-            }
-
-            all_players.append(player_row)
-
-    except Exception as e:
-        print(f"⚠️ Error processing team {team_name} (ID {team_id}): {e}")
-
-# Create DataFrame and Save CSV to repo directory
-df = pd.DataFrame(all_players)
-df.to_csv(filename, index=False)
-
-print(f"\n✅ Done! Saved {len(df)} player rows to {filename}")
-
+# === Save to CSV ===
+df = pd.DataFrame(players)
+df.to_csv(output_path, index=False)
+print(f"✅ Saved {len(df)} player rows to {output_path}")
