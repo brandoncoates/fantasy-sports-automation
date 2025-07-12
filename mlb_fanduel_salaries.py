@@ -6,15 +6,15 @@ from datetime import datetime
 # === CONFIG ===
 output_dir = "mlb_fanduel_salaries"
 os.makedirs(output_dir, exist_ok=True)
+
 today = datetime.now().strftime("%Y-%m-%d")
 filename = f"mlb_fanduel_salaries_{today}.csv"
 output_path = os.path.join(output_dir, filename)
 
 # === STEP 1: Download CSV from FanDuel (if available)
-# ⚠️ FanDuel does not provide a public CSV endpoint like DraftKings
-# You’ll need to replace this with a real one if you get access or scrape it from a DFS optimizer site
+# ⚠️ FanDuel does not provide a public CSV endpoint like DraftKings.
+# This is mock data for now — replace with live scrape/API if available.
 
-# Placeholder: simulate CSV download with mock data
 data = [
     {"Name": "Aaron Judge", "Team": "NYY", "Position": "OF", "Salary": 4100},
     {"Name": "Shohei Ohtani", "Team": "LAD", "Position": "UTIL", "Salary": 4500},
