@@ -18,10 +18,12 @@ folders = {
     "mlb_rotogrinders_projections": "baseball/playerprojections/rotogrinders/",
 }
 
-# === S3 client (uses GitHub Actions' credentials)
-s3 = boto3.client("s3")
+# === AWS credentials and region
+aws_region = os.getenv("AWS_REGION", "us-east-1")
+s3 = boto3.client("s3", region_name=aws_region)
 bucket_name = "fantasy-sports-csvs"
 
+# === Get newest CSV from a folder
 def get_newest_csv_file(folder_path):
     csv_files = [
         os.path.join(folder_path, f)
@@ -32,9 +34,10 @@ def get_newest_csv_file(folder_path):
         return None
     return max(csv_files, key=os.path.getmtime)
 
-# === Loop through folders and upload
+# === Upload all the latest CSVs
 for local_folder, s3_folder in folders.items():
     folder_path = os.path.join(os.getcwd(), local_folder)
+
     if not os.path.exists(folder_path):
         print(f"⚠️ Folder does not exist: {folder_path}")
         continue
@@ -48,7 +51,8 @@ for local_folder, s3_folder in folders.items():
     s3_key = f"{s3_folder}{filename}"
 
     try:
+        print(f"📤 Uploading {filename} → s3://{bucket_name}/{s3_key}")
         s3.upload_file(newest_file, bucket_name, s3_key)
-        print(f"✅ Uploaded {filename} to s3://{bucket_name}/{s3_key}")
+        print(f"✅ Uploaded {filename}")
     except Exception as e:
         print(f"❌ Failed to upload {filename}: {e}")
