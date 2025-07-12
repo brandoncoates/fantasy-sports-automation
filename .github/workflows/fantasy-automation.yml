@@ -27,28 +27,30 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas requests beautifulsoup4
+          pip install pandas requests beautifulsoup4 awscli
 
-      # ✅ Existing Scripts Here (Optional — keep or add your old ones)
-
-      # ✅ NEW: Run DraftKings props script
+      # ✅ Run DraftKings player props script
       - name: Run DraftKings player props
         run: python "Fantasy Baseball/Player Projections/mlb_draftkings_player_props.py"
 
-      # ✅ NEW: Run ESPN player projections script
+      # ✅ Run ESPN player projections script
       - name: Run ESPN player projections
         run: python "Fantasy Baseball/Player Projections/mlb_espn_player_projections.py"
 
-      # ✅ NEW: Run Rotogrinders DraftKings projections script
+      # ✅ Run Rotogrinders DraftKings projections script
       - name: Run Rotogrinders DraftKings projections
         run: python "Fantasy Baseball/Player Projections/mlb_rotogrinders_draftkings_projections.py"
 
-      # ✅ NEW: Run Rotogrinders FanDuel projections script
+      # ✅ Run Rotogrinders FanDuel projections script
       - name: Run Rotogrinders FanDuel projections
         run: python "Fantasy Baseball/Player Projections/mlb_rotogrinders_fanduel_projections.py"
 
-      # ✅ Upload all Player Projections CSVs to S3
+      # ✅ Upload each CSV to its specific S3 folder
       - name: Upload projections to S3
         run: |
-          pip install awscli
-          aws s3 cp "Fantasy Baseball/Player Projections/" "s3://${{ env.S3_BUCKET_NAME }}/baseball/playerprojections/" --recursive --exclude "*" --include "*.csv" --acl public-read
+          TODAY=$(date +%Y-%m-%d)
+
+          aws s3 cp "Fantasy Baseball/Player Projections/mlb_draftkings_player_props_${TODAY}.csv" s3://$S3_BUCKET_NAME/baseball/playerprojections/draftkings/ --acl public-read
+          aws s3 cp "Fantasy Baseball/Player Projections/mlb_espn_player_projections_${TODAY}.csv" s3://$S3_BUCKET_NAME/baseball/playerprojections/espn/ --acl public-read
+          aws s3 cp "Fantasy Baseball/Player Projections/mlb_rotogrinders_dk_${TODAY}.csv" s3://$S3_BUCKET_NAME/baseball/playerprojections/rotogrinders_dk/ --acl public-read
+          aws s3 cp "Fantasy Baseball/Player Projections/mlb_rotogrinders_fd_${TODAY}.csv" s3://$S3_BUCKET_NAME/baseball/playerprojections/rotogrinders_fd/ --acl public-read
