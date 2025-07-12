@@ -70,6 +70,13 @@ jobs:
       - name: Run Rotogrinders FanDuel projections
         run: python mlb_rotogrinders_fanduel_projections.py
 
+      # Player Salaries
+      - name: Run DraftKings salaries scraper
+        run: python "Fantasy Baseball/MLB Player Salaries/mlb_draftkings_salaries.py"
+
+      - name: Run FanDuel salaries scraper
+        run: python "Fantasy Baseball/MLB Player Salaries/mlb_fanduel_salaries.py"
+
       ##########################################
       # ✅ Upload All CSVs to Correct S3 Paths
       ##########################################
@@ -101,3 +108,7 @@ jobs:
           aws s3 cp "mlb_espn_player_projections_${TODAY}.csv"   s3://$S3_BUCKET_NAME/baseball/playerprojections/espn/            --acl public-read
           aws s3 cp "mlb_rotogrinders_dk_${TODAY}.csv"           s3://$S3_BUCKET_NAME/baseball/playerprojections/rotogrinders_dk/ --acl public-read
           aws s3 cp "mlb_rotogrinders_fd_${TODAY}.csv"           s3://$S3_BUCKET_NAME/baseball/playerprojections/rotogrinders_fd/ --acl public-read
+
+          # Player Salaries
+          aws s3 cp "Fantasy Baseball/MLB Player Salaries/mlb_draftkings_salaries_${TODAY}.csv" s3://$S3_BUCKET_NAME/baseball/playersalaries/draftkings/ --acl public-read
+          aws s3 cp "Fantasy Baseball/MLB Player Salaries/mlb_fanduel_salaries_${TODAY}.csv"    s3://$S3_BUCKET_NAME/baseball/playersalaries/fanduel/    --acl public-read
