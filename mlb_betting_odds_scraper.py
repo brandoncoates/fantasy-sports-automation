@@ -41,7 +41,6 @@ for game_id in game_ids:
         metadata = game_data.get("gameData", {}).get("metadata", {})
         betting_info = game_data.get("liveData", {}).get("boxscore", {}).get("info", [])
 
-        # Fallback: some odds might be embedded in 'info' or 'metadata'
         odds_entry = {
             "Game ID": game_id,
             "Date": target_date,
@@ -65,8 +64,8 @@ for game_id in game_ids:
     except Exception as e:
         print(f"❌ Skipped game {game_id} due to error: {e}")
 
-# Step 3: Save to folder
-output_dir = "MLB Daily Odds"
+# Step 3: Save to correct folder
+output_dir = "mlb_daily_odds"
 os.makedirs(output_dir, exist_ok=True)
 
 filename = f"mlb_betting_odds_{target_date}.csv"
