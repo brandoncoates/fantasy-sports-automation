@@ -7,10 +7,11 @@ from datetime import datetime
 season = datetime.now().year
 output_dir = "mlb_season_stats"
 os.makedirs(output_dir, exist_ok=True)
+
 filename = f"mlb_season_stats_{season}.csv"
 output_path = os.path.join(output_dir, filename)
 
-# === MLB API Endpoint (Batting stats across entire league) ===
+# === MLB API Endpoint (Batting stats across entire league)
 url = (
     f"https://statsapi.mlb.com/api/v1/stats"
     f"?stats=season&group=hitting&gameType=R&season={season}&limit=10000"
@@ -23,7 +24,7 @@ if response.status_code != 200:
 
 data = response.json().get("stats", [])[0].get("splits", [])
 
-# === Convert to flat table ===
+# === Convert to flat table
 players = []
 for player in data:
     stat = player.get("stat", {})
@@ -52,7 +53,7 @@ for player in data:
         "OPS": stat.get("ops"),
     })
 
-# === Save to CSV ===
+# === Save to CSV
 df = pd.DataFrame(players)
 df.to_csv(output_path, index=False)
 print(f"✅ Saved {len(df)} player rows to {output_path}")
