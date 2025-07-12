@@ -29,28 +29,75 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas requests beautifulsoup4 awscli
 
-      # ✅ Run DraftKings player props script
+      ##########################################
+      # ✅ Run All Scrapers (Grouped by Type)
+      ##########################################
+
+      # Daily Box Scores
+      - name: Run Box Score Scraper
+        run: python mlb_box_scraper.py
+
+      # Daily Rosters
+      - name: Run Roster Scraper
+        run: python mlb_daily_rosters_scraper.py
+
+      # Daily Weather
+      - name: Run Weather Scraper
+        run: python mlb_daily_weather_scraper.py
+
+      # Probable Starters
+      - name: Run Probable Starters Scraper
+        run: python mlb_probable_starters_scraper.py
+
+      # Betting Odds
+      - name: Run Betting Odds Scraper
+        run: python mlb_betting_odds_scraper.py
+
+      # ESPN News
+      - name: Run ESPN Articles Scraper
+        run: python mlb_espn_articles_scraper.py
+
+      # Player Props & Projections
       - name: Run DraftKings player props
-        run: python "Fantasy Baseball/Player Projections/mlb_draftkings_player_props.py"
+        run: python mlb_draftkings_player_props.py
 
-      # ✅ Run ESPN player projections script
       - name: Run ESPN player projections
-        run: python "Fantasy Baseball/Player Projections/mlb_espn_player_projections.py"
+        run: python mlb_espn_player_projections.py
 
-      # ✅ Run Rotogrinders DraftKings projections script
       - name: Run Rotogrinders DraftKings projections
-        run: python "Fantasy Baseball/Player Projections/mlb_rotogrinders_draftkings_projections.py"
+        run: python mlb_rotogrinders_draftkings_projections.py
 
-      # ✅ Run Rotogrinders FanDuel projections script
       - name: Run Rotogrinders FanDuel projections
-        run: python "Fantasy Baseball/Player Projections/mlb_rotogrinders_fanduel_projections.py"
+        run: python mlb_rotogrinders_fanduel_projections.py
 
-      # ✅ Upload each CSV to its specific S3 folder
-      - name: Upload projections to S3
+      ##########################################
+      # ✅ Upload All CSVs to Correct S3 Paths
+      ##########################################
+
+      - name: Upload all CSVs to S3
         run: |
           TODAY=$(date +%Y-%m-%d)
 
-          aws s3 cp "Fantasy Baseball/Player Projections/mlb_draftkings_player_props_${TODAY}.csv" s3://$S3_BUCKET_NAME/baseball/playerprojections/draftkings/ --acl public-read
-          aws s3 cp "Fantasy Baseball/Player Projections/mlb_espn_player_projections_${TODAY}.csv" s3://$S3_BUCKET_NAME/baseball/playerprojections/espn/ --acl public-read
-          aws s3 cp "Fantasy Baseball/Player Projections/mlb_rotogrinders_dk_${TODAY}.csv" s3://$S3_BUCKET_NAME/baseball/playerprojections/rotogrinders_dk/ --acl public-read
-          aws s3 cp "Fantasy Baseball/Player Projections/mlb_rotogrinders_fd_${TODAY}.csv" s3://$S3_BUCKET_NAME/baseball/playerprojections/rotogrinders_fd/ --acl public-read
+          # Box Scores
+          aws s3 cp "mlb_boxscores_${TODAY}.csv" s3://$S3_BUCKET_NAME/baseball/boxscores/ --acl public-read
+
+          # Rosters
+          aws s3 cp "mlb_rosters_${TODAY}.csv" s3://$S3_BUCKET_NAME/baseball/rosters/ --acl public-read
+
+          # Weather
+          aws s3 cp "mlb_weather_${TODAY}.csv" s3://$S3_BUCKET_NAME/baseball/weather/ --acl public-read
+
+          # Starters
+          aws s3 cp "mlb_probable_starters_${TODAY}.csv" s3://$S3_BUCKET_NAME/baseball/starters/ --acl public-read
+
+          # Betting Odds
+          aws s3 cp "mlb_betting_odds_${TODAY}.csv" s3://$S3_BUCKET_NAME/baseball/betting/ --acl public-read
+
+          # ESPN News
+          aws s3 cp "mlb_espn_articles_${TODAY}.csv" s3://$S3_BUCKET_NAME/baseball/news/ --acl public-read
+
+          # Player Projections and Props
+          aws s3 cp "mlb_draftkings_player_props_${TODAY}.csv"   s3://$S3_BUCKET_NAME/baseball/playerprojections/draftkings/       --acl public-read
+          aws s3 cp "mlb_espn_player_projections_${TODAY}.csv"   s3://$S3_BUCKET_NAME/baseball/playerprojections/espn/            --acl public-read
+          aws s3 cp "mlb_rotogrinders_dk_${TODAY}.csv"           s3://$S3_BUCKET_NAME/baseball/playerprojections/rotogrinders_dk/ --acl public-read
+          aws s3 cp "mlb_rotogrinders_fd_${TODAY}.csv"           s3://$S3_BUCKET_NAME/baseball/playerprojections/rotogrinders_fd/ --acl public-read
