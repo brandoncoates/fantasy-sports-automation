@@ -89,8 +89,8 @@ for game_id in game_ids:
     except Exception as e:
         print(f"❌ Skipped game {game_id} due to error: {e}")
 
-# ✅ Step 3: Save to folder
-output_dir = "MLB Box Scores"
+# ✅ Step 3: Save to correct folder
+output_dir = "mlb_box_scores"
 os.makedirs(output_dir, exist_ok=True)
 
 filename = f"mlb_boxscores_{target_date}.csv"
