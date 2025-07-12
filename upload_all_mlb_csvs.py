@@ -1,7 +1,7 @@
 import os
 import boto3
 
-# Define folder mappings: {local folder name : s3 subfolder}
+# Define folder mappings: {actual folder name in repo : S3 subfolder path}
 folders = {
     "MLB Box Scores": "baseball/boxscores/",
     "MLB Daily Odds": "baseball/betting/",
@@ -12,7 +12,7 @@ folders = {
     "MLB Season Stats": "baseball/seasonstats/"
 }
 
-# Set up S3 client (uses GitHub Action's configured AWS credentials)
+# Set up S3 client
 s3 = boto3.client('s3')
 bucket_name = 'fantasy-sports-csvs'
 
