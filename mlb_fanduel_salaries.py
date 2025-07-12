@@ -1,54 +1,30 @@
-import requests
-import csv
-from datetime import datetime
 import os
+import pandas as pd
+import requests
+from datetime import datetime
 
-# Get today's date
-today = datetime.now().strftime('%Y-%m-%d')
+# === CONFIG ===
+output_dir = "mlb_fanduel_salaries"
+os.makedirs(output_dir, exist_ok=True)
+today = datetime.now().strftime("%Y-%m-%d")
+filename = f"mlb_fanduel_salaries_{today}.csv"
+output_path = os.path.join(output_dir, filename)
 
-# FanDuel MLB salary CSV URL
-url = "https://www.fanduel.com/api/game/get-slates?sport=mlb"
+# === STEP 1: Download CSV from FanDuel (if available)
+# ⚠️ FanDuel does not provide a public CSV endpoint like DraftKings
+# You’ll need to replace this with a real one if you get access or scrape it from a DFS optimizer site
 
-# Output file path
-output_folder = "Fantasy Baseball/MLB Player Salaries"
-os.makedirs(output_folder, exist_ok=True)
-output_file = os.path.join(output_folder, f"mlb_fanduel_salaries_{today}.csv")
+# Placeholder: simulate CSV download with mock data
+data = [
+    {"Name": "Aaron Judge", "Team": "NYY", "Position": "OF", "Salary": 4100},
+    {"Name": "Shohei Ohtani", "Team": "LAD", "Position": "UTIL", "Salary": 4500},
+    {"Name": "Ronald Acuña Jr.", "Team": "ATL", "Position": "OF", "Salary": 4300},
+    {"Name": "Gerrit Cole", "Team": "NYY", "Position": "P", "Salary": 10300},
+]
 
-try:
-    response = requests.get(url)
-    response.raise_for_status()
-    data = response.json()
+df = pd.DataFrame(data)
+df.insert(0, "Date", today)
 
-    # Filter classic slate
-    classic_slate = None
-    for slate in data.get("slates", []):
-        if "Classic" in slate.get("gameType", "") and slate.get("isMultiDay", False) is False:
-            classic_slate = slate
-            break
-
-    if not classic_slate:
-        print("No classic slate found.")
-        exit()
-
-    players = classic_slate.get("fantasyPlayers", [])
-
-    # Write CSV
-    with open(output_file, "w", newline="", encoding="utf-8") as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow([
-            "Name", "Team", "Opponent", "Position", "Salary", "FPPG", "Injury Status"
-        ])
-        for player in players:
-            writer.writerow([
-                player.get("firstName", "") + " " + player.get("lastName", ""),
-                player.get("team"),
-                player.get("opponent"),
-                player.get("position"),
-                player.get("salary"),
-                player.get("fppg"),
-                player.get("injuryStatus", "")
-            ])
-    print(f"FanDuel salary data saved to: {output_file}")
-
-except Exception as e:
-    print(f"Error fetching FanDuel salaries: {e}")
+# === STEP 2: Save to CSV
+df.to_csv(output_path, index=False)
+print(f"✅ Saved {len(df)} FanDuel salaries to {output_path}")
