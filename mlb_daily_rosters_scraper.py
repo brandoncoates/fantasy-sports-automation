@@ -43,8 +43,8 @@ for team in teams:
             'Status': status
         })
 
-# Step 3: Save to CSV in "MLB Daily Rosters" folder
-output_dir = "MLB Daily Rosters"
+# Step 3: Save to correct folder
+output_dir = "mlb_daily_rosters"
 os.makedirs(output_dir, exist_ok=True)
 
 date_str = datetime.now().strftime('%Y-%m-%d')
