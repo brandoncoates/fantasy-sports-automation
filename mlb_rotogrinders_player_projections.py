@@ -1,26 +1,26 @@
-import pandas as pd
-from datetime import datetime
 import os
+import pandas as pd
+import requests
+from datetime import datetime
 
-# Today's date
-today = datetime.today().strftime('%Y-%m-%d')
-
-# Output directory
-output_dir = r"C:\Users\brand\OneDrive\Documents\Python Projects\Fantasy Baseball\Rotogrinders Player Projections"
+# === CONFIG ===
+site = "draftkings"  # Change to "fanduel" for FanDuel projections
+output_dir = f"mlb_rotogrinders_{site}"
 os.makedirs(output_dir, exist_ok=True)
+today = datetime.now().strftime("%Y-%m-%d")
+filename = f"mlb_rotogrinders_{'dk' if site == 'draftkings' else 'fd'}_{today}.csv"
+output_path = os.path.join(output_dir, filename)
 
-# URLs
-urls = {
-    "DraftKings": "https://www.rotogrinders.com/projected-stats/mlb-hitter.csv?site=draftkings",
-    "FanDuel": "https://www.rotogrinders.com/projected-stats/mlb-hitter.csv?site=fanduel"
-}
+# === Step 1: Load projections from Rotogrinders CSV URL
+csv_url = f"https://rotogrinders.com/projected-stats/mlb-{site}.csv?site={site}"
+response = requests.get(csv_url)
 
-# Loop through each site and save CSV
-for site, url in urls.items():
-    try:
-        df = pd.read_csv(url)
-        file_path = os.path.join(output_dir, f"mlb_rotogrinders_{site.lower()}_projections_{today}.csv")
-        df.to_csv(file_path, index=False)
-        print(f"✅ {site} projections saved to: {file_path}")
-    except Exception as e:
-        print(f"❌ Failed to fetch {site} projections: {e}")
+if response.status_code != 200:
+    print(f"❌ Failed to fetch projections for {site}. Status code: {response.status_code}")
+    exit()
+
+# === Step 2: Read into DataFrame and save
+df = pd.read_csv(pd.compat.StringIO(response.text))
+df.to_csv(output_path, index=False)
+
+print(f"✅ Saved {len(df)} {site.title()} player projections to {output_path}")
