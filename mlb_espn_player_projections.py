@@ -7,15 +7,20 @@ from datetime import datetime
 # === CONFIG ===
 output_dir = "mlb_espn_player_projections"
 os.makedirs(output_dir, exist_ok=True)
+
 today = datetime.now().strftime("%Y-%m-%d")
 filename = f"mlb_espn_player_projections_{today}.csv"
 output_path = os.path.join(output_dir, filename)
 
-# === ESPN Fantasy Projections URL (Batters) ===
+# === ESPN Fantasy Projections URL (Batters)
+# NOTE: This URL changes daily and must be updated manually for now
 url = "https://www.espn.com/fantasy/baseball/story/_/id/39615139/fantasy-baseball-daily-hitter-projections-monday"
 
-# You may need to update this URL daily or scrape from a dynamic feed in the future.
-response = requests.get(url)
+headers = {
+    "User-Agent": "Mozilla/5.0"
+}
+response = requests.get(url, headers=headers)
+
 if response.status_code != 200:
     raise Exception(f"❌ Failed to fetch ESPN projections: {response.status_code}")
 
