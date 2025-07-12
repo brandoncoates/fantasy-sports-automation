@@ -6,6 +6,7 @@ from datetime import datetime
 # === CONFIG ===
 output_dir = "mlb_draftkings_salaries"
 os.makedirs(output_dir, exist_ok=True)
+
 date_str = datetime.now().strftime('%Y-%m-%d')
 filename = f"mlb_draftkings_salaries_{date_str}.csv"
 output_path = os.path.join(output_dir, filename)
@@ -21,6 +22,5 @@ if response.status_code != 200:
 with open(output_path, 'wb') as f:
     f.write(response.content)
 
-# Optional sanity check
 df = pd.read_csv(output_path)
 print(f"✅ Saved {len(df)} salary rows to {output_path}")
