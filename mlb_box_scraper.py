@@ -1,3 +1,4 @@
+import os
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
@@ -88,10 +89,14 @@ for game_id in game_ids:
     except Exception as e:
         print(f"❌ Skipped game {game_id} due to error: {e}")
 
-# Step 3: Save to CSV in current directory (no file path)
+# ✅ Step 3: Save to folder
+output_dir = "MLB Box Scores"
+os.makedirs(output_dir, exist_ok=True)
+
+filename = f"mlb_boxscores_{target_date}.csv"
+output_path = os.path.join(output_dir, filename)
+
 df = pd.DataFrame(all_boxscores)
-filename = f'mlb_boxscores_{target_date}.csv'
-df.to_csv(filename, index=False)
+df.to_csv(output_path, index=False)
 
-print(f'✅ Saved {len(df)} player rows to {filename}')
-
+print(f'✅ Saved {len(df)} player rows to {output_path}')
