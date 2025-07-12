@@ -39,8 +39,15 @@ jobs:
       run: python mlb_betting_odds_scraper.py
 
     - name: ☁️ Upload All CSVs to S3
-      run: python upload_all_mlb_csvs.py
+      run: |
+        echo "📂 Working directory:"
+        pwd
+        echo "📁 Listing files in project:"
+        ls -R
+
+        echo "🚀 Starting upload to S3..."
+        python upload_all_mlb_csvs.py
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: ${{ secrets.AWS_REGION }}  # Optional, include if needed
+        AWS_REGION: ${{ secrets.AWS_REGION }}
