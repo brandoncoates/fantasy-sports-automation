@@ -7,13 +7,17 @@ from bs4 import BeautifulSoup
 # === CONFIG ===
 output_dir = "mlb_espn_articles"
 os.makedirs(output_dir, exist_ok=True)
+
 today = datetime.now().strftime("%Y-%m-%d")
 filename = f"mlb_espn_articles_{today}.csv"
 output_path = os.path.join(output_dir, filename)
 
 # === Step 1: Define URL and fetch page ===
 url = "https://www.espn.com/mlb/"
-response = requests.get(url)
+headers = {
+    "User-Agent": "Mozilla/5.0"
+}
+response = requests.get(url, headers=headers)
 
 if response.status_code != 200:
     raise Exception(f"❌ Failed to fetch ESPN MLB page: {response.status_code}")
