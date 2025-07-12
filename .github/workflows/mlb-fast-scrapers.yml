@@ -36,7 +36,7 @@ jobs:
       run: python mlb_probable_starters_scraper.py
 
     - name: Run Betting Odds Scraper
-      run: python mlb_daily_odds_scraper.py
+      run: python mlb_betting_odds_scraper.py
 
     - name: Upload all CSVs to S3
       run: python upload_all_mlb_csvs.py
