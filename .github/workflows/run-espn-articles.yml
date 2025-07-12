@@ -2,7 +2,7 @@ name: Run ESPN Articles Scraper
 
 on:
   schedule:
-    - cron: '15 13 * * *'  # Runs daily at 1:15 PM UTC (8:15 AM CT)
+    - cron: '15 13 * * *'
   workflow_dispatch:
 
 jobs:
@@ -18,20 +18,11 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: 📦 Install Dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-
     - name: 📰 Run ESPN Articles Scraper
-      run: |
-        cd fantasy-sports-automation
-        python mlb_espn_articles_scraper.py
+      run: python mlb_espn_articles_scraper.py
 
     - name: ☁️ Upload CSVs to S3
-      run: |
-        cd fantasy-sports-automation
-        python upload_all_mlb_csvs.py
+      run: python upload_all_mlb_csvs.py
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
