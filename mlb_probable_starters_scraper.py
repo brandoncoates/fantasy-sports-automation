@@ -1,73 +1,45 @@
+import os
 import requests
 import pandas as pd
 from datetime import datetime
-import pytz
 
-# === Config ===
-# Always use Eastern Time to get the correct "today's" date for MLB
-eastern = pytz.timezone('US/Eastern')
-now_eastern = datetime.now(eastern)
-target_date = now_eastern.strftime('%Y%m%d')  # ESPN API needs YYYYMMDD
-csv_date = now_eastern.strftime('%Y-%m-%d')
-filename = f"mlb_probable_starters_{csv_date}.csv"
+# === CONFIG ===
+output_dir = "mlb_probable_starters"
+os.makedirs(output_dir, exist_ok=True)
+today = datetime.now().strftime("%Y-%m-%d")
+filename = f"mlb_probable_starters_{today}.csv"
+output_path = os.path.join(output_dir, filename)
 
-# Step 1: Pull ESPN Scoreboard for specific date
-espn_url = f'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates={target_date}'
-response = requests.get(espn_url)
-espn_data = response.json()
+# === Step 1: Get today's schedule from MLB API
+schedule_url = f"https://statsapi.mlb.com/api/v1/schedule?sportId=1&date={today}&hydrate=probablePitcher(note,stats,person)"
+response = requests.get(schedule_url)
+data = response.json()
 
-all_games = []
+# === Step 2: Extract probable starters
+games = data.get('dates', [])[0].get('games', []) if data.get('dates') else []
+starters_data = []
 
-for event in espn_data.get('events', []):
-    competition = event.get('competitions', [])[0]
-    competitors = competition.get('competitors', [])
+for game in games:
+    game_id = game.get("gamePk")
+    game_date = game.get("gameDate")
+    teams = game.get("teams", {})
 
-    home_team = away_team = home_pitcher = away_pitcher = ''
+    for team_type in ["home", "away"]:
+        team_info = teams.get(team_type, {})
+        team_name = team_info.get("team", {}).get("name", "")
+        pitcher_info = team_info.get("probablePitcher", {})
 
-    for team in competitors:
-        team_name = team.get('team', {}).get('displayName', '')
-        is_home = team.get('homeAway') == 'home'
+        if pitcher_info:
+            starters_data.append({
+                "Game ID": game_id,
+                "Game Date": game_date,
+                "Team": team_name,
+                "Pitcher Name": pitcher_info.get("fullName"),
+                "Pitcher ID": pitcher_info.get("id"),
+                "Handedness": pitcher_info.get("pitchHand", {}).get("code"),
+            })
 
-        # Get probable pitcher or fallback to 'TBD'
-        probables = team.get('probables', [])
-        pitcher_name = probables[0].get('athlete', {}).get('displayName') if probables else 'TBD'
-
-        if is_home:
-            home_team = team_name
-            home_pitcher = pitcher_name
-        else:
-            away_team = team_name
-            away_pitcher = pitcher_name
-
-    # Game Time conversion to Eastern Time
-    game_time_utc = competition.get('date', '')
-    if game_time_utc:
-        try:
-            utc_dt = datetime.strptime(game_time_utc[:16], "%Y-%m-%dT%H:%M")
-            utc_dt = utc_dt.replace(tzinfo=pytz.utc)
-            est_dt = utc_dt.astimezone(eastern)
-            game_time_local = est_dt.strftime('%I:%M %p ET')
-            game_date_local = est_dt.strftime('%Y-%m-%d')
-        except Exception:
-            game_time_local = ''
-            game_date_local = csv_date
-    else:
-        game_time_local = ''
-        game_date_local = csv_date
-
-    matchup = f"{away_team} @ {home_team}"
-
-    all_games.append({
-        'Date': game_date_local,
-        'Matchup': matchup,
-        'Game Time (ET)': game_time_local,
-        'Away Probable Pitcher': away_pitcher,
-        'Home Probable Pitcher': home_pitcher
-    })
-
-# Step 2: Save to CSV in current directory
-df = pd.DataFrame(all_games)
-df.to_csv(filename, index=False)
-
-print(f"✅ Done! Saved {len(df)} games for {csv_date} to {filename}")
-
+# === Step 3: Save to CSV
+df = pd.DataFrame(starters_data)
+df.to_csv(output_path, index=False)
+print(f"✅ Saved {len(df)} probable starters to {output_path}")
