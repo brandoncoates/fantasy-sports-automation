@@ -1,31 +1,26 @@
-import pandas as pd
-import datetime
 import os
+import pandas as pd
+import requests
+from datetime import datetime
 
-# Get today's date
-today = datetime.date.today().strftime('%Y-%m-%d')
-
-# DraftKings CSV URL for MLB contests
-url = "https://www.draftkings.com/lineup/getavailableplayerscsv?contestType=MLB"
-
-# Read the CSV into a DataFrame
-try:
-    df = pd.read_csv(url)
-except Exception as e:
-    print("Error downloading DraftKings salaries:", e)
-    exit(1)
-
-# Optional: Keep only the most relevant columns
-columns_to_keep = [
-    "Name", "Position", "TeamAbbrev", "AvgPointsPerGame", "Salary", "GameInfo", "InjuryIndicator"
-]
-df = df[columns_to_keep]
-
-# Save path
-output_dir = "Fantasy Baseball/Player Salaries"
+# === CONFIG ===
+output_dir = "mlb_draftkings_salaries"
 os.makedirs(output_dir, exist_ok=True)
-output_file = os.path.join(output_dir, f"mlb_draftkings_salaries_{today}.csv")
+date_str = datetime.now().strftime('%Y-%m-%d')
+filename = f"mlb_draftkings_salaries_{date_str}.csv"
+output_path = os.path.join(output_dir, filename)
 
-# Save to CSV
-df.to_csv(output_file, index=False)
-print(f"DraftKings salary data saved to {output_file}")
+# === Step 1: Download CSV from DraftKings URL
+csv_url = "https://dknetwork.draftkings.com/dfs/download/salary-pdfs/mlb-draftkings-salaries.csv"
+response = requests.get(csv_url)
+
+if response.status_code != 200:
+    raise Exception(f"❌ Failed to fetch salaries CSV. Status code: {response.status_code}")
+
+# === Step 2: Save and parse CSV
+with open(output_path, 'wb') as f:
+    f.write(response.content)
+
+# Optional sanity check
+df = pd.read_csv(output_path)
+print(f"✅ Saved {len(df)} salary rows to {output_path}")
