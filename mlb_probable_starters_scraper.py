@@ -6,6 +6,7 @@ from datetime import datetime
 # === CONFIG ===
 output_dir = "mlb_probable_starters"
 os.makedirs(output_dir, exist_ok=True)
+
 today = datetime.now().strftime("%Y-%m-%d")
 filename = f"mlb_probable_starters_{today}.csv"
 output_path = os.path.join(output_dir, filename)
