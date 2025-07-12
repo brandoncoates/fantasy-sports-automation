@@ -18,12 +18,21 @@ folders = {
     "mlb_rotogrinders_projections": "baseball/playerprojections/rotogrinders/",
 }
 
-# === AWS credentials and region
+# === Get AWS region and connect to S3
 aws_region = os.getenv("AWS_REGION", "us-east-1")
 s3 = boto3.client("s3", region_name=aws_region)
 bucket_name = "fantasy-sports-csvs"
 
-# === Get newest CSV from a folder
+# === Handle GitHub Actions nested folder issue
+cwd = os.getcwd()
+if os.path.basename(cwd) == "fantasy-sports-automation":
+    root_dir = cwd
+else:
+    root_dir = os.path.join(cwd, "fantasy-sports-automation")
+
+print(f"🧭 Using root directory: {root_dir}")
+
+# === Get the newest .csv file in a folder
 def get_newest_csv_file(folder_path):
     csv_files = [
         os.path.join(folder_path, f)
@@ -34,9 +43,9 @@ def get_newest_csv_file(folder_path):
         return None
     return max(csv_files, key=os.path.getmtime)
 
-# === Upload all the latest CSVs
+# === Upload each CSV
 for local_folder, s3_folder in folders.items():
-    folder_path = os.path.join(os.getcwd(), local_folder)
+    folder_path = os.path.join(root_dir, local_folder)
 
     if not os.path.exists(folder_path):
         print(f"⚠️ Folder does not exist: {folder_path}")
