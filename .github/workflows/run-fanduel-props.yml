@@ -1,0 +1,38 @@
+name: Run FanDuel Player Props
+
+on:
+  schedule:
+    - cron: '45 13 * * *'
+  workflow_dispatch:
+
+jobs:
+  fd-props:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: ⬇️ Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: 📦 Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: 🏀 Run FanDuel Player Props Scraper
+      run: |
+        cd fantasy-sports-automation
+        python mlb_fanduel_player_props_scraper.py
+
+    - name: ☁️ Upload CSVs to S3
+      run: |
+        cd fantasy-sports-automation
+        python upload_all_mlb_csvs.py
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
