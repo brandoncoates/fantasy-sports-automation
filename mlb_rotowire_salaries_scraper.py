@@ -22,7 +22,7 @@ S3_KEY = f"{S3_FOLDER}/{FILENAME}"
 # === Step 1: Set up headless browser ===
 print("🧠 Launching headless browser...")
 options = Options()
-options.add_argument("--headless")
+options.add_argument("--headless=new")  # Use updated headless mode
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 
@@ -34,13 +34,16 @@ print(f"🌐 Fetching page: {url}")
 driver.get(url)
 
 try:
-    # Wait up to 15 seconds for the table to load
-    WebDriverWait(driver, 15).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "table.med\\:hidden"))
+    # Fix CSS selector by using XPath instead
+    WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.XPATH, "//table[contains(@class, 'med:hidden')]"))
     )
 except Exception as e:
     print(f"❌ Table didn't load in time: {e}")
+    with open("rotowire_debug.html", "w", encoding="utf-8") as f:
+        f.write(driver.page_source)
     driver.quit()
+    print("📁 Saved page source to rotowire_debug.html for inspection.")
     exit(1)
 
 # === Step 2: Parse page ===
@@ -50,6 +53,9 @@ driver.quit()
 table = soup.find("table", {"class": "med:hidden"})
 if not table:
     print("❌ Could not find data table on the page.")
+    with open("rotowire_debug.html", "w", encoding="utf-8") as f:
+        f.write(str(soup))
+    print("📁 Saved soup HTML to rotowire_debug.html for inspection.")
     exit(1)
 
 # === Step 3: Extract data ===
