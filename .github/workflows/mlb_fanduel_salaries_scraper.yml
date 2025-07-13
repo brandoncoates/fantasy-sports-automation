@@ -1,4 +1,4 @@
-name: MLB FanDuel Salaries Scraper
+name: Run MLB FanDuel Salaries Scraper
 
 on:
   schedule:
