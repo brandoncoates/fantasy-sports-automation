@@ -31,15 +31,14 @@ url = "https://www.rotowire.com/daily/mlb/player-roster-percent.php"
 print(f"🌐 Fetching page: {url}")
 driver.get(url)
 
-# === Step 2: Wait for table to load ===
+# === Step 2: Wait for updated table selector ===
 try:
     WebDriverWait(driver, 20).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "table.med\\:hidden"))
+        EC.presence_of_element_located((By.CSS_SELECTOR, "table.player-table"))
     )
     print("✅ Table found!")
 except Exception as e:
     print("❌ Table didn't load in time:", str(e))
-    # Save HTML for inspection
     with open(DEBUG_FILE, "w", encoding="utf-8") as f:
         f.write(driver.page_source)
     print(f"🛠️ Saved page source to {DEBUG_FILE} for inspection.")
@@ -49,7 +48,7 @@ except Exception as e:
 # === Step 3: Parse page ===
 soup = BeautifulSoup(driver.page_source, "html.parser")
 driver.quit()
-table = soup.find("table", {"class": "med:hidden"})
+table = soup.find("table", {"class": "player-table"})
 
 if not table:
     print("❌ Could not find table after load.")
