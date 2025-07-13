@@ -5,7 +5,7 @@ from io import StringIO
 import boto3
 
 # === CONFIG ===
-API_KEY = 'YOUR_ODDS_API_KEY'  # <-- Replace with your real key
+API_KEY = '32c95ea767253beab2da2d1563a9150e'  # <-- Replace with your real key
 SPORT = 'baseball_mlb'
 REGION = 'us'
 MARKETS = 'player_props'
