@@ -1,12 +1,11 @@
-name: run-rotowire-salaries
+name: Run MLB Rotowire Salaries Scraper
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "30 15 * * *"
 
 jobs:
-  run-script:
+  run-rotowire-salaries:
+    name: Run Rotowire Salaries Scraper
     runs-on: ubuntu-latest
 
     steps:
@@ -16,13 +15,12 @@ jobs:
       - name: 🐍 Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: '3.11'
 
       - name: 📦 Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y chromium-browser
-          pip install requests beautifulsoup4 boto3 selenium webdriver-manager
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: 🔐 Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
