@@ -1,4 +1,4 @@
-name: run-rotowire-salaries
+name: Run Rotowire Salaries and Roster Percentages
 
 on:
   workflow_dispatch:
