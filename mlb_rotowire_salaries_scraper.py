@@ -4,7 +4,6 @@ import boto3
 from datetime import datetime
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -18,47 +17,47 @@ S3_FOLDER = "baseball/salaries"
 DATE = datetime.now().strftime("%Y-%m-%d")
 FILENAME = f"mlb_rotowire_salaries_{DATE}.csv"
 S3_KEY = f"{S3_FOLDER}/{FILENAME}"
+DEBUG_FILE = "rotowire_debug.html"
 
 # === Step 1: Set up headless browser ===
 print("🧠 Launching headless browser...")
 options = Options()
-options.add_argument("--headless=new")  # Use updated headless mode
+options.add_argument("--headless")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
-
-service = Service(ChromeDriverManager().install())
-driver = webdriver.Chrome(service=service, options=options)
+driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
 
 url = "https://www.rotowire.com/daily/mlb/player-roster-percent.php"
 print(f"🌐 Fetching page: {url}")
 driver.get(url)
 
+# === Step 2: Wait for table to load ===
 try:
-    # Fix CSS selector by using XPath instead
     WebDriverWait(driver, 20).until(
-        EC.presence_of_element_located((By.XPATH, "//table[contains(@class, 'med:hidden')]"))
+        EC.presence_of_element_located((By.CSS_SELECTOR, "table.med\\:hidden"))
     )
+    print("✅ Table found!")
 except Exception as e:
-    print(f"❌ Table didn't load in time: {e}")
-    with open("rotowire_debug.html", "w", encoding="utf-8") as f:
+    print("❌ Table didn't load in time:", str(e))
+    # Save HTML for inspection
+    with open(DEBUG_FILE, "w", encoding="utf-8") as f:
         f.write(driver.page_source)
+    print(f"🛠️ Saved page source to {DEBUG_FILE} for inspection.")
     driver.quit()
-    print("📁 Saved page source to rotowire_debug.html for inspection.")
     exit(1)
 
-# === Step 2: Parse page ===
+# === Step 3: Parse page ===
 soup = BeautifulSoup(driver.page_source, "html.parser")
 driver.quit()
-
 table = soup.find("table", {"class": "med:hidden"})
+
 if not table:
-    print("❌ Could not find data table on the page.")
-    with open("rotowire_debug.html", "w", encoding="utf-8") as f:
-        f.write(str(soup))
-    print("📁 Saved soup HTML to rotowire_debug.html for inspection.")
+    print("❌ Could not find table after load.")
+    with open(DEBUG_FILE, "w", encoding="utf-8") as f:
+        f.write(driver.page_source)
     exit(1)
 
-# === Step 3: Extract data ===
+# === Step 4: Extract data ===
 print("📊 Parsing salary and roster percent data...")
 rows = table.find_all("tr")
 data = []
@@ -67,14 +66,13 @@ for row in rows:
     if cols:
         data.append(cols)
 
-# === Step 4: Save CSV ===
+# === Step 5: Save CSV ===
 with open(FILENAME, "w", newline="", encoding="utf-8") as f:
     writer = csv.writer(f)
     writer.writerows(data)
-
 print(f"💾 CSV saved: {FILENAME}")
 
-# === Step 5: Upload to S3 ===
+# === Step 6: Upload to S3 ===
 print(f"☁️ Uploading to s3://{BUCKET}/{S3_KEY}")
 s3 = boto3.client("s3", region_name=REGION)
 try:
@@ -84,6 +82,6 @@ except Exception as e:
     print(f"❌ Upload failed: {e}")
     exit(1)
 
-# === Step 6: Cleanup ===
+# === Step 7: Cleanup ===
 os.remove(FILENAME)
 print(f"🧹 Cleaned up local file: {FILENAME}")
