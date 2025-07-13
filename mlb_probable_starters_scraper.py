@@ -33,16 +33,24 @@ for game in games:
     home_team = home.get("team", {}).get("name", "")
     away_team = away.get("team", {}).get("name", "")
 
-    home_pitcher = home.get("probablePitcher", {}).get("fullName", "")
-    away_pitcher = away.get("probablePitcher", {}).get("fullName", "")
+    home_pitcher_data = home.get("probablePitcher", {})
+    away_pitcher_data = away.get("probablePitcher", {})
+
+    home_pitcher = home_pitcher_data.get("fullName", "")
+    away_pitcher = away_pitcher_data.get("fullName", "")
+
+    home_throw_hand = home_pitcher_data.get("pitchHand", {}).get("description", "")
+    away_throw_hand = away_pitcher_data.get("pitchHand", {}).get("description", "")
 
     rows.append({
         "date": DATE,
         "game_id": game_id,
         "away_team": away_team,
         "away_pitcher": away_pitcher,
+        "away_throw_hand": away_throw_hand,
         "home_team": home_team,
-        "home_pitcher": home_pitcher
+        "home_pitcher": home_pitcher,
+        "home_throw_hand": home_throw_hand
     })
 
 print(f"✅ Found {len(rows)} games with probable pitchers")
