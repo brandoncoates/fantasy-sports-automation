@@ -2,7 +2,7 @@ name: MLB – Odds API Player Props Scraper
 
 on:
   schedule:
-    - cron: '0 14 * * *'  # Runs at 9:00 AM Central
+    - cron: '0 14 * * *'  # 9:00 AM Central
   workflow_dispatch:
 
 jobs:
@@ -21,6 +21,13 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pandas requests boto3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
       - name: Run MLB Odds API player props scraper
         run: python mlb_oddsapi_player_props_scraper.py
