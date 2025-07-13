@@ -1,4 +1,4 @@
-name: DraftKings MLB Player Props
+name: Run DraftKings MLB Player Props Scraper
 
 on:
   schedule:
@@ -29,4 +29,4 @@ jobs:
           pip install boto3 requests
 
       - name: 🚀 Run DraftKings MLB Player Props Script
-        run: python mlb_draftkings_player_props.py
+        run: python mlb_draftkings_player_props_scraper.py
