@@ -5,6 +5,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -22,10 +23,12 @@ DEBUG_FILE = "rotowire_debug.html"
 # === Step 1: Set up headless browser ===
 print("🧠 Launching headless browser...")
 options = Options()
-options.add_argument("--headless")
+options.add_argument("--headless=new")  # Use new headless mode (safer in some environments)
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
-driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+
+service = Service(ChromeDriverManager().install())
+driver = webdriver.Chrome(service=service, options=options)
 
 url = "https://www.rotowire.com/daily/mlb/player-roster-percent.php"
 print(f"🌐 Fetching page: {url}")
@@ -48,12 +51,12 @@ except Exception as e:
 # === Step 3: Parse page ===
 soup = BeautifulSoup(driver.page_source, "html.parser")
 driver.quit()
-table = soup.find("table", {"class": "player-table"})
 
+table = soup.find("table", {"class": "player-table"})
 if not table:
     print("❌ Could not find table after load.")
     with open(DEBUG_FILE, "w", encoding="utf-8") as f:
-        f.write(driver.page_source)
+        f.write(str(soup))  # Save entire parsed page
     exit(1)
 
 # === Step 4: Extract data ===
