@@ -6,6 +6,9 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
 # === CONFIG ===
@@ -29,6 +32,16 @@ driver = webdriver.Chrome(service=service, options=options)
 url = "https://www.rotowire.com/daily/mlb/player-roster-percent.php"
 print(f"🌐 Fetching page: {url}")
 driver.get(url)
+
+try:
+    # Wait up to 15 seconds for the table to load
+    WebDriverWait(driver, 15).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "table.med\\:hidden"))
+    )
+except Exception as e:
+    print(f"❌ Table didn't load in time: {e}")
+    driver.quit()
+    exit(1)
 
 # === Step 2: Parse page ===
 soup = BeautifulSoup(driver.page_source, "html.parser")
