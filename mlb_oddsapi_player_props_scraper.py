@@ -1,92 +1,81 @@
-import requests
-import pandas as pd
-from datetime import datetime
-from io import StringIO
+import os
+import csv
 import boto3
+import requests
+from datetime import datetime
 
 # === CONFIG ===
-API_KEY = '32c95ea767253beab2da2d1563a9150e'  # <-- Replace with your real key
-SPORT = 'baseball_mlb'
-REGION = 'us'
-MARKETS = 'player_props'
-ODDS_FORMAT = 'american'
+API_KEY = os.environ.get("ODDS_API_KEY")
+REGION = "us-east-1"
+BUCKET = "fantasy-sports-csvs"
+S3_FOLDER = "baseball/playerprops"
+SPORT = "baseball_mlb"
+REGIONS = "us"
+MARKETS = "player_props"
+DATE = datetime.now().strftime("%Y-%m-%d")
+FILENAME = f"mlb_oddsapi_player_props_{DATE}.csv"
+S3_KEY = f"{S3_FOLDER}/{FILENAME}"
 
-# === S3 CONFIG ===
-bucket_name = 'fantasy-sports-csvs'
-s3_folder = 'baseball/playerprops'
-target_date = datetime.now().strftime('%Y-%m-%d')
-filename = f"mlb_oddsapi_player_props_{target_date}.csv"
-s3_key = f"{s3_folder}/{filename}"
-
-# === API Request ===
-url = f'https://api.the-odds-api.com/v4/sports/{SPORT}/players'
+# === BUILD URL ===
+url = f"https://api.the-odds-api.com/v4/sports/{SPORT}/odds"
 params = {
-    'apiKey': API_KEY,
-    'regions': REGION,
-    'markets': MARKETS,
-    'oddsFormat': ODDS_FORMAT,
+    "apiKey": API_KEY,
+    "regions": REGIONS,
+    "markets": MARKETS,
+    "oddsFormat": "decimal"
 }
 
-print("📡 Requesting player props from The Odds API...")
+print(f"📡 Requesting player props from Odds API...")
 response = requests.get(url, params=params)
-
 if response.status_code != 200:
-    print(f"❌ Failed to fetch props: {response.status_code} - {response.text}")
-    exit()
+    print(f"❌ API error {response.status_code}: {response.text}")
+    exit(1)
 
-props_json = response.json()
-print(f"📊 Received {len(props_json)} player prop events")
+data = response.json()
+print(f"📊 Received {len(data)} player prop events")
 
-if not props_json:
-    print("⚠️ No props returned from Odds API. Exiting.")
-    exit()
-
-# === Parse player props ===
-props_data = []
-
-for event in props_json:
-    player = event.get('player', {}).get('name', '')
-    team = event.get('team', {}).get('name', '')
-    opponent = event.get('opponent', {}).get('name', '')
-    date = event.get('commence_time', '')[:10]
-
-    for bookmaker in event.get('bookmakers', []):
-        book = bookmaker.get('title', '')
-        for market in bookmaker.get('markets', []):
-            market_type = market.get('key', '')
-            for outcome in market.get('outcomes', []):
-                props_data.append({
-                    'Date': date,
-                    'Bookmaker': book,
-                    'Player': player,
-                    'Team': team,
-                    'Opponent': opponent,
-                    'Market': market_type,
-                    'Prop': outcome.get('name', ''),
-                    'Line': outcome.get('point', ''),
-                    'Odds': outcome.get('price', '')
+# === PROCESS DATA ===
+rows = []
+for event in data:
+    game = event.get("home_team") + " vs " + event.get("away_team")
+    commence_time = event.get("commence_time")
+    for bookmaker in event.get("bookmakers", []):
+        book_name = bookmaker.get("title")
+        for market in bookmaker.get("markets", []):
+            market_key = market.get("key")
+            for outcome in market.get("outcomes", []):
+                rows.append({
+                    "date": DATE,
+                    "game": game,
+                    "player": outcome.get("name"),
+                    "prop": market_key,
+                    "book": book_name,
+                    "value": outcome.get("point"),
+                    "odds": outcome.get("price"),
+                    "time": commence_time
                 })
 
-# === Convert to CSV and upload to S3 ===
-df = pd.DataFrame(props_data)
+print(f"✅ Prepared {len(rows)} prop rows for upload")
 
-print(f"✅ Prepared {len(df)} prop rows for upload")
+# === SAVE LOCALLY (TEMPORARY FOR DEBUGGING) ===
+csv_file = FILENAME
+with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
+    writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+    writer.writeheader()
+    writer.writerows(rows)
 
-if df.empty:
-    print("❌ DataFrame is empty. No file will be uploaded.")
-    exit()
+print(f"💾 Temp file written locally: {csv_file}")
 
-# Preview first few rows
-print(df.head(3).to_string(index=False))
+# === UPLOAD TO S3 ===
+print(f"☁️ Uploading to s3://{BUCKET}/{S3_KEY}")
+s3 = boto3.client("s3", region_name=REGION)
+try:
+    s3.upload_file(csv_file, BUCKET, S3_KEY)
+    print(f"✅ Upload complete: s3://{BUCKET}/{S3_KEY}")
+except Exception as e:
+    print(f"❌ Upload failed: {e}")
+    exit(1)
 
-csv_buffer = StringIO()
-df.to_csv(csv_buffer, index=False)
-
-s3 = boto3.client('s3')
-s3.put_object(
-    Bucket=bucket_name,
-    Key=s3_key,
-    Body=csv_buffer.getvalue()
-)
-
-print(f"☁️ Upload complete: s3://{bucket_name}/{s3_key}")
+# === CLEANUP TEMP FILE ===
+os.remove(csv_file)
+print(f"🧹 Cleaned up local file {csv_file}")
