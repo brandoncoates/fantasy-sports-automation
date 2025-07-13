@@ -21,7 +21,7 @@ options = Options()
 options.add_argument("--headless")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
-driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+driver = webdriver.Chrome(executable_path=ChromeDriverManager().install(), options=options)
 
 url = "https://www.rotowire.com/daily/mlb/player-roster-percent.php"
 print(f"🌐 Fetching page: {url}")
