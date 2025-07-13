@@ -11,7 +11,6 @@ today = datetime.now().strftime("%Y-%m-%d")
 filename = f"mlb_espn_player_projections_{today}.csv"
 output_path = os.path.join(output_dir, filename)
 
-# === HEADERS TO BYPASS BLOCKING ===
 headers = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -20,7 +19,7 @@ headers = {
     )
 }
 
-# === Step 1: Get main fantasy baseball page ===
+# === Step 1: Load ESPN Fantasy Baseball homepage ===
 main_url = "https://www.espn.com/fantasy/baseball/"
 main_response = requests.get(main_url, headers=headers)
 if main_response.status_code != 200:
@@ -28,31 +27,32 @@ if main_response.status_code != 200:
 
 main_soup = BeautifulSoup(main_response.text, "html.parser")
 
-# === Step 2: Find latest hitter projections article ===
+# === Step 2: Find latest hitter projections article
 article_url = None
 for link in main_soup.find_all("a", href=True):
-    href = link["href"]
-    if "daily-hitter-projections" in href:
+    href = link["href"].lower()
+    if "story" in href and "projections" in href:
         article_url = href if href.startswith("http") else f"https://www.espn.com{href}"
         break
 
 if not article_url:
     raise Exception("❌ Could not locate hitter projections article on ESPN fantasy page.")
 
-# === Step 3: Scrape table from article ===
+# === Step 3: Load article page and extract table ===
 article_response = requests.get(article_url, headers=headers)
 if article_response.status_code != 200:
     raise Exception(f"❌ Failed to fetch projections article: {article_response.status_code}")
 
 article_soup = BeautifulSoup(article_response.text, "html.parser")
 tables = article_soup.find_all("table")
+
 if not tables:
     raise Exception("❌ No tables found in ESPN projections article.")
 
 df_list = pd.read_html(str(tables))
 proj_df = df_list[0]
 
-# === Step 4: Save CSV ===
+# === Step 4: Save CSV
 proj_df.insert(0, "Date", today)
 proj_df.to_csv(output_path, index=False)
 print(f"✅ Saved {len(proj_df)} ESPN projections to {output_path}")
