@@ -2,7 +2,7 @@ name: MLB – Odds API Player Props Scraper
 
 on:
   schedule:
-    - cron: '0 14 * * *'  # 9:00 AM Central
+    - cron: '0 14 * * *' # 9:00 AM Central
   workflow_dispatch:
 
 jobs:
@@ -31,6 +31,8 @@ jobs:
 
       - name: Run MLB Odds API player props scraper
         run: python mlb_oddsapi_player_props_scraper.py
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
 
       - name: Done
         run: echo "✅ Player props scraped and uploaded to S3."
