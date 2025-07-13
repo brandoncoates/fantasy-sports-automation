@@ -8,6 +8,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 # === CONFIG ===
@@ -22,11 +23,12 @@ DEBUG_FILE = "fta_debug.html"
 # === Step 1: Launch headless browser ===
 print("🧠 Launching headless browser...")
 options = Options()
-options.add_argument("--headless=new")  # Use new headless mode for GitHub Actions
+options.add_argument("--headless=new")  # Recommended for newer Selenium versions
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 
-driver = webdriver.Chrome(executable_path=ChromeDriverManager().install(), options=options)
+service = Service(ChromeDriverManager().install())
+driver = webdriver.Chrome(service=service, options=options)
 
 # === Step 2: Navigate to page ===
 url = "https://fantasyteamadvice.com/dfs/mlb/ownership"
@@ -53,6 +55,8 @@ driver.quit()
 table = soup.find("table")
 if not table:
     print("❌ Table not found.")
+    with open(DEBUG_FILE, "w", encoding="utf-8") as f:
+        f.write(str(soup))
     exit(1)
 
 print("📊 Extracting data...")
