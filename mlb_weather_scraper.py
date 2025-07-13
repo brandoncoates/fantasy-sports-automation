@@ -6,6 +6,9 @@ from datetime import datetime
 
 # === CONFIG ===
 API_KEY = os.environ.get("TOMORROW_IO_API_KEY")
+if not API_KEY:
+    raise ValueError("❌ Missing TOMORROW_IO_API_KEY environment variable.")
+
 BASE_URL = "https://api.tomorrow.io/v4/weather/forecast"
 INPUT_CSV = "mlb_stadium_coordinates.csv"
 REGION = "us-east-1"
@@ -16,7 +19,11 @@ FILENAME = f"mlb_weather_{DATE}.csv"
 S3_KEY = f"{S3_FOLDER}/{FILENAME}"
 
 # === READ STADIUM COORDINATES ===
-df_coords = pd.read_csv(INPUT_CSV)
+try:
+    df_coords = pd.read_csv(INPUT_CSV)
+except FileNotFoundError:
+    raise FileNotFoundError(f"❌ Stadium coordinates file not found: {INPUT_CSV}")
+
 rows = []
 
 print(f"📡 Requesting weather data for {len(df_coords)} stadiums...")
@@ -68,26 +75,28 @@ for _, row in df_coords.iterrows():
 print(f"✅ Collected weather data for {len(rows)} stadiums")
 
 # === SAVE LOCALLY (TEMPORARY FOR DEBUGGING) ===
-csv_file = FILENAME
-with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
-    writer = csv.DictWriter(f, fieldnames=rows[0].keys())
-    writer.writeheader()
-    writer.writerows(rows)
+if rows:
+    csv_file = FILENAME
+    with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+    print(f"💾 Temp file written locally: {csv_file}")
 
-print(f"💾 Temp file written locally: {csv_file}")
+    # === UPLOAD TO S3 ===
+    import boto3
 
-# === UPLOAD TO S3 ===
-import boto3
+    print(f"☁️ Uploading to s3://{BUCKET}/{S3_KEY}")
+    s3 = boto3.client("s3", region_name=REGION)
+    try:
+        s3.upload_file(csv_file, BUCKET, S3_KEY)
+        print(f"✅ Upload complete: s3://{BUCKET}/{S3_KEY}")
+    except Exception as e:
+        print(f"❌ Upload failed: {e}")
+        exit(1)
 
-print(f"☁️ Uploading to s3://{BUCKET}/{S3_KEY}")
-s3 = boto3.client("s3", region_name=REGION)
-try:
-    s3.upload_file(csv_file, BUCKET, S3_KEY)
-    print(f"✅ Upload complete: s3://{BUCKET}/{S3_KEY}")
-except Exception as e:
-    print(f"❌ Upload failed: {e}")
-    exit(1)
-
-# === CLEANUP TEMP FILE ===
-os.remove(csv_file)
-print(f"🧹 Cleaned up local file {csv_file}")
+    # === CLEANUP TEMP FILE ===
+    os.remove(csv_file)
+    print(f"🧹 Cleaned up local file {csv_file}")
+else:
+    print("⚠️ No weather data collected — skipping file save and upload.")
