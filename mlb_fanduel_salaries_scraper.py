@@ -15,7 +15,13 @@ S3_KEY = f"{S3_FOLDER}/{FILENAME}"
 
 # === Step 1: Load FanDuel main MLB contests page ===
 print("📡 Accessing FanDuel MLB contests...")
-headers = {"User-Agent": "Mozilla/5.0"}
+headers = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/115.0.0.0 Safari/537.36"
+    )
+}
 url = "https://www.fanduel.com/games/MLB"
 response = requests.get(url, headers=headers)
 
