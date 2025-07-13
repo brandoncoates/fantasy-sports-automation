@@ -7,7 +7,7 @@ import boto3
 # === CONFIG ===
 REGION = "us-east-1"
 BUCKET = "fantasy-sports-csvs"
-S3_FOLDER = "baseball/probable"
+S3_FOLDER = "baseball/probablestarters"
 DATE = datetime.now().strftime("%Y-%m-%d")
 FILENAME = f"mlb_probable_starters_{DATE}.csv"
 S3_KEY = f"{S3_FOLDER}/{FILENAME}"
