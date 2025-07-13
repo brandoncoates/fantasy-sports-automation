@@ -1,6 +1,7 @@
 import os
 import csv
 import boto3
+import time
 from datetime import datetime
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -23,7 +24,7 @@ DEBUG_FILE = "fta_debug.html"
 # === Step 1: Launch headless browser ===
 print("🧠 Launching headless browser...")
 options = Options()
-options.add_argument("--headless=new")  # Recommended for newer Selenium versions
+options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 
@@ -36,10 +37,16 @@ print(f"🌐 Fetching page: {url}")
 driver.get(url)
 
 try:
+    # Wait for document.readyState to be 'complete'
     WebDriverWait(driver, 20).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "table"))
+        lambda d: d.execute_script("return document.readyState") == "complete"
     )
-    print("✅ Table found!")
+    # Wait for the table to appear
+    WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "div.entry-content table"))
+    )
+    time.sleep(2)  # Give time for JS to inject data into the table
+    print("✅ Table found and loaded!")
 except Exception as e:
     print("❌ Table didn't load:", str(e))
     with open(DEBUG_FILE, "w", encoding="utf-8") as f:
@@ -48,13 +55,13 @@ except Exception as e:
     driver.quit()
     exit(1)
 
-# === Step 3: Parse table with BeautifulSoup ===
+# === Step 3: Parse HTML ===
 soup = BeautifulSoup(driver.page_source, "html.parser")
 driver.quit()
 
-table = soup.find("table")
+table = soup.select_one("div.entry-content table")
 if not table:
-    print("❌ Table not found.")
+    print("❌ Table not found after JS render.")
     with open(DEBUG_FILE, "w", encoding="utf-8") as f:
         f.write(str(soup))
     exit(1)
