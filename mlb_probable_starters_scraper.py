@@ -12,10 +12,9 @@ DATE = datetime.now().strftime("%Y-%m-%d")
 FILENAME = f"mlb_probable_starters_{DATE}.csv"
 S3_KEY = f"{S3_FOLDER}/{FILENAME}"
 
-# === BUILD URL ===
-url = f"https://statsapi.mlb.com/api/v1/schedule?sportId=1&date={DATE}&hydrate=probablePitcher(note,stats,person)"
-
-print(f"📡 Requesting probable starters from MLB API for {DATE}")
+# === GET SCHEDULE & PROBABLE PITCHERS ===
+url = f"https://statsapi.mlb.com/api/v1/schedule?sportId=1&date={DATE}&hydrate=probablePitcher"
+print(f"📡 Requesting probable starters for {DATE}")
 response = requests.get(url)
 if response.status_code != 200:
     print(f"❌ API error {response.status_code}: {response.text}")
@@ -24,6 +23,19 @@ if response.status_code != 200:
 data = response.json()
 games = data.get("dates", [])[0].get("games", []) if data.get("dates") else []
 
+# === Function to get throwing hand ===
+def get_throw_hand(player_id):
+    if not player_id:
+        return ""
+    try:
+        player_url = f"https://statsapi.mlb.com/api/v1/people/{player_id}"
+        res = requests.get(player_url)
+        info = res.json().get("people", [])[0]
+        return info.get("pitchHand", {}).get("code", "")
+    except:
+        return ""
+
+# === BUILD ROWS ===
 rows = []
 for game in games:
     game_id = game.get("gamePk")
@@ -33,24 +45,23 @@ for game in games:
     home_team = home.get("team", {}).get("name", "")
     away_team = away.get("team", {}).get("name", "")
 
-    home_pitcher_data = home.get("probablePitcher", {})
-    away_pitcher_data = away.get("probablePitcher", {})
+    home_pitcher = home.get("probablePitcher", {})
+    away_pitcher = away.get("probablePitcher", {})
 
-    home_pitcher = home_pitcher_data.get("fullName", "")
-    away_pitcher = away_pitcher_data.get("fullName", "")
-
-    home_throw_hand = home_pitcher_data.get("pitchHand", {}).get("description", "")
-    away_throw_hand = away_pitcher_data.get("pitchHand", {}).get("description", "")
+    home_name = home_pitcher.get("fullName", "")
+    away_name = away_pitcher.get("fullName", "")
+    home_hand = get_throw_hand(home_pitcher.get("id"))
+    away_hand = get_throw_hand(away_pitcher.get("id"))
 
     rows.append({
         "date": DATE,
         "game_id": game_id,
         "away_team": away_team,
-        "away_pitcher": away_pitcher,
-        "away_throw_hand": away_throw_hand,
+        "away_pitcher": away_name,
+        "away_throw_hand": away_hand,
         "home_team": home_team,
-        "home_pitcher": home_pitcher,
-        "home_throw_hand": home_throw_hand
+        "home_pitcher": home_name,
+        "home_throw_hand": home_hand
     })
 
 print(f"✅ Found {len(rows)} games with probable pitchers")
