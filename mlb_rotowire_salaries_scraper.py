@@ -2,60 +2,69 @@ import os
 import csv
 import requests
 import boto3
-from bs4 import BeautifulSoup
 from datetime import datetime
+from bs4 import BeautifulSoup
 
-# CONFIG
-REGION = "us-east-1"
+# === CONFIG ===
+REGION = "us-east-2"
 BUCKET = "fantasy-sports-csvs"
 S3_FOLDER = "baseball/salaries"
 DATE = datetime.now().strftime("%Y-%m-%d")
 FILENAME = f"mlb_rotowire_salaries_{DATE}.csv"
 S3_KEY = f"{S3_FOLDER}/{FILENAME}"
 
-url = "https://www.rotowire.com/daily/mlb/player-roster-percent.php?site=DraftKings"
+# === STEP 1: Fetch the Rotowire page ===
+print("📡 Fetching Rotowire Salary + Roster % page...")
+url = "https://www.rotowire.com/daily/mlb/player-roster-percent.php"
+headers = {"User-Agent": "Mozilla/5.0"}
 
-print("📡 Fetching Rotowire roster % page...")
-resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
-if resp.status_code != 200:
-    print(f"❌ HTTP {resp.status_code}")
+response = requests.get(url, headers=headers)
+if response.status_code != 200:
+    print(f"❌ Failed to load page: {response.status_code}")
     exit(1)
 
-soup = BeautifulSoup(resp.text, "html.parser")
-table = soup.find("table")
+soup = BeautifulSoup(response.text, "html.parser")
+table = soup.find("table", class_="tablesorter")
+
 if not table:
-    print("❌ No table found on page.")
+    print("❌ Could not find data table on the page.")
     exit(1)
 
-print("🔍 Parsing table rows...")
+# === STEP 2: Extract headers and data ===
+headers = [th.get_text(strip=True) for th in table.find("thead").find_all("th")]
 rows = []
-headers = [th.text.strip() for th in table.find_all("thead")[0].find_all("th")]
 
 for tr in table.find("tbody").find_all("tr"):
-    cols = [td.text.strip() for td in tr.find_all("td")]
-    if len(cols) != len(headers):
-        continue
-    rows.append(dict(zip(headers, cols)))
+    cols = [td.get_text(strip=True) for td in tr.find_all("td")]
+    if cols:
+        row = dict(zip(headers, cols))
+        rows.append(row)
 
 if not rows:
-    print("⚠️ No data rows found.")
+    print("⚠️ No rows found in table body.")
     exit(1)
 
-print(f"✅ Got {len(rows)} rows. Writing CSV...")
+print(f"✅ Scraped {len(rows)} players from Rotowire.")
 
-with open(FILENAME, "w", newline="", encoding="utf-8") as f:
+# === STEP 3: Save to CSV ===
+csv_file = FILENAME
+with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
     writer = csv.DictWriter(f, fieldnames=headers)
     writer.writeheader()
     writer.writerows(rows)
 
-print(f"☁️ Uploading to S3: {BUCKET}/{S3_KEY}")
+print(f"💾 CSV written locally: {csv_file}")
+
+# === STEP 4: Upload to S3 ===
+print(f"☁️ Uploading to s3://{BUCKET}/{S3_KEY}")
 s3 = boto3.client("s3", region_name=REGION)
 try:
-    s3.upload_file(FILENAME, BUCKET, S3_KEY)
-    print("✅ Upload OK")
+    s3.upload_file(csv_file, BUCKET, S3_KEY)
+    print(f"✅ Upload complete: s3://{BUCKET}/{S3_KEY}")
 except Exception as e:
-    print("❌ Upload failed:", e)
+    print(f"❌ Upload failed: {e}")
     exit(1)
 
-os.remove(FILENAME)
-print("🧹 Cleaned up temp file.")
+# === STEP 5: Clean up local file ===
+os.remove(csv_file)
+print(f"🧹 Cleaned up local file: {csv_file}")
