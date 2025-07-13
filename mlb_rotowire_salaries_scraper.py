@@ -4,6 +4,7 @@ import boto3
 from datetime import datetime
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 
@@ -21,7 +22,9 @@ options = Options()
 options.add_argument("--headless")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
-driver = webdriver.Chrome(executable_path=ChromeDriverManager().install(), options=options)
+
+service = Service(ChromeDriverManager().install())
+driver = webdriver.Chrome(service=service, options=options)
 
 url = "https://www.rotowire.com/daily/mlb/player-roster-percent.php"
 print(f"🌐 Fetching page: {url}")
