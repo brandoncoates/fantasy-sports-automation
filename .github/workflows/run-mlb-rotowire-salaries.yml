@@ -31,3 +31,10 @@ jobs:
 
       - name: 🧠 Run Rotowire salaries scraper
         run: python mlb_rotowire_salaries_scraper.py
+
+      - name: Upload debug HTML
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: rotowire-debug
+          path: rotowire_debug.html
