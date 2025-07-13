@@ -3,75 +3,69 @@ import requests
 import pandas as pd
 from datetime import datetime
 
-# === CONFIG: Set True to pull today's games ===
-use_today = True
+# === CONFIG ===
+API_KEY = '32c95ea767253beab2da2d1563a9150e'  # <-- Replace with your real API key
+REGION = 'us'  # Available: us, uk, eu, au
+MARKETS = 'totals,h2h,spreads'  # Over/Under, Moneyline, Spread
+SPORT = 'baseball_mlb'
+BOOKMAKERS = 'draftkings,fanduel,pointsbetus'  # Limit for clean output
 
-# Get date in YYYY-MM-DD format
+# Today's date
 target_date = datetime.now().strftime('%Y-%m-%d')
 
-# Step 1: Get Schedule for the target date
-schedule_url = f'https://statsapi.mlb.com/api/v1/schedule?sportId=1&date={target_date}'
-response = requests.get(schedule_url)
-schedule_data = response.json()
-
-games = schedule_data.get('dates', [])[0].get('games', []) if schedule_data.get('dates') else []
-game_ids = [game['gamePk'] for game in games]
-
-print(f"Found {len(game_ids)} games for {target_date}.")
-
-odds_data = []
-
-# Step 2: Loop through each game's odds
-for game_id in game_ids:
-    try:
-        odds_url = f'https://statsapi.mlb.com/api/v1/game/{game_id}/linescore'
-        odds_response = requests.get(odds_url)
-        odds_json = odds_response.json()
-
-        game_url = f'https://statsapi.mlb.com/api/v1.1/game/{game_id}/feed/live'
-        game_response = requests.get(game_url)
-        game_data = game_response.json()
-
-        game_info = game_data.get("gameData", {})
-        teams_info = game_info.get("teams", {})
-        home_team = teams_info.get("home", {}).get("name", "")
-        away_team = teams_info.get("away", {}).get("name", "")
-
-        # Extract betting info from metadata
-        metadata = game_data.get("gameData", {}).get("metadata", {})
-        betting_info = game_data.get("liveData", {}).get("boxscore", {}).get("info", [])
-
-        odds_entry = {
-            "Game ID": game_id,
-            "Date": target_date,
-            "Home Team": home_team,
-            "Away Team": away_team,
-            "Spread": None,
-            "Over/Under": None
-        }
-
-        for item in betting_info:
-            label = item.get("label", "").lower()
-            value = item.get("value", [""])[0]
-
-            if "over/under" in label:
-                odds_entry["Over/Under"] = value
-            elif "spread" in label:
-                odds_entry["Spread"] = value
-
-        odds_data.append(odds_entry)
-
-    except Exception as e:
-        print(f"❌ Skipped game {game_id} due to error: {e}")
-
-# Step 3: Save to correct folder
+# Create output directory
 output_dir = "mlb_daily_odds"
 os.makedirs(output_dir, exist_ok=True)
-
 filename = f"mlb_betting_odds_{target_date}.csv"
 output_path = os.path.join(output_dir, filename)
 
+# API Request
+url = f'https://api.the-odds-api.com/v4/sports/{SPORT}/odds'
+
+params = {
+    'apiKey': API_KEY,
+    'regions': REGION,
+    'markets': MARKETS,
+    'bookmakers': BOOKMAKERS,
+    'oddsFormat': 'decimal',
+    'dateFormat': 'iso',
+}
+
+response = requests.get(url, params=params)
+
+if response.status_code != 200:
+    print(f"❌ Failed to fetch data: {response.status_code} - {response.text}")
+    exit()
+
+odds_json = response.json()
+
+odds_data = []
+
+# Parse odds data
+for game in odds_json:
+    home_team = game.get("home_team", "")
+    away_team = game.get("away_team", "")
+    game_time = game.get("commence_time", "")[:19].replace("T", " ")
+
+    for bookmaker in game.get("bookmakers", []):
+        book_name = bookmaker.get("title", "")
+        for market in bookmaker.get("markets", []):
+            market_type = market.get("key", "")
+            for outcome in market.get("outcomes", []):
+                odds_data.append({
+                    "Date": target_date,
+                    "Game Time": game_time,
+                    "Bookmaker": book_name,
+                    "Home Team": home_team,
+                    "Away Team": away_team,
+                    "Market": market_type,
+                    "Team": outcome.get("name", ""),
+                    "Odds": outcome.get("price", ""),
+                    "Point": outcome.get("point", "")
+                })
+
+# Save to CSV
 df = pd.DataFrame(odds_data)
 df.to_csv(output_path, index=False)
 
-print(f"✅ Betting odds saved to {output_path} ({len(odds_data)} games)")
+print(f"✅ Betting odds saved to {output_path} ({len(odds_data)} rows)")
