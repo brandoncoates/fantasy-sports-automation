@@ -1,4 +1,4 @@
-name: MLB Rosters Scraper
+name: Run MLB Rosters Scraper
 
 on:
   schedule:
