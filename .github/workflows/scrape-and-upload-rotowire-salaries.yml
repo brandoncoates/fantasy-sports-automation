@@ -2,31 +2,31 @@ name: Run Rotowire DK and FD Salaries Scraper
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '30 9 * * *'  # Runs daily at 9:30 AM Central
 
 jobs:
-  run-rotowire-salaries-scraper:
+  run-rotowire-salaries:
     runs-on: ubuntu-latest
-
     steps:
-      - name: 📦 Checkout Repo
-        uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.10"
 
-      - name: 📥 Install Dependencies
+      - name: Install deps
         run: pip install requests boto3 beautifulsoup4
 
-      - name: 🔐 Set AWS Credentials
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: 🚀 Run Rotowire Salaries Scraper
+      - name: Run Rotowire salaries scraper
         run: python mlb_rotowire_salaries_scraper.py
+
+      - name: Done
+        run: echo "✅ Rotowire MLB DK+FD salaries scraped & uploaded"
