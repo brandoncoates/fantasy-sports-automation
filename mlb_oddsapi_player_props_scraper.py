@@ -58,4 +58,6 @@ for event in data:
                 })
 
 if not rows:
-    print("⚠️ No rows collected. Possibly
+    print("⚠️ No rows collected. Possibly empty props for selected market.")
+    exit(0)
+
