@@ -1,0 +1,32 @@
+name: DraftKings MLB Player Props
+
+on:
+  schedule:
+    - cron: '00 14 * * *'  # 9:00 AM Central Time (14:00 UTC)
+  workflow_dispatch:
+
+jobs:
+  run-draftkings-player-props:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install boto3 requests
+
+      - name: 🚀 Run DraftKings MLB Player Props Script
+        run: python mlb_draftkings_player_props.py
