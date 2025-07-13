@@ -7,34 +7,44 @@ from datetime import datetime
 # === CONFIG ===
 output_dir = "mlb_espn_player_projections"
 os.makedirs(output_dir, exist_ok=True)
-
 today = datetime.now().strftime("%Y-%m-%d")
 filename = f"mlb_espn_player_projections_{today}.csv"
 output_path = os.path.join(output_dir, filename)
 
-# === ESPN Fantasy Projections URL (Batters)
-# NOTE: This URL changes daily and must be updated manually for now
-url = "https://www.espn.com/fantasy/baseball/story/_/id/39615139/fantasy-baseball-daily-hitter-projections-monday"
+# === Step 1: Get main fantasy baseball page
+main_url = "https://www.espn.com/fantasy/baseball/"
+main_response = requests.get(main_url)
+if main_response.status_code != 200:
+    raise Exception(f"❌ Failed to fetch ESPN Fantasy Baseball homepage: {main_response.status_code}")
 
-headers = {
-    "User-Agent": "Mozilla/5.0"
-}
-response = requests.get(url, headers=headers)
+main_soup = BeautifulSoup(main_response.text, "html.parser")
 
-if response.status_code != 200:
-    raise Exception(f"❌ Failed to fetch ESPN projections: {response.status_code}")
+# === Step 2: Find latest hitter projections article
+article_url = None
+for link in main_soup.find_all("a", href=True):
+    href = link["href"]
+    if "daily-hitter-projections" in href:
+        article_url = href if href.startswith("http") else f"https://www.espn.com{href}"
+        break
 
-soup = BeautifulSoup(response.text, "html.parser")
-tables = soup.find_all("table")
+if not article_url:
+    raise Exception("❌ Could not locate hitter projections article on ESPN fantasy page.")
+
+# === Step 3: Scrape table from projections article
+article_response = requests.get(article_url)
+if article_response.status_code != 200:
+    raise Exception(f"❌ Failed to fetch projections article: {article_response.status_code}")
+
+article_soup = BeautifulSoup(article_response.text, "html.parser")
+tables = article_soup.find_all("table")
 
 if not tables:
-    raise Exception("❌ No tables found on the page. ESPN might have changed the layout.")
+    raise Exception("❌ No tables found in ESPN projections article.")
 
-# === Step 1: Extract Player Projections Table ===
 df_list = pd.read_html(str(tables))
 proj_df = df_list[0]
 
-# === Step 2: Add Date and Save CSV ===
+# === Step 4: Add date and save
 proj_df.insert(0, "Date", today)
 proj_df.to_csv(output_path, index=False)
 print(f"✅ Saved {len(proj_df)} ESPN projections to {output_path}")
