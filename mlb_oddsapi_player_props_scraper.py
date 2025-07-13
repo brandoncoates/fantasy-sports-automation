@@ -13,7 +13,7 @@ SPORT = "baseball_mlb"
 REGIONS = "us"
 
 # ✅ Use a valid market (player_props is NOT valid)
-MARKETS = "player_hits"  # Can later be: "player_hits,player_home_runs"
+MARKETS = "player_home_runs"  # Can later be: "player_hits,player_home_runs"
 DATE = datetime.now().strftime("%Y-%m-%d")
 FILENAME = f"mlb_oddsapi_player_props_{DATE}.csv"
 S3_KEY = f"{S3_FOLDER}/{FILENAME}"
