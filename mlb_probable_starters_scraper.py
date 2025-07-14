@@ -21,7 +21,14 @@ if response.status_code != 200:
     exit(1)
 
 data = response.json()
-games = data.get("dates", [])[0].get("games", []) if data.get("dates") else []
+
+# === CHECK FOR GAMES ===
+dates = data.get("dates", [])
+if not dates or not dates[0].get("games"):
+    print(f"⚠️ No MLB games scheduled for {DATE}. Exiting script.")
+    exit(0)
+
+games = dates[0].get("games", [])
 
 # === Function to get throwing hand ===
 def get_throw_hand(player_id):
