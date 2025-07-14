@@ -11,7 +11,7 @@ from selenium.webdriver.support import expected_conditions as EC
 # Only scrape these props
 TARGET_PROPS = ["Hits", "Home Runs", "RBIs", "Pitcher Strikeouts"]
 
-# DraftKings MLB Props URL (this may vary based on region/session)
+# DraftKings MLB Props page
 DK_URL = "https://sportsbook.draftkings.com/leagues/baseball/mlb"
 
 def get_driver():
@@ -28,25 +28,31 @@ def scrape_props():
 
     wait = WebDriverWait(driver, 20)
     wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-    time.sleep(5)  # Allow extra time for JS load
+    time.sleep(5)
+
+    # Save screenshot for debugging
+    screenshot_path = "/tmp/dk_props_page.png"
+    driver.save_screenshot(screenshot_path)
+    print(f"📸 Screenshot saved to: {screenshot_path}")
 
     data = []
 
     for prop_type in TARGET_PROPS:
-        print(f"Looking for prop: {prop_type}")
+        print(f"🔍 Searching for prop type: {prop_type}")
 
         try:
-            # Try to click into the prop category if it exists
-            prop_buttons = driver.find_elements(By.XPATH, f"//span[contains(text(), '{prop_type}')]")
-            if not prop_buttons:
-                print(f"{prop_type} not found.")
+            buttons = driver.find_elements(By.XPATH, f"//span[contains(text(), '{prop_type}')]")
+            if not buttons:
+                print(f"❌ No button found for '{prop_type}'")
                 continue
 
-            prop_buttons[0].click()
+            print(f"✅ Found button for '{prop_type}' — clicking")
+            buttons[0].click()
             time.sleep(4)
 
-            # Extract markets
             rows = driver.find_elements(By.XPATH, "//div[contains(@class,'sportsbook-event-accordion__wrapper')]")
+            print(f"📦 Found {len(rows)} rows for {prop_type}")
+
             for row in rows:
                 try:
                     player = row.find_element(By.CLASS_NAME, "event-cell__name-text").text
@@ -58,11 +64,11 @@ def scrape_props():
                 except Exception:
                     continue
 
-        except Exception as e:
-            print(f"Error scraping {prop_type}: {str(e)}")
+            driver.back()
+            time.sleep(3)
 
-        driver.back()
-        time.sleep(3)
+        except Exception as e:
+            print(f"🚨 Error processing {prop_type}: {e}")
 
     driver.quit()
     return data
@@ -84,7 +90,7 @@ def upload_to_s3(local_path, bucket_name, s3_path):
 
 def main():
     data = scrape_props()
-    print(f"Total props scraped: {len(data)}")
+    print(f"✅ Total props scraped: {len(data)}")
 
     today = datetime.now().strftime("%Y-%m-%d")
     filename = f"draftkings_props_{today}.csv"
@@ -94,7 +100,7 @@ def main():
 
     save_to_csv(data, local_path)
     upload_to_s3(local_path, bucket, s3_path)
-    print(f"Uploaded to S3: {s3_path}")
+    print(f"✅ Uploaded to S3: {s3_path}")
 
 if __name__ == "__main__":
     main()
