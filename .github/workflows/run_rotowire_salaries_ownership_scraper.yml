@@ -3,7 +3,7 @@ name: Run Rotowire Salaries & Ownership Scraper
 on:
   workflow_dispatch:
   schedule:
-    - cron: "30 14 * * *"  # Runs daily at 9:30 AM Central Time
+    - cron: "30 14 * * *"  # 9:30 AM Central Time
 
 jobs:
   run-scraper:
@@ -25,16 +25,19 @@ jobs:
 
       - name: Install matching ChromeDriver
         run: |
-          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+')
-          echo "Chrome version (major.minor): $CHROME_VERSION"
-          URL="https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}"
-          echo "Fetching ChromeDriver version from: $URL"
-          CHROMEDRIVER_VERSION=$(curl -fsS $URL || echo "114.0.5735.90")
+          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
+          echo "Chrome version: $CHROME_VERSION"
+          wget -q https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION -O chromedriver_version.txt || echo "Can't find exact match, using major.minor"
+          if [ ! -s chromedriver_version.txt ]; then
+            CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+')
+            wget -q https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION -O chromedriver_version.txt
+          fi
+          CHROMEDRIVER_VERSION=$(cat chromedriver_version.txt)
           echo "ChromeDriver version: $CHROMEDRIVER_VERSION"
-          wget "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+          wget -q https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
           unzip chromedriver_linux64.zip
-          sudo mv chromedriver /usr/local/bin/
-          sudo chmod +x /usr/local/bin/chromedriver
+          sudo mv chromedriver /usr/bin/chromedriver
+          sudo chmod +x /usr/bin/chromedriver
 
       - name: Install Python dependencies
         run: |
@@ -47,4 +50,4 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: "us-east-2"
         run: |
-          python fantasy-sports-automation/fantasy-sports-automation/mlb_rotowire_salaries_ownership_scraper.py
+          python fantasy-sports-automation/mlb_rotowire_salaries_ownership_scraper.py
