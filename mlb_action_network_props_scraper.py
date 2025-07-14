@@ -57,7 +57,7 @@ def save_to_s3(df):
 
     s3.upload_file(
         filename,
-        "your-bucket-name",  # ← CHANGE THIS
+        "goatland-csvs"
         f"baseball/props-action/action_network_props_{today_str}.csv"
     )
     print(f"✅ Uploaded to S3: baseball/props-action/action_network_props_{today_str}.csv")
