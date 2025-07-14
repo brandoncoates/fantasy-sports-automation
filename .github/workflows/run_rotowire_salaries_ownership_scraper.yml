@@ -3,7 +3,7 @@ name: Run Rotowire Salaries & Ownership Scraper
 on:
   workflow_dispatch:
   schedule:
-    - cron: "30 14 * * *"  # Runs daily at 9:30 AM Central Time
+    - cron: "30 14 * * *"  # 9:30 AM Central Time
 
 jobs:
   run-scraper:
@@ -21,20 +21,17 @@ jobs:
       - name: Install Chrome
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget unzip google-chrome-stable
+          sudo apt-get install -y wget unzip
+          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
 
       - name: Install matching ChromeDriver
         run: |
-          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+')
-          echo "Chrome version (major.minor): $CHROME_VERSION"
-          URL="https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}"
-          echo "Fetching ChromeDriver version from: $URL"
-          CHROMEDRIVER_VERSION=$(curl -fsS $URL || echo "114.0.5735.90")
-          echo "ChromeDriver version: $CHROMEDRIVER_VERSION"
-          wget "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
-          unzip chromedriver_linux64.zip
-          sudo mv chromedriver /usr/local/bin/
-          sudo chmod +x /usr/local/bin/chromedriver
+          CHROMEDRIVER_VERSION="114.0.5735.90"
+          wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/$CHROMEDRIVER_VERSION/linux64/chromedriver-linux64.zip
+          unzip chromedriver-linux64.zip
+          sudo mv linux64/chromedriver /usr/bin/chromedriver
+          sudo chmod +x /usr/bin/chromedriver
 
       - name: Install Python dependencies
         run: |
@@ -47,4 +44,4 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: "us-east-1"
         run: |
-          python fantasy-sports-automation/fantasy-sports-automation/mlb_rotowire_salaries_ownership_scraper.py
+          python fantasy-sports-automation/mlb_rotowire_salaries_ownership_scraper.py
