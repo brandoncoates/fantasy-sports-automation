@@ -1,0 +1,31 @@
+name: run-oddsapi-props
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 15 * * *'  # Runs daily at 9 AM Central
+
+jobs:
+  run-oddsapi-scraper:
+    runs-on: ubuntu-latest
+
+    env:
+      ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: pip install requests pandas boto3
+
+      - name: Run OddsAPI Player Props Scraper
+        run: python mlb_oddsapi_player_props_scraper.py
