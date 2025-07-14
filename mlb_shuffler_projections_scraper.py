@@ -22,8 +22,8 @@ HEADERS = {
     "Authorization": f"Bearer {API_KEY}"
 }
 
-# === Step 1: Get projections ===
-print("📡 Fetching projections from Shuffler API...")
+# === Step 1: Fetch projections ===
+print("📡 Fetching Shuffler projections...")
 url = f"https://api.shuffler.io/v3/json/PlayerGameProjectionStatsByDate/{DATE}"
 response = requests.get(url, headers=HEADERS)
 
@@ -32,12 +32,12 @@ if response.status_code != 200:
     exit(1)
 
 data = response.json()
-if not isinstance(data, list) or not data:
-    print("❌ Unexpected or empty data format")
+if not data or not isinstance(data, list):
+    print("❌ No valid data received.")
     exit(1)
 
 # === Step 2: Write to CSV ===
-print("💾 Saving CSV locally...")
+print("💾 Writing data to CSV...")
 with open(FILENAME, "w", newline="", encoding="utf-8") as f:
     writer = csv.DictWriter(f, fieldnames=data[0].keys())
     writer.writeheader()
@@ -55,4 +55,4 @@ except Exception as e:
 
 # === Step 4: Cleanup ===
 os.remove(FILENAME)
-print(f"🧹 Removed local file: {FILENAME}")
+print(f"🧹 Deleted local file: {FILENAME}")
