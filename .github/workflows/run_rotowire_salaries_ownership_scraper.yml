@@ -1,4 +1,4 @@
-name: Run Rotowire Scraper
+name: scrape-rotowire
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
     - cron: '30 14 * * *'
 
 jobs:
-  scrape-rotowire:
+  run:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,19 +20,17 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install --upgrade pip
         pip install pandas boto3 beautifulsoup4 selenium
 
-    - name: Install Chrome v114 & Chromedriver v114
+    - name: Install Chromium & Chromedriver 114
       run: |
-        sudo apt remove -y google-chrome-stable || true
-        wget https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_114.0.5735.90-1_amd64.deb
-        sudo apt install -y ./google-chrome-stable_114.0.5735.90-1_amd64.deb
-
+        sudo apt-get update
+        sudo apt-get install -y chromium-browser
         wget https://chromedriver.storage.googleapis.com/114.0.5735.90/chromedriver_linux64.zip
         unzip chromedriver_linux64.zip
-        sudo mv chromedriver /usr/local/bin/
+        sudo mv chromedriver /usr/local/bin/chromedriver
         sudo chmod +x /usr/local/bin/chromedriver
+        echo "✅ Installed Chromium and Chromedriver 114"
 
     - name: Run Rotowire Salaries & Ownership Scraper
       env:
