@@ -1,79 +1,100 @@
 import os
-import csv
-import json
 import time
+import csv
 import boto3
-import requests
 from datetime import datetime
+import undetected_chromedriver as uc
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-# === CONFIG ===
-REGION = "us-east-1"
-BUCKET = "fantasy-sports-csvs"
-S3_FOLDER = "baseball/playerprops"
-DATE = datetime.now().strftime("%Y-%m-%d")
-FILENAME = f"mlb_draftkings_player_props_{DATE}.csv"
-S3_KEY = f"{S3_FOLDER}/{FILENAME}"
+# Only scrape these props
+TARGET_PROPS = ["Hits", "Home Runs", "RBIs", "Pitcher Strikeouts"]
 
-# === DRAFTKINGS URL ===
-URL = "https://sportsbook.draftkings.com/sites/US-SB/api/v5/eventgroups/84240?category=player-props&format=json"
+# DraftKings MLB Props URL (this may vary based on region/session)
+DK_URL = "https://sportsbook.draftkings.com/leagues/baseball/mlb"
 
-# === FETCH DATA ===
-print("📡 Requesting DraftKings player props...")
-response = requests.get(URL)
-if response.status_code != 200:
-    print(f"❌ API error {response.status_code}: {response.text}")
-    exit(1)
+def get_driver():
+    options = uc.ChromeOptions()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1920,1080")
+    return uc.Chrome(options=options)
 
-data = response.json()
-events = {e['eventId']: e for e in data['eventGroup']['events']}
-props = []
+def scrape_props():
+    driver = get_driver()
+    driver.get(DK_URL)
 
-# === PROCESS PROPS ===
-for offer_cat in data['eventGroup']['offerCategories']:
-    if offer_cat.get('name') != 'Player Props':
-        continue
-    for subcat in offer_cat.get('offerSubcategoryDescriptors', []):
-        prop_type = subcat.get('name')  # Example: "Hits", "Home Runs"
-        for offer in subcat.get('offers', []):
-            for market in offer:
-                event_id = market.get('eventId')
-                if not event_id or event_id not in events:
+    wait = WebDriverWait(driver, 20)
+    wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+    time.sleep(5)  # Allow extra time for JS load
+
+    data = []
+
+    for prop_type in TARGET_PROPS:
+        print(f"Looking for prop: {prop_type}")
+
+        try:
+            # Try to click into the prop category if it exists
+            prop_buttons = driver.find_elements(By.XPATH, f"//span[contains(text(), '{prop_type}')]")
+            if not prop_buttons:
+                print(f"{prop_type} not found.")
+                continue
+
+            prop_buttons[0].click()
+            time.sleep(4)
+
+            # Extract markets
+            rows = driver.find_elements(By.XPATH, "//div[contains(@class,'sportsbook-event-accordion__wrapper')]")
+            for row in rows:
+                try:
+                    player = row.find_element(By.CLASS_NAME, "event-cell__name-text").text
+                    line = row.find_element(By.CLASS_NAME, "sportsbook-outcome-cell__line").text
+                    outcomes = row.find_elements(By.CLASS_NAME, "sportsbook-outcome-cell__element")
+                    over_odds = outcomes[0].text.split("\n")[-1]
+                    under_odds = outcomes[1].text.split("\n")[-1]
+                    data.append([player, prop_type, line, over_odds, under_odds])
+                except Exception:
                     continue
-                event = events[event_id]
-                game = f"{event['teamA']} vs {event['teamB']}"
-                commence = event['startDate']
-                for outcome in market.get('outcomes', []):
-                    props.append({
-                        "date": DATE,
-                        "time": commence,
-                        "game": game,
-                        "prop_type": prop_type,
-                        "player": outcome.get("participant"),
-                        "line": outcome.get("line"),
-                        "odds": outcome.get("oddsDecimal"),
-                        "side": outcome.get("label"),
-                    })
 
-print(f"✅ Collected {len(props)} player props")
+        except Exception as e:
+            print(f"Error scraping {prop_type}: {str(e)}")
 
-# === SAVE LOCALLY ===
-csv_file = FILENAME
-with open(csv_file, mode="w", newline="", encoding="utf-8") as f:
-    writer = csv.DictWriter(f, fieldnames=props[0].keys())
-    writer.writeheader()
-    writer.writerows(props)
-print(f"💾 Local CSV saved: {csv_file}")
+        driver.back()
+        time.sleep(3)
 
-# === UPLOAD TO S3 ===
-print(f"☁️ Uploading to s3://{BUCKET}/{S3_KEY}")
-s3 = boto3.client("s3", region_name=REGION)
-try:
-    s3.upload_file(csv_file, BUCKET, S3_KEY)
-    print(f"✅ Upload complete: s3://{BUCKET}/{S3_KEY}")
-except Exception as e:
-    print(f"❌ Upload failed: {e}")
-    exit(1)
+    driver.quit()
+    return data
 
-# === CLEANUP ===
-os.remove(csv_file)
-print(f"🧹 Cleaned up local file: {csv_file}")
+def save_to_csv(data, filename):
+    headers = ["Player", "Prop Type", "Line", "Over Odds", "Under Odds"]
+    with open(filename, "w", newline='', encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(headers)
+        writer.writerows(data)
+
+def upload_to_s3(local_path, bucket_name, s3_path):
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY")
+    )
+    s3.upload_file(local_path, bucket_name, s3_path)
+
+def main():
+    data = scrape_props()
+    print(f"Total props scraped: {len(data)}")
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    filename = f"draftkings_props_{today}.csv"
+    local_path = f"/tmp/{filename}"
+    s3_path = f"baseball/props-dk/{filename}"
+    bucket = "fantasy-sports-csvs"
+
+    save_to_csv(data, local_path)
+    upload_to_s3(local_path, bucket, s3_path)
+    print(f"Uploaded to S3: {s3_path}")
+
+if __name__ == "__main__":
+    main()
