@@ -2,8 +2,7 @@ import os
 import csv
 import boto3
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -14,23 +13,23 @@ URLS = {
     "FanDuel": "https://www.rotowire.com/daily/mlb/player-roster-percent.php?site=FanDuel"
 }
 
-# Setup headless browser
+# Setup stealth Chrome driver
 def get_driver():
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--window-size=1920x1080")
-    return webdriver.Chrome(options=chrome_options)
+    options = uc.ChromeOptions()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1920,1080")
+    return uc.Chrome(options=options)
 
 # Scrape data from a single site
 def scrape_site(site, url):
     driver = get_driver()
     driver.get(url)
 
-    wait = WebDriverWait(driver, 15)
+    wait = WebDriverWait(driver, 20)
     wait.until(EC.presence_of_element_located((By.XPATH, '//table[contains(@class, "tablesorter")]/tbody/tr')))
-    
+
     rows = driver.find_elements(By.XPATH, '//table[contains(@class, "tablesorter")]/tbody/tr')
     data = []
     for row in rows:
