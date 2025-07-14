@@ -3,7 +3,7 @@ name: Run Rotowire Salaries & Ownership Scraper
 on:
   workflow_dispatch:
   schedule:
-    - cron: '15 13 * * *'  # Runs daily at 8:15 AM Central
+    - cron: "30 14 * * *"  # Runs every day at 14:30 UTC (9:30 AM Central)
 
 jobs:
   run-scraper:
@@ -11,39 +11,36 @@ jobs:
 
     steps:
       - name: Post Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Post Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
+
+      - name: Install Chrome & Chromedriver 114
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip wget
+          wget https://storage.googleapis.com/chrome-for-testing-public/114.0.5735.90/linux64/chrome-linux64.zip
+          wget https://storage.googleapis.com/chrome-for-testing-public/114.0.5735.90/linux64/chromedriver-linux64.zip
+          unzip chrome-linux64.zip
+          unzip chromedriver-linux64.zip
+          sudo mv chrome-linux64 /opt/chrome
+          sudo mv chromedriver-linux64/chromedriver /usr/bin/chromedriver
+          sudo ln -sf /opt/chrome/chrome /usr/bin/google-chrome
+          sudo ln -sf /opt/chrome/chrome /usr/bin/chromium-browser || true
+          echo "Installed Chrome and Chromedriver 114"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install selenium beautifulsoup4 pandas boto3
 
-      - name: Install Chrome & Chromedriver 114
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget unzip
-
-          # Download Chrome v114 for Testing
-          wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/114.0.5735.133/linux64/chrome-linux64.zip
-          unzip chrome-linux64.zip
-          sudo mv chrome-linux64 /opt/chrome
-          sudo ln -s /opt/chrome/chrome /usr/bin/chromium-browser
-
-          # Download matching Chromedriver v114
-          wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/114.0.5735.133/linux64/chromedriver-linux64.zip
-          unzip chromedriver-linux64.zip
-          sudo mv chromedriver-linux64/chromedriver /usr/bin/chromedriver
-          sudo chmod +x /usr/bin/chromedriver
-
       - name: Run Rotowire Salaries & Ownership Scraper
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'us-east-1'
+          AWS_DEFAULT_REGION: "us-east-1"
         run: |
-          python mlb_rotowire_salaries_ownership_scraper.py
+          python fantasy-sports-automation/fantasy-sports-automation/mlb_rotowire_salaries_ownership_scraper.py
