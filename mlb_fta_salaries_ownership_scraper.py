@@ -14,7 +14,7 @@ S3_KEY = f"{S3_FOLDER}/{FILENAME}"
 
 # === STEP 1: Download from FTA ===
 print("📥 Downloading FTA CSV...")
-FTA_URL = "https://www.fantasyteamadvice.com/mlb-dfs-ownership/"
+FTA_URL = "https://fantasyteamadvice.com/mlb-dfs-ownership/"
 response = requests.get(FTA_URL)
 
 if response.status_code != 200:
