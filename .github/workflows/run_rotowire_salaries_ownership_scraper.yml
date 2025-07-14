@@ -22,21 +22,19 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y unzip wget
-          
-          # Download Chrome
-          wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/114.0.5735.90/linux64/chrome-linux64.zip
-          unzip chrome-linux64.zip
-          sudo mv chrome-linux64 /opt/chrome
 
-          # Download ChromeDriver
+          # Download Chrome 114
+          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get install -f -y
+
+          # Download ChromeDriver 114 matching Chrome 114.0.5735.90
           wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/114.0.5735.90/linux64/chromedriver-linux64.zip
           unzip chromedriver-linux64.zip
-          sudo mv chromedriver-linux64/chromedriver /usr/bin/chromedriver
-          sudo chmod +x /usr/bin/chromedriver
+          sudo mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
+          sudo chmod +x /usr/local/bin/chromedriver
 
           # Symlinks for Selenium
-          sudo ln -sf /opt/chrome/chrome /usr/bin/google-chrome
-          sudo ln -sf /opt/chrome/chrome /usr/bin/chromium-browser || true
+          sudo ln -sf /usr/bin/google-chrome /usr/bin/chromium-browser || true
 
       - name: Install Python dependencies
         run: |
