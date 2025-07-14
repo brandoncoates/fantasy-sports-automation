@@ -15,8 +15,9 @@ DATE = datetime.now().strftime("%Y-%m-%d")
 FILENAME = f"mlb_weather_{DATE}.csv"
 S3_KEY = f"{S3_FOLDER}/{FILENAME}"
 
-# === READ STADIUM COORDINATES ===
+# === READ STADIUM COORDINATES & DOME STATUS ===
 df_coords = pd.read_csv(INPUT_CSV)
+df_coords["Stadium"] = df_coords["Stadium"].str.lower()
 rows = []
 
 print(f"📡 Requesting weather data for {len(df_coords)} stadiums...")
@@ -26,6 +27,7 @@ for _, row in df_coords.iterrows():
     stadium = row["Stadium"]
     lat = row["Latitude"]
     lon = row["Longitude"]
+    is_dome = str(row.get("Is_Dome", "FALSE")).strip().lower() == "true"
 
     try:
         response = requests.get(BASE_URL, params={
@@ -52,14 +54,15 @@ for _, row in df_coords.iterrows():
         rows.append({
             "date": DATE,
             "team": team,
-            "stadium": stadium,
+            "stadium": stadium.title(),  # Title case for display
             "temperature": hourly["temperature_2m"][first_index],
             "windSpeed": hourly["windspeed_10m"][first_index],
             "windDirection": hourly["winddirection_10m"][first_index],
             "precipitationProbability": hourly["precipitation_probability"][first_index],
             "cloudCover": hourly["cloudcover"][first_index],
             "condition": hourly["weathercode"][first_index],
-            "time": times[first_index]
+            "time": times[first_index],
+            "weatherImpact": "No (Dome)" if is_dome else "Yes"
         })
 
     except Exception as e:
