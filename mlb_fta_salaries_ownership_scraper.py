@@ -1,74 +1,47 @@
-import csv
+import pandas as pd
 import requests
-import boto3
-from datetime import datetime
-import os
 from bs4 import BeautifulSoup
+import datetime
+import os
 
-# === CONFIG ===
-REGION = "us-east-2"
-BUCKET = "fantasy-sports-csvs"
-S3_FOLDER = "baseball/projections"
-DATE = datetime.now().strftime("%Y-%m-%d")
-FILENAME = f"mlb_fta_salaries_ownership_{DATE}.csv"
-S3_KEY = f"{S3_FOLDER}/{FILENAME}"
+# Define URLs
+DK_URL = 'https://www.rotowire.com/daily/mlb/player-roster-percent.php?site=DraftKings'
 
-FTA_URL = "https://www.fantasyteamadvice.com/mlb-dfs-ownership/"
-HEADERS = {"User-Agent": "Mozilla/5.0"}
+# Today's date for the filename
+today = datetime.datetime.now().strftime('%Y-%m-%d')
+filename = f"mlb_fta_salaries_ownership_dk_{today}.csv"
 
-print("📡 Downloading FTA CSV...")
-response = requests.get(FTA_URL, headers=HEADERS, verify=False)
-soup = BeautifulSoup(response.content, "html.parser")
+def scrape_roster_percentages(url):
+    headers = {
+        'User-Agent': 'Mozilla/5.0'
+    }
 
-# === Detect tables ===
-tables = soup.find_all("table")
-print(f"🔍 Found {len(tables)} tables")
+    # Get HTML content
+    response = requests.get(url, headers=headers, verify=False)
+    soup = BeautifulSoup(response.text, 'html.parser')
 
-if not tables:
-    raise Exception("❌ No tables found on the page. Page structure might have changed.")
+    # Find the table
+    table = soup.find('table', {'id': 'player-table-datatable'})
+    if table is None:
+        raise Exception("❌ Table not found on the page.")
 
-# === Function to parse any table ===
-def parse_table(table, source_label):
-    data = []
-    headers = [th.text.strip() for th in table.find_all("th")]
-    headers.append("Source")
+    # Parse table data
+    df = pd.read_html(str(table))[0]
+    df['Source'] = 'DraftKings'
 
-    for row in table.find_all("tr")[1:]:
-        cells = row.find_all(["td", "th"])
-        row_data = [cell.text.strip() for cell in cells]
-        if row_data:
-            row_data.append(source_label)
-            data.append(dict(zip(headers, row_data)))
-    return headers, data
+    return df
 
-all_data = []
-all_headers = set()
+# Scrape DraftKings
+print("📥 Scraping DraftKings...")
+df_dk = scrape_roster_percentages(DK_URL)
 
-# === Try parsing each table ===
-for i, table in enumerate(tables):
-    label = f"Table{i+1}"
-    headers, data = parse_table(table, label)
-    all_data.extend(data)
-    all_headers.update(headers)
+# Save locally
+df_dk.to_csv(filename, index=False)
+print(f"✅ CSV saved: {filename}")
 
-# === Write combined CSV ===
-print("💾 Saving locally...")
-with open(FILENAME, "w", newline="", encoding="utf-8") as f:
-    writer = csv.DictWriter(f, fieldnames=list(all_headers))
-    writer.writeheader()
-    for row in all_data:
-        writer.writerow(row)
+# Optional: Upload to S3 if needed
+# (add your boto3 code here if doing upload)
 
-# === Upload to S3 ===
-print(f"☁️ Uploading to s3://{BUCKET}/{S3_KEY}")
-s3 = boto3.client("s3", region_name=REGION)
-try:
-    s3.upload_file(FILENAME, BUCKET, S3_KEY)
-    print(f"✅ Upload complete: s3://{BUCKET}/{S3_KEY}")
-except Exception as e:
-    print(f"❌ Upload failed: {e}")
-    exit(1)
-
-# === Cleanup ===
-os.remove(FILENAME)
-print(f"🧹 Removed local file: {FILENAME}")
+# Clean up
+os.remove(filename)
+print("🧹 Local CSV deleted.")
