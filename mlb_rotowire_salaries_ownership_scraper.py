@@ -1,34 +1,42 @@
-import requests
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
-import os
 import boto3
+import os
+import time
 
 # Define base URL and platforms
 ROTOWIRE_URL = "https://www.rotowire.com/daily/mlb/player-roster-percent.php?site={site}"
 PLATFORMS = ["DraftKings", "FanDuel"]
 
-# S3 bucket info
+# S3 info
 bucket_name = "fantasy-sports-csvs"
 s3_folder = "baseball/rotowire-salaries"
 
-# Headers to mimic a browser
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
-}
+def get_driver():
+    options = Options()
+    options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    driver = webdriver.Chrome(options=options)
+    return driver
 
 def scrape_rotowire_props(site):
     url = ROTOWIRE_URL.format(site=site)
-    response = requests.get(url, headers=HEADERS)
-    if response.status_code != 200:
-        print(f"Failed to fetch data for {site}: {response.status_code}")
-        return None
+    driver = get_driver()
+    print(f"Loading {url}")
+    driver.get(url)
 
-    soup = BeautifulSoup(response.content, "html.parser")
+    time.sleep(5)  # Wait for JavaScript to load content
+
+    soup = BeautifulSoup(driver.page_source, 'html.parser')
+    driver.quit()
+
     table = soup.find("table", {"class": "player-table"})
     if not table:
-        print(f"No data table found for {site}")
+        print(f"❌ No data table found for {site}")
         return None
 
     rows = table.find_all("tr")
@@ -68,7 +76,7 @@ def main():
         print(f"Scraping {site} data...")
         df = scrape_rotowire_props(site)
         if df is not None and not df.empty:
-            print(f"Scraped {len(df)} rows for {site}")
+            print(f"✅ Scraped {len(df)} rows for {site}")
             upload_to_s3(df, site)
         else:
             print(f"❌ No data scraped for {site}")
