@@ -3,7 +3,7 @@ name: Run Rotowire Salaries & Ownership Scraper
 on:
   workflow_dispatch:
   schedule:
-    - cron: "30 14 * * *"  # 9:30 AM Central Time
+    - cron: "30 14 * * *"  # Runs daily at 9:30 AM Central Time
 
 jobs:
   run-scraper:
@@ -21,14 +21,12 @@ jobs:
       - name: Install Chrome
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget unzip
-          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get install -f -y
+          sudo apt-get install -y wget unzip google-chrome-stable
 
       - name: Install matching ChromeDriver
         run: |
-          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+')
-          echo "Chrome version (major.minor): $CHROME_VERSION"
+          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
+          echo "Chrome version (major.minor.build): $CHROME_VERSION"
           CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}")
           echo "ChromeDriver version: $CHROMEDRIVER_VERSION"
           wget "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
