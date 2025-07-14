@@ -1,9 +1,9 @@
-name: Run FTA Salaries & Ownership Scraper
+name: Scrape FTA Salary & Ownership
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 14 * * *'  # Runs daily at 9am Central
+    - cron: "0 15 * * *"  # Runs every day at 9 AM Central
 
 jobs:
   run-scraper:
@@ -15,11 +15,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
-          pip install requests boto3
+          python -m pip install --upgrade pip
+          pip install boto3 requests beautifulsoup4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
