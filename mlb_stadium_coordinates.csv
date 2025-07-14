@@ -1,31 +1,31 @@
-Team,Stadium,Latitude,Longitude
-Arizona Diamondbacks,Chase Field,33.4455,-112.0667
-Atlanta Braves,Truist Park,33.8908,-84.4675
-Baltimore Orioles,Camden Yards,39.2839,-76.6218
-Boston Red Sox,Fenway Park,42.3467,-71.0972
-Chicago White Sox,Guaranteed Rate Field,41.8309,-87.6348
-Chicago Cubs,Wrigley Field,41.9484,-87.6553
-Cincinnati Reds,Great American Ball Park,39.0976,-84.5066
-Cleveland Guardians,Progressive Field,41.4962,-81.6852
-Colorado Rockies,Coors Field,39.7559,-104.9942
-Detroit Tigers,Comerica Park,42.3390,-83.0485
-Houston Astros,Minute Maid Park,29.7573,-95.3555
-Kansas City Royals,Kauffman Stadium,39.0517,-94.4803
-Los Angeles Angels,Angel Stadium,33.8003,-117.8827
-Los Angeles Dodgers,Dodger Stadium,34.0739,-118.2400
-Miami Marlins,loanDepot Park,25.7780,-80.2195
-Milwaukee Brewers,American Family Field,43.0280,-87.9712
-Minnesota Twins,Target Field,44.9817,-93.2775
-New York Yankees,Yankee Stadium,40.8296,-73.9262
-New York Mets,Citi Field,40.7571,-73.8458
-Oakland Athletics,RingCentral Coliseum,37.7516,-122.2005
-Philadelphia Phillies,Citizens Bank Park,39.9057,-75.1665
-Pittsburgh Pirates,PNC Park,40.4469,-80.0057
-San Diego Padres,Petco Park,32.7073,-117.1573
-San Francisco Giants,Oracle Park,37.7786,-122.3893
-Seattle Mariners,T-Mobile Park,47.5914,-122.3325
-St. Louis Cardinals,Busch Stadium,38.6226,-90.1928
-Tampa Bay Rays,Tropicana Field,27.7683,-82.6534
-Texas Rangers,Globe Life Field,32.7473,-97.0847
-Toronto Blue Jays,Rogers Centre,43.6414,-79.3894
-Washington Nationals,Nationals Park,38.8730,-77.0074
+Team,Stadium,Latitude,Longitude,Is_Dome
+Arizona Diamondbacks,Chase Field,33.4455,-112.0667,TRUE
+Atlanta Braves,Truist Park,33.8908,-84.4675,FALSE
+Baltimore Orioles,Camden Yards,39.2839,-76.6218,FALSE
+Boston Red Sox,Fenway Park,42.3467,-71.0972,FALSE
+Chicago White Sox,Guaranteed Rate Field,41.8309,-87.6348,FALSE
+Chicago Cubs,Wrigley Field,41.9484,-87.6553,FALSE
+Cincinnati Reds,Great American Ball Park,39.0976,-84.5066,FALSE
+Cleveland Guardians,Progressive Field,41.4962,-81.6852,FALSE
+Colorado Rockies,Coors Field,39.7559,-104.9942,FALSE
+Detroit Tigers,Comerica Park,42.3390,-83.0485,FALSE
+Houston Astros,Minute Maid Park,29.7573,-95.3555,TRUE
+Kansas City Royals,Kauffman Stadium,39.0517,-94.4803,FALSE
+Los Angeles Angels,Angel Stadium,33.8003,-117.8827,FALSE
+Los Angeles Dodgers,Dodger Stadium,34.0739,-118.2400,FALSE
+Miami Marlins,loanDepot Park,25.7780,-80.2195,TRUE
+Milwaukee Brewers,American Family Field,43.0280,-87.9712,TRUE
+Minnesota Twins,Target Field,44.9817,-93.2775,FALSE
+New York Yankees,Yankee Stadium,40.8296,-73.9262,FALSE
+New York Mets,Citi Field,40.7571,-73.8458,FALSE
+Oakland Athletics,RingCentral Coliseum,37.7516,-122.2005,FALSE
+Philadelphia Phillies,Citizens Bank Park,39.9057,-75.1665,FALSE
+Pittsburgh Pirates,PNC Park,40.4469,-80.0057,FALSE
+San Diego Padres,Petco Park,32.7073,-117.1573,FALSE
+San Francisco Giants,Oracle Park,37.7786,-122.3893,FALSE
+Seattle Mariners,T-Mobile Park,47.5914,-122.3325,TRUE
+St. Louis Cardinals,Busch Stadium,38.6226,-90.1928,FALSE
+Tampa Bay Rays,Tropicana Field,27.7683,-82.6534,TRUE
+Texas Rangers,Globe Life Field,32.7473,-97.0847,TRUE
+Toronto Blue Jays,Rogers Centre,43.6414,-79.3894,TRUE
+Washington Nationals,Nationals Park,38.8730,-77.0074,FALSE
