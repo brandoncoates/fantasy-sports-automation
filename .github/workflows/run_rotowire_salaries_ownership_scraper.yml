@@ -3,36 +3,42 @@ name: Run Rotowire Salaries & Ownership Scraper
 on:
   workflow_dispatch:
   schedule:
-    - cron: "30 14 * * *"  # 9:30 AM Central daily
+    - cron: "30 14 * * *"  # 9:30 AM Central Time
 
 jobs:
   run-scraper:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Post Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Post Set up Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
 
-      - name: Install Chrome & Chromedriver 114
+      - name: Install Chrome & ChromeDriver 114
         run: |
           sudo apt-get update
           sudo apt-get install -y unzip wget
+          
+          # Download Chrome
           wget https://storage.googleapis.com/chrome-for-testing-public/114.0.5735.90/linux64/chrome-linux64.zip
-          wget https://storage.googleapis.com/chrome-for-testing-public/114.0.5735.90/linux64/chromedriver-linux64/chromedriver-linux64.zip
           unzip chrome-linux64.zip
-          unzip chromedriver-linux64.zip
           sudo mv chrome-linux64 /opt/chrome
+
+          # Download ChromeDriver
+          wget https://storage.googleapis.com/chrome-for-testing-public/114.0.5735.90/linux64/chromedriver-linux64.zip
+          unzip chromedriver-linux64.zip
           sudo mv chromedriver-linux64/chromedriver-linux64 /usr/bin/chromedriver
           sudo chmod +x /usr/bin/chromedriver
+
+          # Symlinks for Selenium
           sudo ln -sf /opt/chrome/chrome /usr/bin/google-chrome
           sudo ln -sf /opt/chrome/chrome /usr/bin/chromium-browser || true
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install selenium beautifulsoup4 pandas boto3
