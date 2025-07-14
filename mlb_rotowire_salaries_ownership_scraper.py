@@ -20,7 +20,9 @@ def get_driver():
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
-    driver = webdriver.Chrome(options=options)
+    options = webdriver.ChromeOptions()
+    options.binary_location = "/usr/bin/chromium-browser"
+
     return driver
 
 def scrape_rotowire_props(site):
