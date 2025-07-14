@@ -29,8 +29,9 @@ jobs:
           echo "Chrome version: $CHROME_VERSION"
           wget -q https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION -O chromedriver_version.txt || echo "Can't find exact match, using major.minor"
           if [ ! -s chromedriver_version.txt ]; then
+            echo "Fetching fallback chromedriver version for major.minor"
             CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+')
-            wget -q https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION -O chromedriver_version.txt
+            wget -q https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION -O chromedriver_version.txt || echo "Fallback wget failed too, continuing..."
           fi
           CHROMEDRIVER_VERSION=$(cat chromedriver_version.txt)
           echo "ChromeDriver version: $CHROMEDRIVER_VERSION"
