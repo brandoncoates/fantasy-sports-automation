@@ -1,11 +1,13 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
 import boto3
 import os
-import time
 
 # Define base URL and platforms
 ROTOWIRE_URL = "https://www.rotowire.com/daily/mlb/player-roster-percent.php?site={site}"
@@ -22,7 +24,7 @@ def get_driver():
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--remote-debugging-port=9222')
-    chrome_options.binary_location = "/usr/bin/chromium-browser"
+    chrome_options.binary_location = "/usr/bin/google-chrome"
 
     driver = webdriver.Chrome(options=chrome_options)
     return driver
@@ -33,7 +35,14 @@ def scrape_rotowire_props(site):
     print(f"Loading {url}")
     driver.get(url)
 
-    time.sleep(5)  # Let JS render
+    try:
+        WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "table.player-table"))
+        )
+    except Exception as e:
+        print(f"Timeout waiting for table on {site}: {e}")
+        driver.quit()
+        return None
 
     soup = BeautifulSoup(driver.page_source, 'html.parser')
     driver.quit()
