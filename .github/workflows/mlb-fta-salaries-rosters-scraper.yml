@@ -2,8 +2,8 @@ name: Run FTA Salaries & Ownership Scraper
 
 on:
   schedule:
-    - cron: '30 14 * * *'  # 9:30am Central
-  workflow_dispatch:
+    - cron: '30 14 * * *'  # Runs at 9:30 AM Central daily
+  workflow_dispatch:      # Allows manual trigger from GitHub UI
 
 jobs:
   run-scraper:
@@ -25,6 +25,11 @@ jobs:
 
       - name: Setup Chrome
         uses: browser-actions/setup-chrome@v1
+
+      - name: Install ChromeDriver
+        uses: nanasess/setup-chromedriver@v2
+        with:
+          chromedriver-version: 'latest'
 
       - name: Run scraper
         env:
