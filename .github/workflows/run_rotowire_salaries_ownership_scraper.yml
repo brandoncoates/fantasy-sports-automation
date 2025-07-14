@@ -23,16 +23,13 @@ jobs:
         pip install --upgrade pip
         pip install pandas boto3 beautifulsoup4 selenium
 
-    - name: Install Chrome & Chromedriver
+    - name: Install Chrome v114 & Chromedriver v114
       run: |
-        sudo apt update
-        sudo apt install -y unzip wget curl gnupg
-        wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo apt install -y ./google-chrome-stable_current_amd64.deb
+        sudo apt remove -y google-chrome-stable || true
+        wget https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_114.0.5735.90-1_amd64.deb
+        sudo apt install -y ./google-chrome-stable_114.0.5735.90-1_amd64.deb
 
-        # Use a known working chromedriver version
-        CHROME_DRIVER_VERSION=114.0.5735.90
-        wget https://chromedriver.storage.googleapis.com/$CHROME_DRIVER_VERSION/chromedriver_linux64.zip
+        wget https://chromedriver.storage.googleapis.com/114.0.5735.90/chromedriver_linux64.zip
         unzip chromedriver_linux64.zip
         sudo mv chromedriver /usr/local/bin/
         sudo chmod +x /usr/local/bin/chromedriver
