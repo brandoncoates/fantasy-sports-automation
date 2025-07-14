@@ -2,8 +2,8 @@ name: Run FTA Salaries & Ownership Scraper
 
 on:
   schedule:
-    - cron: '30 14 * * *'  # Runs daily at 9:30 AM Central
-  workflow_dispatch:       # Allows manual run
+    - cron: '30 14 * * *'  # 9:30 AM Central
+  workflow_dispatch:
 
 jobs:
   run-scraper:
@@ -21,10 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install selenium boto3 undetected-chromedriver
-
-      - name: Setup Chrome
-        uses: browser-actions/setup-chrome@v1
+          pip install boto3 beautifulsoup4 requests
 
       - name: Run scraper
         env:
