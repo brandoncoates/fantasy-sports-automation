@@ -17,7 +17,7 @@ jobs:
         uses: browser-actions/setup-chrome@v1
 
       - name: Setup ChromeDriver
-        uses: actions/setup-chromedriver@v1
+        uses: browser-actions/setup-chromedriver@v1
 
       - name: Setup Python
         uses: actions/setup-python@v4
