@@ -32,8 +32,8 @@ if response.status_code != 200:
     exit(1)
 
 data = response.json()
-if not isinstance(data, list):
-    print("❌ Unexpected data format:", type(data))
+if not isinstance(data, list) or not data:
+    print("❌ Unexpected or empty data format")
     exit(1)
 
 # === Step 2: Write to CSV ===
