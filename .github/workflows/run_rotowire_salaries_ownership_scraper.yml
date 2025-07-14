@@ -3,7 +3,7 @@ name: Run Rotowire Salaries & Ownership Scraper
 on:
   workflow_dispatch:
   schedule:
-    - cron: "30 14 * * *"  # Runs every day at 14:30 UTC (9:30 AM Central)
+    - cron: "30 14 * * *"  # 9:30 AM Central daily
 
 jobs:
   run-scraper:
@@ -23,14 +23,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y unzip wget
           wget https://storage.googleapis.com/chrome-for-testing-public/114.0.5735.90/linux64/chrome-linux64.zip
-          wget https://storage.googleapis.com/chrome-for-testing-public/114.0.5735.90/linux64/chromedriver-linux64.zip
+          wget https://storage.googleapis.com/chrome-for-testing-public/114.0.5735.90/linux64/chromedriver-linux64/chromedriver-linux64.zip
           unzip chrome-linux64.zip
           unzip chromedriver-linux64.zip
           sudo mv chrome-linux64 /opt/chrome
-          sudo mv chromedriver-linux64/chromedriver /usr/bin/chromedriver
+          sudo mv chromedriver-linux64/chromedriver-linux64 /usr/bin/chromedriver
+          sudo chmod +x /usr/bin/chromedriver
           sudo ln -sf /opt/chrome/chrome /usr/bin/google-chrome
           sudo ln -sf /opt/chrome/chrome /usr/bin/chromium-browser || true
-          echo "Installed Chrome and Chromedriver 114"
 
       - name: Install dependencies
         run: |
