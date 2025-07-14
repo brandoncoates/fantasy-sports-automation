@@ -1,11 +1,12 @@
 import os
-import time
 import csv
 import boto3
+from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from datetime import datetime
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 # URLs to scrape
 URLS = {
@@ -26,8 +27,10 @@ def get_driver():
 def scrape_site(site, url):
     driver = get_driver()
     driver.get(url)
-    time.sleep(5)  # Let page load
 
+    wait = WebDriverWait(driver, 15)
+    wait.until(EC.presence_of_element_located((By.XPATH, '//table[contains(@class, "tablesorter")]/tbody/tr')))
+    
     rows = driver.find_elements(By.XPATH, '//table[contains(@class, "tablesorter")]/tbody/tr')
     data = []
     for row in rows:
@@ -65,7 +68,9 @@ def main():
     all_data = []
     for site, url in URLS.items():
         print(f"Scraping {site}...")
-        all_data.extend(scrape_site(site, url))
+        site_data = scrape_site(site, url)
+        print(f"Found {len(site_data)} rows for {site}")
+        all_data.extend(site_data)
 
     today = datetime.now().strftime("%Y-%m-%d")
     filename = f"mlb_salaries_ownership_{today}.csv"
