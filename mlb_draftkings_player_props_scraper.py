@@ -8,7 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-# DraftKings direct prop URLs
+# Direct URLs to props
 PROP_URLS = {
     "Hits": "https://sportsbook.draftkings.com/event/mlb-player-hits",
     "Home Runs": "https://sportsbook.draftkings.com/event/mlb-player-home-runs",
@@ -35,6 +35,11 @@ def scrape_props():
         wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
         time.sleep(5)
 
+        # Save screenshot for this prop
+        screenshot_path = f"/tmp/dk_{prop_type.replace(' ', '_').lower()}.png"
+        driver.save_screenshot(screenshot_path)
+        print(f"📸 Screenshot for {prop_type} saved to: {screenshot_path}")
+
         rows = driver.find_elements(By.XPATH, "//div[contains(@class,'sportsbook-event-accordion__wrapper')]")
         print(f"📦 Found {len(rows)} rows for {prop_type}")
 
@@ -43,10 +48,8 @@ def scrape_props():
                 player = row.find_element(By.CLASS_NAME, "event-cell__name-text").text
                 line = row.find_element(By.CLASS_NAME, "sportsbook-outcome-cell__line").text
                 outcomes = row.find_elements(By.CLASS_NAME, "sportsbook-outcome-cell__element")
-
                 over_odds = outcomes[0].text.split("\n")[-1]
                 under_odds = outcomes[1].text.split("\n")[-1]
-
                 all_data.append([player, prop_type, line, over_odds, under_odds])
             except Exception:
                 continue
