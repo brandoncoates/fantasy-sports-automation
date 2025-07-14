@@ -27,7 +27,9 @@ jobs:
         run: |
           CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+')
           echo "Chrome version (major.minor): $CHROME_VERSION"
-          CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}")
+          URL="https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}"
+          echo "Fetching ChromeDriver version from: $URL"
+          CHROMEDRIVER_VERSION=$(curl -fsS $URL || echo "114.0.5735.90")
           echo "ChromeDriver version: $CHROMEDRIVER_VERSION"
           wget "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
           unzip chromedriver_linux64.zip
