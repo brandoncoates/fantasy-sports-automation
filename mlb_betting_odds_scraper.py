@@ -19,9 +19,8 @@ os.makedirs(output_dir, exist_ok=True)
 filename = f"mlb_betting_odds_{target_date}.csv"
 output_path = os.path.join(output_dir, filename)
 
-# API Request
+# === API Request ===
 url = f'https://api.the-odds-api.com/v4/sports/{SPORT}/odds'
-
 params = {
     'apiKey': API_KEY,
     'regions': REGION,
@@ -31,17 +30,22 @@ params = {
     'dateFormat': 'iso',
 }
 
+print(f"📡 Requesting MLB betting odds for {target_date}...")
 response = requests.get(url, params=params)
 
 if response.status_code != 200:
     print(f"❌ Failed to fetch data: {response.status_code} - {response.text}")
-    exit()
+    exit(1)
 
 odds_json = response.json()
 
-odds_data = []
+# === Exit gracefully if no data ===
+if not odds_json:
+    print(f"⚠️ No betting odds returned for {target_date}. Likely no games scheduled. Exiting script.")
+    exit(0)
 
-# Parse odds data
+# === Parse Odds Data ===
+odds_data = []
 for game in odds_json:
     home_team = game.get("home_team", "")
     away_team = game.get("away_team", "")
@@ -64,7 +68,7 @@ for game in odds_json:
                     "Point": outcome.get("point", "")
                 })
 
-# Save to CSV
+# === Save to CSV ===
 df = pd.DataFrame(odds_data)
 df.to_csv(output_path, index=False)
 
