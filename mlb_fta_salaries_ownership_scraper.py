@@ -1,51 +1,35 @@
 import os
 import csv
 import boto3
+import requests
 from datetime import datetime
-import undetected_chromedriver as uc
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from bs4 import BeautifulSoup
 
-# URLs to scrape
 URLS = {
     "DraftKings": "https://www.rotowire.com/daily/mlb/player-roster-percent.php?site=DraftKings",
     "FanDuel": "https://www.rotowire.com/daily/mlb/player-roster-percent.php?site=FanDuel"
 }
 
-# Setup stealth Chrome driver
-def get_driver():
-    options = uc.ChromeOptions()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920,1080")
-    return uc.Chrome(options=options)
-
-# Scrape data from a single site
-def scrape_site(site, url):
-    driver = get_driver()
-    driver.get(url)
-
-    wait = WebDriverWait(driver, 20)
-    wait.until(EC.presence_of_element_located((By.XPATH, '//table[contains(@class, "tablesorter")]/tbody/tr')))
-
-    rows = driver.find_elements(By.XPATH, '//table[contains(@class, "tablesorter")]/tbody/tr')
+def parse_roster_table(site, html):
+    soup = BeautifulSoup(html, "html.parser")
+    table = soup.find("table")
     data = []
-    for row in rows:
-        cols = row.find_elements(By.TAG_NAME, "td")
-        if len(cols) >= 5:
-            player = cols[0].text.strip()
-            team = cols[1].text.strip()
-            opponent = cols[2].text.strip()
-            salary = cols[3].text.strip()
-            roster_pct = cols[4].text.strip()
-            data.append([player, team, opponent, salary, roster_pct, site])
 
-    driver.quit()
+    if not table:
+        return data
+
+    rows = table.find("tbody").find_all("tr")
+    for row in rows:
+        cols = row.find_all("td")
+        if len(cols) >= 5:
+            player = cols[0].get_text(strip=True)
+            team = cols[1].get_text(strip=True)
+            opponent = cols[2].get_text(strip=True)
+            salary = cols[3].get_text(strip=True)
+            roster_pct = cols[4].get_text(strip=True)
+            data.append([player, team, opponent, salary, roster_pct, site])
     return data
 
-# Save to CSV
 def save_to_csv(data, filename):
     headers = ["Player", "Team", "Opponent", "Salary", "Roster%", "Site"]
     with open(filename, "w", newline='', encoding="utf-8") as f:
@@ -53,7 +37,6 @@ def save_to_csv(data, filename):
         writer.writerow(headers)
         writer.writerows(data)
 
-# Upload to S3
 def upload_to_s3(local_path, bucket_name, s3_path):
     s3 = boto3.client(
         "s3",
@@ -62,14 +45,18 @@ def upload_to_s3(local_path, bucket_name, s3_path):
     )
     s3.upload_file(local_path, bucket_name, s3_path)
 
-# Main function
 def main():
     all_data = []
+
     for site, url in URLS.items():
-        print(f"Scraping {site}...")
-        site_data = scrape_site(site, url)
-        print(f"Found {len(site_data)} rows for {site}")
-        all_data.extend(site_data)
+        print(f"Fetching {site} data...")
+        response = requests.get(url)
+        if response.status_code == 200:
+            site_data = parse_roster_table(site, response.text)
+            print(f"{site}: {len(site_data)} rows scraped.")
+            all_data.extend(site_data)
+        else:
+            print(f"Failed to fetch {site} data: Status {response.status_code}")
 
     today = datetime.now().strftime("%Y-%m-%d")
     filename = f"mlb_salaries_ownership_{today}.csv"
@@ -79,7 +66,7 @@ def main():
 
     save_to_csv(all_data, local_path)
     upload_to_s3(local_path, bucket, s3_path)
-    print(f"Uploaded {filename} to S3 bucket '{bucket}' at path '{s3_path}'")
+    print(f"Uploaded to S3: {s3_path}")
 
 if __name__ == "__main__":
     main()
