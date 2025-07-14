@@ -7,25 +7,26 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from datetime import datetime
 
-# URLs
+# URLs to scrape
 URLS = {
     "DraftKings": "https://www.rotowire.com/daily/mlb/player-roster-percent.php?site=DraftKings",
     "FanDuel": "https://www.rotowire.com/daily/mlb/player-roster-percent.php?site=FanDuel"
 }
 
-# Setup headless Chrome
+# Setup headless browser
 def get_driver():
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--window-size=1920x1080")
     return webdriver.Chrome(options=chrome_options)
 
-# Scrape data from a given site
+# Scrape data from a single site
 def scrape_site(site, url):
     driver = get_driver()
     driver.get(url)
-    time.sleep(5)  # Let page load fully
+    time.sleep(5)  # Let page load
 
     rows = driver.find_elements(By.XPATH, '//table[contains(@class, "tablesorter")]/tbody/tr')
     data = []
@@ -38,11 +39,11 @@ def scrape_site(site, url):
             salary = cols[3].text.strip()
             roster_pct = cols[4].text.strip()
             data.append([player, team, opponent, salary, roster_pct, site])
-    
+
     driver.quit()
     return data
 
-# Save data to CSV
+# Save to CSV
 def save_to_csv(data, filename):
     headers = ["Player", "Team", "Opponent", "Salary", "Roster%", "Site"]
     with open(filename, "w", newline='', encoding="utf-8") as f:
@@ -50,7 +51,7 @@ def save_to_csv(data, filename):
         writer.writerow(headers)
         writer.writerows(data)
 
-# Upload CSV to S3
+# Upload to S3
 def upload_to_s3(local_path, bucket_name, s3_path):
     s3 = boto3.client(
         "s3",
@@ -59,7 +60,7 @@ def upload_to_s3(local_path, bucket_name, s3_path):
     )
     s3.upload_file(local_path, bucket_name, s3_path)
 
-# Main execution
+# Main function
 def main():
     all_data = []
     for site, url in URLS.items():
@@ -69,12 +70,12 @@ def main():
     today = datetime.now().strftime("%Y-%m-%d")
     filename = f"mlb_salaries_ownership_{today}.csv"
     local_path = f"/tmp/{filename}"
-    s3_path = f"fantasy-baseball/salaries-ownership/{filename}"
-    bucket = "your-s3-bucket-name"  # Replace with your bucket name
+    s3_path = f"baseball/salaries-ownership/{filename}"
+    bucket = "fantasy-sports-csvs"
 
     save_to_csv(all_data, local_path)
     upload_to_s3(local_path, bucket, s3_path)
-    print(f"Uploaded {filename} to S3 bucket {bucket}")
+    print(f"Uploaded {filename} to S3 bucket '{bucket}' at path '{s3_path}'")
 
 if __name__ == "__main__":
     main()
