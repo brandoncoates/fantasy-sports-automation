@@ -17,9 +17,11 @@ s3_folder = "baseball/rotowire-salaries"
 
 def get_driver():
     chrome_options = Options()
-    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--headless=new')  # Required for latest Chrome
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--remote-debugging-port=9222')
     chrome_options.binary_location = "/usr/bin/chromium-browser"
 
     driver = webdriver.Chrome(options=chrome_options)
@@ -28,10 +30,10 @@ def get_driver():
 def scrape_rotowire_props(site):
     url = ROTOWIRE_URL.format(site=site)
     driver = get_driver()
-    print(f"🔄 Loading {url}")
+    print(f"Loading {url}")
     driver.get(url)
 
-    time.sleep(5)  # Give the page time to load
+    time.sleep(5)  # Let JS render
 
     soup = BeautifulSoup(driver.page_source, 'html.parser')
     driver.quit()
@@ -75,7 +77,7 @@ def upload_to_s3(df, site):
 
 def main():
     for site in PLATFORMS:
-        print(f"🚀 Scraping {site} data...")
+        print(f"Scraping {site} data...")
         df = scrape_rotowire_props(site)
         if df is not None and not df.empty:
             print(f"✅ Scraped {len(df)} rows for {site}")
