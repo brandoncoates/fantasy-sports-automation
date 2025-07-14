@@ -1,6 +1,6 @@
 import os
-import time
 import csv
+import time
 import boto3
 from datetime import datetime
 import undetected_chromedriver as uc
@@ -8,11 +8,13 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-# Only scrape these props
-TARGET_PROPS = ["Hits", "Home Runs", "RBIs", "Pitcher Strikeouts"]
-
-# DraftKings MLB Props page
-DK_URL = "https://sportsbook.draftkings.com/leagues/baseball/mlb"
+# DraftKings direct prop URLs
+PROP_URLS = {
+    "Hits": "https://sportsbook.draftkings.com/event/mlb-player-hits",
+    "Home Runs": "https://sportsbook.draftkings.com/event/mlb-player-home-runs",
+    "RBIs": "https://sportsbook.draftkings.com/event/mlb-player-runs-batted-in",
+    "Pitcher Strikeouts": "https://sportsbook.draftkings.com/event/mlb-player-strikeouts"
+}
 
 def get_driver():
     options = uc.ChromeOptions()
@@ -24,54 +26,35 @@ def get_driver():
 
 def scrape_props():
     driver = get_driver()
-    driver.get(DK_URL)
-
     wait = WebDriverWait(driver, 20)
-    wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-    time.sleep(5)
+    all_data = []
 
-    # Save screenshot for debugging
-    screenshot_path = "/tmp/dk_props_page.png"
-    driver.save_screenshot(screenshot_path)
-    print(f"📸 Screenshot saved to: {screenshot_path}")
+    for prop_type, url in PROP_URLS.items():
+        print(f"🔗 Visiting {prop_type} page")
+        driver.get(url)
+        wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+        time.sleep(5)
 
-    data = []
+        rows = driver.find_elements(By.XPATH, "//div[contains(@class,'sportsbook-event-accordion__wrapper')]")
+        print(f"📦 Found {len(rows)} rows for {prop_type}")
 
-    for prop_type in TARGET_PROPS:
-        print(f"🔍 Searching for prop type: {prop_type}")
+        for row in rows:
+            try:
+                player = row.find_element(By.CLASS_NAME, "event-cell__name-text").text
+                line = row.find_element(By.CLASS_NAME, "sportsbook-outcome-cell__line").text
+                outcomes = row.find_elements(By.CLASS_NAME, "sportsbook-outcome-cell__element")
 
-        try:
-            buttons = driver.find_elements(By.XPATH, f"//span[contains(text(), '{prop_type}')]")
-            if not buttons:
-                print(f"❌ No button found for '{prop_type}'")
+                over_odds = outcomes[0].text.split("\n")[-1]
+                under_odds = outcomes[1].text.split("\n")[-1]
+
+                all_data.append([player, prop_type, line, over_odds, under_odds])
+            except Exception:
                 continue
 
-            print(f"✅ Found button for '{prop_type}' — clicking")
-            buttons[0].click()
-            time.sleep(4)
-
-            rows = driver.find_elements(By.XPATH, "//div[contains(@class,'sportsbook-event-accordion__wrapper')]")
-            print(f"📦 Found {len(rows)} rows for {prop_type}")
-
-            for row in rows:
-                try:
-                    player = row.find_element(By.CLASS_NAME, "event-cell__name-text").text
-                    line = row.find_element(By.CLASS_NAME, "sportsbook-outcome-cell__line").text
-                    outcomes = row.find_elements(By.CLASS_NAME, "sportsbook-outcome-cell__element")
-                    over_odds = outcomes[0].text.split("\n")[-1]
-                    under_odds = outcomes[1].text.split("\n")[-1]
-                    data.append([player, prop_type, line, over_odds, under_odds])
-                except Exception:
-                    continue
-
-            driver.back()
-            time.sleep(3)
-
-        except Exception as e:
-            print(f"🚨 Error processing {prop_type}: {e}")
+        time.sleep(2)
 
     driver.quit()
-    return data
+    return all_data
 
 def save_to_csv(data, filename):
     headers = ["Player", "Prop Type", "Line", "Over Odds", "Under Odds"]
