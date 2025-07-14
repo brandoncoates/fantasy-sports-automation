@@ -1,4 +1,4 @@
-name: Run scraper
+name: Run FTA Scraper
 
 on:
   workflow_dispatch:
