@@ -3,18 +3,18 @@ name: Run Rotowire Salaries & Ownership Scraper
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 14 * * *'  # Runs daily at 9 AM Central
+    - cron: '15 13 * * *'  # Runs daily at 8:15 AM Central
 
 jobs:
-  run:
+  run-scraper:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Post Checkout repo
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
@@ -23,26 +23,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install selenium beautifulsoup4 pandas boto3
 
-      - name: Install Chrome & Chromedriver 138
+      - name: Install Chrome & Chromedriver 114
         run: |
           sudo apt-get update
           sudo apt-get install -y wget unzip
-          
-          # Install Chrome 138
-          wget https://storage.googleapis.com/chrome-for-testing-public/138.0.7264.0/linux64/chrome-linux64.zip
+
+          # Download Chrome v114 for Testing
+          wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/114.0.5735.133/linux64/chrome-linux64.zip
           unzip chrome-linux64.zip
           sudo mv chrome-linux64 /opt/chrome
           sudo ln -s /opt/chrome/chrome /usr/bin/chromium-browser
 
-          # Install ChromeDriver 138
-          wget https://storage.googleapis.com/chrome-for-testing-public/138.0.7264.0/linux64/chromedriver-linux64.zip
+          # Download matching Chromedriver v114
+          wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/114.0.5735.133/linux64/chromedriver-linux64.zip
           unzip chromedriver-linux64.zip
           sudo mv chromedriver-linux64/chromedriver /usr/bin/chromedriver
           sudo chmod +x /usr/bin/chromedriver
 
       - name: Run Rotowire Salaries & Ownership Scraper
-        run: python mlb_rotowire_salaries_ownership_scraper.py
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: 'us-east-1'
+        run: |
+          python mlb_rotowire_salaries_ownership_scraper.py
