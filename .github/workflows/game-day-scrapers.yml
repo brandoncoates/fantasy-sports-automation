@@ -1,0 +1,35 @@
+name: Run Game-Dependent MLB Scrapers
+
+on:
+  schedule:
+    - cron: "0 14 * * *"  # 7:00 AM MST
+  workflow_dispatch:
+
+jobs:
+  run-game-scrapers:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 Install Dependencies
+        run: pip install boto3 requests
+
+      - name: 🔮 Run Probable Starters Scraper
+        run: python mlb_probable_starters_scraper.py
+
+      - name: 💰 Run Betting Odds Scraper
+        run: python mlb_betting_odds_scraper.py
+
+      - name: ☁️ Upload to S3
+        run: python upload_all_mlb_csvs.py
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
