@@ -2,6 +2,7 @@ import os
 import requests
 import json
 from datetime import datetime, timedelta
+import boto3
 
 # import the normalization function
 from shared.normalize_name import normalize_name
@@ -15,90 +16,76 @@ if use_yesterday:
 else:
     target_date = datetime.now().strftime('%Y-%m-%d')
 
-# Step 1: Get Schedule for the target date
+# AWS / S3 config
+BUCKET    = "fantasy-sports-csvs"
+S3_FOLDER = "baseball/boxscores"
+filename  = f"mlb_boxscores_{target_date}.json"
+s3_key    = f"{S3_FOLDER}/{filename}"
+
+# Step 1: Fetch today's schedule
 schedule_url = f'https://statsapi.mlb.com/api/v1/schedule?sportId=1&date={target_date}'
-response   = requests.get(schedule_url)
-schedule   = response.json().get('dates', [])
-games      = schedule[0].get('games', []) if schedule else []
-game_ids   = [game['gamePk'] for game in games]
+resp         = requests.get(schedule_url)
+games        = (resp.json().get('dates') or [{}])[0].get('games', [])
+game_ids     = [g['gamePk'] for g in games]
 
 print(f"Found {len(game_ids)} games for {target_date}.")
 
-all_boxscores = []
-
-# Step 2: Loop through each game's boxscore
+# Step 2: Pull boxscores and normalize names
+records = []
 for game_id in game_ids:
     try:
-        boxscore_url = f'https://statsapi.mlb.com/api/v1/game/{game_id}/boxscore'
-        box_data     = requests.get(boxscore_url).json()
-        teams        = box_data['teams']
+        box = requests.get(f'https://statsapi.mlb.com/api/v1/game/{game_id}/boxscore').json()
+        for side in ("home", "away"):
+            team_name = box["teams"][side]["team"]["name"]
+            for player in box["teams"][side]["players"].values():
+                person   = player.get("person", {})
+                raw_name = person.get("fullName", "")
+                name     = normalize_name(raw_name)
+                stats    = player.get("stats", {})
+                bat      = stats.get("batting", {})
+                pit      = stats.get("pitching", {})
 
-        for team_key in ['home', 'away']:
-            team_info = teams[team_key]['team']
-            team_name = team_info['name']
+                records.append({
+                    "Game Date":       target_date,
+                    "Game ID":         game_id,
+                    "Team":            team_name,
+                    "Player Name":     name,
+                    "Position":        ", ".join(p["abbreviation"] for p in player.get("allPositions", [])),
 
-            players = teams[team_key]['players']
-            for player in players.values():
-                person   = player.get('person', {})
-                batting  = player.get('stats', {}).get('batting', {})
-                pitching = player.get('stats', {}).get('pitching', {})
+                    # batting
+                    "At Bats":           bat.get("atBats"),
+                    "Runs":              bat.get("runs"),
+                    "Hits":              bat.get("hits"),
+                    "Doubles":           bat.get("doubles"),
+                    "Triples":           bat.get("triples"),
+                    "Home Runs":         bat.get("homeRuns"),
+                    "RBIs":              bat.get("rbi"),
+                    "Walks":             bat.get("baseOnBalls"),
+                    "Strikeouts (Bat)":  bat.get("strikeOuts"),
+                    "Stolen Bases":      bat.get("stolenBases"),
 
-                # normalize the player name
-                raw_name = person.get('fullName', "")
-                player_name = normalize_name(raw_name)
-
-                all_boxscores.append({
-                    'Game Date':       target_date,
-                    'Game ID':         game_id,
-                    'Team':            team_name,
-                    'Player Name':     player_name,
-                    'Position':        ', '.join(pos['abbreviation'] for pos in player.get('allPositions', [])) if player.get('allPositions') else '',
-                    
-                    # Batting Stats:
-                    'Batting AVG':         batting.get('avg'),
-                    'At Bats':              batting.get('atBats'),
-                    'Hits':                 batting.get('hits'),
-                    'Doubles':              batting.get('doubles'),
-                    'Triples':              batting.get('triples'),
-                    'Home Runs':            batting.get('homeRuns'),
-                    'RBIs':                 batting.get('rbi'),
-                    'Runs':                 batting.get('runs'),
-                    'Walks':                batting.get('baseOnBalls'),
-                    'Strikeouts (Batting)': batting.get('strikeOuts'),
-                    'Stolen Bases':         batting.get('stolenBases'),
-                    'Left On Base':         batting.get('leftOnBase'),
-                    'OBP':                  batting.get('obp'),
-                    'SLG':                  batting.get('slg'),
-                    'OPS':                  batting.get('ops'),
-                    
-                    # Pitching Stats:
-                    'Pitcher ERA':             pitching.get('era'),
-                    'Innings Pitched':         pitching.get('inningsPitched'),
-                    'Hits Allowed':            pitching.get('hits'),
-                    'Runs Allowed':            pitching.get('runs'),
-                    'Earned Runs':             pitching.get('earnedRuns'),
-                    'Walks Issued':            pitching.get('baseOnBalls'),
-                    'Strikeouts (Pitching)':   pitching.get('strikeOuts'),
-                    'Home Runs Allowed':       pitching.get('homeRuns'),
-                    'Pitches Thrown':          pitching.get('numberOfPitches'),
-                    'Strikes':                 pitching.get('strikes'),
-                    'Wins':                    pitching.get('wins'),
-                    'Losses':                  pitching.get('losses'),
-                    'Saves':                   pitching.get('saves'),
-                    'Holds':                   pitching.get('holds'),
-                    'Blown Saves':             pitching.get('blownSaves'),
+                    # pitching
+                    "Innings Pitched":        pit.get("inningsPitched"),
+                    "Earned Runs":            pit.get("earnedRuns"),
+                    "Strikeouts (Pitching)":  pit.get("strikeOuts"),
+                    "Wins":                   pit.get("wins"),
+                    "Quality Start":          int(pit.get("inningsPitched", 0) >= 6 and pit.get("earnedRuns", 0) <= 3),
                 })
     except Exception as e:
-        print(f"❌ Skipped game {game_id} due to error: {e}")
+        print(f"❌ Skipped game {game_id}: {e}")
 
-# ✅ Step 3: Save to JSON in mlb_box_scores/
-output_dir = "mlb_box_scores"
-os.makedirs(output_dir, exist_ok=True)
+# Step 3: Save JSON locally
+os.makedirs("mlb_box_scores", exist_ok=True)
+local_path = os.path.join("mlb_box_scores", filename)
+with open(local_path, "w", encoding="utf-8") as f:
+    json.dump(records, f, ensure_ascii=False, indent=2)
+print(f"💾 JSON written locally: {local_path}")
 
-filename    = f"mlb_boxscores_{target_date}.json"
-output_path = os.path.join(output_dir, filename)
-
-with open(output_path, mode="w", encoding="utf-8") as f:
-    json.dump(all_boxscores, f, ensure_ascii=False, indent=2)
-
-print(f'✅ Saved {len(all_boxscores)} player entries to {output_path}')
+# Step 4: Upload JSON to S3
+s3 = boto3.client("s3")
+try:
+    s3.upload_file(local_path, BUCKET, s3_key)
+    print(f"☁️ Uploaded to s3://{BUCKET}/{s3_key}")
+except Exception as e:
+    print(f"❌ S3 upload failed: {e}")
+    exit(1)
