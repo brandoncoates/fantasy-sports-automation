@@ -10,9 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_REGION:            ${{ secrets.AWS_REGION }}
 
     steps:
       - name: ⬇️ Checkout Repository
@@ -23,16 +23,11 @@ jobs:
         with:
           python-version: "3.11"
 
--     - name: 📦 Install Dependencies
--       run: pip install boto3 requests pandas
-+     - name: 📦 Install Dependencies
-+       run: pip install boto3 requests
+      - name: 📦 Install Dependencies
+        run: pip install boto3 requests
 
       - name: 🔮 Run Probable Starters Scraper
         run: python mlb_probable_starters_scraper.py
 
       - name: 💰 Run Betting Odds Scraper
         run: python mlb_betting_odds_scraper.py
-
--     - name: ☁️ Upload to S3
--       run: python upload_all_mlb_csvs.py
