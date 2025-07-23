@@ -23,8 +23,10 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: 📦 Install Dependencies
-        run: pip install boto3 requests pandas
+-     - name: 📦 Install Dependencies
+-       run: pip install boto3 requests pandas
++     - name: 📦 Install Dependencies
++       run: pip install boto3 requests
 
       - name: 🔮 Run Probable Starters Scraper
         run: python mlb_probable_starters_scraper.py
@@ -32,5 +34,5 @@ jobs:
       - name: 💰 Run Betting Odds Scraper
         run: python mlb_betting_odds_scraper.py
 
-      - name: ☁️ Upload to S3
-        run: python upload_all_mlb_csvs.py
+-     - name: ☁️ Upload to S3
+-       run: python upload_all_mlb_csvs.py

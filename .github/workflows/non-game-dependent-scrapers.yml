@@ -1,41 +1,41 @@
 name: Run Non-Game-Dependent MLB Scrapers
 
-on:
-  schedule:
-    - cron: "0 13 * * *"  # 6:00 AM MST
-  workflow_dispatch:
+ on:
+   schedule:
+     - cron: "0 13 * * *"  # 6:00 AM MST
+   workflow_dispatch:
 
-jobs:
-  run-non-game-scrapers:
-    runs-on: ubuntu-latest
+ jobs:
+   run-non-game-scrapers:
+     runs-on: ubuntu-latest
 
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
+     env:
+       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+       AWS_REGION: ${{ secrets.AWS_REGION }}
 
-    steps:
-      - name: ⬇️ Checkout Repository
-        uses: actions/checkout@v4
+     steps:
+       - name: ⬇️ Checkout Repository
+         uses: actions/checkout@v4
 
-      - name: 🐍 Set Up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+       - name: 🐍 Set Up Python
+         uses: actions/setup-python@v5
+         with:
+           python-version: "3.11"
 
-      - name: 📦 Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install boto3 requests pandas beautifulsoup4
+       - name: 📦 Install Dependencies
+         run: |
+           python -m pip install --upgrade pip
+           pip install boto3 requests pandas beautifulsoup4
 
-      - name: 🌦️ Run Weather Scraper
-        run: python mlb_weather_scraper.py
+       - name: 🌦️ Run Weather Scraper
+         run: python mlb_weather_scraper.py
 
-      - name: 📰 Run ESPN Articles Scraper
-        run: python mlb_espn_articles_scraper.py
+       - name: 📰 Run ESPN Articles Scraper
+         run: python mlb_espn_articles_scraper.py
 
-      - name: 📋 Run Roster Scraper
-        run: python mlb_rosters_scraper.py
+       - name: 📋 Run Roster Scraper
+         run: python mlb_rosters_scraper.py
 
-      - name: ☁️ Upload to S3
-        run: python upload_all_mlb_csvs.py
+-      - name: ☁️ Upload to S3
+-        run: python upload_all_mlb_csvs.py
