@@ -24,7 +24,8 @@ jobs:
           python-version: "3.11"
 
       - name: 📦 Install Dependencies
-        run: pip install boto3 requests pandas
+        run: |
+          pip install boto3 requests pandas
 
       - name: 📊 Run Box Score Scraper
         run: python mlb_box_scraper.py
