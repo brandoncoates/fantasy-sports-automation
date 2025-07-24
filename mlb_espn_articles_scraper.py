@@ -9,7 +9,7 @@ import boto3
 REGION    = os.environ.get("AWS_REGION", "us-east-1")
 # If S3_BUCKET_NAME isn't set, fall back to your real bucket:
 BUCKET    = os.environ.get("S3_BUCKET_NAME") or "fantasy-sports-csvs"
-S3_FOLDER = "news"
+S3_FOLDER = "baseball/news"
 
 # File naming
 today         = datetime.now().strftime("%Y-%m-%d")
