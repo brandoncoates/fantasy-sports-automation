@@ -2,71 +2,73 @@ import os
 import requests
 import json
 from datetime import datetime
+import boto3
 
 # === CONFIG ===
-API_KEY    = '32c95ea767253beab2da2d1563a9150e'  # <-- Replace with your real API key
-REGION     = 'us'                              # Available: us, uk, eu, au
-MARKETS    = 'totals,h2h,spreads'              # Over/Under, Moneyline, Spread
-SPORT      = 'baseball_mlb'
-BOOKMAKERS = 'draftkings,fanduel,pointsbetus'  # Limit for clean output
+API_KEY    = os.environ["ODDS_API_KEY"]      # or keep your hard‑coded key
+REGION     = os.environ["AWS_REGION"]        # e.g. "us-east-1"
+BUCKET     = os.environ["S3_BUCKET_NAME"]    # "fantasy-sports-csvs"
+S3_FOLDER  = "baseball/betting"              # must match your S3 folder
+SPORT      = "baseball_mlb"
+MARKETS    = "totals,h2h,spreads"
+BOOKMAKERS = "draftkings,fanduel,pointsbetus"
 
 # Today's date
-target_date = datetime.now().strftime('%Y-%m-%d')
+target_date = datetime.now().strftime("%Y-%m-%d")
 
-# Prepare output directory and filename
+# Prepare output
 output_dir = "mlb_daily_odds"
 os.makedirs(output_dir, exist_ok=True)
 filename    = f"mlb_betting_odds_{target_date}.json"
-output_path = os.path.join(output_dir, filename)
+local_path  = os.path.join(output_dir, filename)
+s3_key      = f"{S3_FOLDER}/{filename}"
 
-# === API Request ===
-url = f'https://api.the-odds-api.com/v4/sports/{SPORT}/odds'
+# Fetch odds
+url = f"https://api.the-odds-api.com/v4/sports/{SPORT}/odds"
 params = {
-    'apiKey':    API_KEY,
-    'regions':   REGION,
-    'markets':   MARKETS,
-    'bookmakers': BOOKMAKERS,
-    'oddsFormat': 'decimal',
-    'dateFormat': 'iso',
+    "apiKey":     API_KEY,
+    "regions":    "us",
+    "markets":    MARKETS,
+    "bookmakers": BOOKMAKERS,
+    "oddsFormat": "decimal",
+    "dateFormat": "iso",
 }
 
-print(f"📡 Requesting MLB betting odds for {target_date}...")
-response = requests.get(url, params=params)
-if response.status_code != 200:
-    print(f"❌ Failed to fetch data: {response.status_code} - {response.text}")
-    exit(1)
-
-odds_json = response.json()
+resp = requests.get(url, params=params)
+resp.raise_for_status()
+odds_json = resp.json()
 if not odds_json:
-    print(f"⚠️ No betting odds returned for {target_date}. Exiting script.")
+    print(f"⚠️ No odds for {target_date}, exiting.")
     exit(0)
 
-# === Parse Odds Data into a list of dicts ===
+# Build flat list
 odds_data = []
 for game in odds_json:
-    home_team = game.get("home_team", "")
-    away_team = game.get("away_team", "")
-    game_time = game.get("commence_time", "")[:19].replace("T", " ")
-
-    for bookmaker in game.get("bookmakers", []):
-        book_name = bookmaker.get("title", "")
-        for market in bookmaker.get("markets", []):
-            market_type = market.get("key", "")
-            for outcome in market.get("outcomes", []):
+    home = game.get("home_team",""); away = game.get("away_team","")
+    tm   = game.get("commence_time","")[:19].replace("T"," ")
+    for book in game.get("bookmakers",[]):
+        bname = book.get("title","")
+        for m in book.get("markets",[]):
+            key = m.get("key","")
+            for o in m.get("outcomes",[]):
                 odds_data.append({
-                    "Date":       target_date,
-                    "Game Time":  game_time,
-                    "Bookmaker":  book_name,
-                    "Home Team":  home_team,
-                    "Away Team":  away_team,
-                    "Market":     market_type,
-                    "Team":       outcome.get("name", ""),
-                    "Odds":       outcome.get("price", ""),
-                    "Point":      outcome.get("point", "")
+                    "date":       target_date,
+                    "time":       tm,
+                    "bookmaker":  bname,
+                    "market":     key,
+                    "home_team":  home,
+                    "away_team":  away,
+                    "team":       o.get("name",""),
+                    "odds":       o.get("price",None),
+                    "point":      o.get("point",None),
                 })
 
-# === Save to JSON ===
-with open(output_path, mode="w", encoding="utf-8") as f:
-    json.dump(odds_data, f, ensure_ascii=False, indent=2)
+# Save JSON locally
+with open(local_path,"w",encoding="utf-8") as f:
+    json.dump(odds_data,f,ensure_ascii=False,indent=2)
+print(f"💾 Betting odds written: {local_path} ({len(odds_data)} rows)")
 
-print(f"✅ Betting odds saved to {output_path} ({len(odds_data)} entries)")
+# Upload to S3
+s3 = boto3.client("s3", region_name=REGION)
+s3.upload_file(local_path, BUCKET, s3_key)
+print(f"☁️ Uploaded to s3://{BUCKET}/{s3_key}")
