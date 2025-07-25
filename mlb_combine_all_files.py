@@ -44,6 +44,21 @@ for game in probable_starters:
     if home:
         starter_names.add(home)
 
+# === Build team -> matchup map ===
+team_matchups = {}
+for game in probable_starters:
+    home_team = game.get("home_team")
+    away_team = game.get("away_team")
+    if home_team and away_team:
+        team_matchups[home_team] = {
+            "opponent": away_team,
+            "location": "home"
+        }
+        team_matchups[away_team] = {
+            "opponent": home_team,
+            "location": "away"
+        }
+
 # === Build Player Records ===
 players = {}
 for p in rosters:
