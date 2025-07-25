@@ -19,16 +19,16 @@ TEAMS_URL  = "https://statsapi.mlb.com/api/v1/teams?sportId=1"
 # === GET MLB TEAMS ===
 print("📡 Getting MLB teams...")
 teams_response = requests.get(TEAMS_URL)
-teams         = teams_response.json().get("teams", [])
+teams = teams_response.json().get("teams", [])
 
 records = []
 
 for team in teams:
-    team_id   = team.get("id")
+    team_id = team.get("id")
     team_name = team.get("name")
 
-    print(f"🔍 Getting roster for {team_name}...")
-    roster_url      = f"https://statsapi.mlb.com/api/v1/teams/{team_id}/roster?rosterType=fullRoster"
+    print(f"🔍 Getting active roster for {team_name}...")
+    roster_url = f"https://statsapi.mlb.com/api/v1/teams/{team_id}/roster?rosterType=active"
     roster_response = requests.get(roster_url)
 
     if roster_response.status_code != 200:
@@ -36,26 +36,38 @@ for team in teams:
         continue
 
     for player in roster_response.json().get("roster", []):
-        person    = player.get("person", {})
-        raw_name  = person.get("fullName", "")
-        full_name = normalize_name(raw_name)       # normalize here
+        person = player.get("person", {})
+        raw_name = person.get("fullName", "")
+        full_name = normalize_name(raw_name)
         player_id = person.get("id", "")
-        position  = player.get("position", {}).get("abbreviation", "")
-        status    = player.get("status", {})
+        position = player.get("position", {}).get("abbreviation", "")
+        status = player.get("status", {})
         status_code = status.get("code", "")
         status_desc = status.get("description", "")
 
+        # Fetch player details for hand info
+        details_url = f"https://statsapi.mlb.com/api/v1/people/{player_id}"
+        details_response = requests.get(details_url)
+
+        bats = throws = None
+        if details_response.status_code == 200:
+            details = details_response.json().get("people", [{}])[0]
+            bats = details.get("batSide", {}).get("code", "")
+            throws = details.get("pitchHand", {}).get("code", "")
+
         records.append({
-            "date":               DATE,
-            "team":               team_name,
-            "player":             full_name,
-            "player_id":          player_id,
-            "position":           position,
-            "status_code":        status_code,
-            "status_description": status_desc
+            "date": DATE,
+            "team": team_name,
+            "player": full_name,
+            "player_id": player_id,
+            "position": position,
+            "status_code": status_code,
+            "status_description": status_desc,
+            "bats": bats,
+            "throws": throws
         })
 
-print(f"✅ Pulled {len(records)} total players across {len(teams)} teams.")
+print(f"✅ Pulled {len(records)} active players across {len(teams)} teams.")
 
 # === SAVE TO JSON ===
 output_dir = "mlb_rosters"
