@@ -1,33 +1,80 @@
-name: Run Combine Player JSON
+name: Combine MLB JSON Files
 
 on:
   schedule:
-    - cron: "30 15 * * *"  # 10:30am CST
+    - cron: '30 15 * * *'  # 10:30 AM CST
   workflow_dispatch:
 
 jobs:
-  combine-player-data:
+  combine-files:
     runs-on: ubuntu-latest
+
     env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: us-east-1
+      AWS_REGION: us-east-1
+      S3_BUCKET_NAME: fantasy-sports-csvs
 
     steps:
-      - name: 🧾 Checkout repo
+      - name: Checkout Repo
         uses: actions/checkout@v3
 
-      - name: 🐍 Set up Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.11
+          python-version: '3.x'
 
-      - name: 📦 Install dependencies
+      - name: Install Dependencies
+        run: pip install boto3
+
+      - name: Create Input Directory
+        run: mkdir -p mlb_json_inputs
+
+      - name: Download Input Files from S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          python -m pip install --upgrade pip boto3
+          python <<EOF
+            import boto3
+            import os
+            from datetime import datetime
 
-      - name: 🧠 Run Combine Script
-        run: python mlb_combine_all_files.py
+            s3 = boto3.client("s3")
+            DATE = datetime.now().strftime("%Y-%m-%d")
+            FILENAMES = [
+                f"mlb_rosters_{DATE}.json",
+                f"mlb_probable_starters_{DATE}.json",
+                f"mlb_boxscores_{DATE}.json",
+                f"mlb_weather_{DATE}.json",
+                f"mlb_betting_odds_{DATE}.json",
+                f"mlb_espn_articles_{DATE}.json",
+                f"reddit_fantasybaseball_articles_{DATE}.json"
+            ]
 
-      - name: 🧾 List output for debug
-        run: ls -lh
+            for fname in FILENAMES:
+                key = f"mlb/json/{fname}"
+                local_path = os.path.join("mlb_json_inputs", fname)
+                try:
+                    s3.download_file("fantasy-sports-csvs", key, local_path)
+                    print(f"✅ Downloaded: {key}")
+                except Exception as e:
+                    print(f"❌ Failed to download {key}: {e}")
+            EOF
+
+                - name: Run Combine Script
+                    run: python mlb_combine_all_files.py
+
+                - name: Upload Combined JSON to S3
+                    env:
+                    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                    run: |
+                    python <<EOF
+            import boto3
+            from datetime import datetime
+
+            s3 = boto3.client("s3")
+            DATE = datetime.now().strftime("%Y-%m-%d")
+            filename = f"mlb_structured_players_{DATE}.json"
+            s3.upload_file(filename, "fantasy-sports-csvs", f"mlb/combined/{filename}")
+            print(f"✅ Uploaded {filename} to s3://fantasy-sports-csvs/mlb/combined/")
+            EOF
