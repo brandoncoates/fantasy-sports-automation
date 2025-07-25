@@ -25,42 +25,11 @@ jobs:
       - name: Install Dependencies
         run: pip install boto3
 
-      - name: Create Input Directory
-        run: mkdir -p mlb_json_inputs
-
       - name: Download Input Files from S3
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          echo "import boto3
-import os
-from datetime import datetime
-
-s3 = boto3.client('s3')
-DATE = datetime.now().strftime('%Y-%m-%d')
-FILENAMES = [
-    f'mlb_rosters_{DATE}.json',
-    f'mlb_probable_starters_{DATE}.json',
-    f'mlb_boxscores_{DATE}.json',
-    f'mlb_weather_{DATE}.json',
-    f'mlb_betting_odds_{DATE}.json',
-    f'mlb_espn_articles_{DATE}.json',
-    f'reddit_fantasybaseball_articles_{DATE}.json'
-]
-
-os.makedirs('mlb_json_inputs', exist_ok=True)
-
-for fname in FILENAMES:
-    key = f'mlb/json/{fname}'
-    local_path = os.path.join('mlb_json_inputs', fname)
-    try:
-        s3.download_file('fantasy-sports-csvs', key, local_path)
-        print(f'✅ Downloaded: {key}')
-    except Exception as e:
-        print(f'❌ Failed to download {key}: {e}')
-" > download_inputs.py
-          python download_inputs.py
+        run: python download_mlb_json_inputs.py
 
       - name: Run Combine Script
         run: python mlb_combine_all_files.py
@@ -69,14 +38,4 @@ for fname in FILENAMES:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          echo "import boto3
-from datetime import datetime
-
-s3 = boto3.client('s3')
-DATE = datetime.now().strftime('%Y-%m-%d')
-filename = f'mlb_structured_players_{DATE}.json'
-s3.upload_file(filename, 'fantasy-sports-csvs', f'mlb/combined/{filename}')
-print(f'✅ Uploaded {filename} to s3://fantasy-sports-csvs/mlb/combined/')
-" > upload_combined.py
-          python upload_combined.py
+        run: python upload_combined_json.py
