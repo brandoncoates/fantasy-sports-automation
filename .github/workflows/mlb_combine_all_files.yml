@@ -33,7 +33,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          python <<EOF
+          python3 - <<'PYTHON_SCRIPT'
             import boto3
             import os
             from datetime import datetime
@@ -50,6 +50,8 @@ jobs:
                 f"reddit_fantasybaseball_articles_{DATE}.json"
             ]
 
+            os.makedirs("mlb_json_inputs", exist_ok=True)
+
             for fname in FILENAMES:
                 key = f"mlb/json/{fname}"
                 local_path = os.path.join("mlb_json_inputs", fname)
@@ -58,7 +60,7 @@ jobs:
                     print(f"✅ Downloaded: {key}")
                 except Exception as e:
                     print(f"❌ Failed to download {key}: {e}")
-            EOF
+            PYTHON_SCRIPT
 
                 - name: Run Combine Script
                     run: python mlb_combine_all_files.py
@@ -68,7 +70,7 @@ jobs:
                     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
                     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                     run: |
-                    python <<EOF
+                    python3 - <<'PYTHON_SCRIPT'
             import boto3
             from datetime import datetime
 
@@ -77,4 +79,4 @@ jobs:
             filename = f"mlb_structured_players_{DATE}.json"
             s3.upload_file(filename, "fantasy-sports-csvs", f"mlb/combined/{filename}")
             print(f"✅ Uploaded {filename} to s3://fantasy-sports-csvs/mlb/combined/")
-            EOF
+            PYTHON_SCRIPT
