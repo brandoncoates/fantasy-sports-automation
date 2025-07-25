@@ -64,6 +64,7 @@ for p in rosters:
             "bats": p.get("bat_side", "R"),
             "throws": p.get("throw_side", "R")
         },
+        "matchup": team_matchups.get(p.get("team", ""), {}),
         "box_score": {},
         "weather_context": {},
         "betting_context": {},
