@@ -1,32 +1,33 @@
-name: Run Combine MLB Files
+name: Run Combine Player JSON
 
 on:
   schedule:
-    - cron: '30 15 * * *'  # Runs at 10:30 AM CST (15:30 UTC)
-  workflow_dispatch:      # Allow manual trigger
+    - cron: "30 15 * * *"  # 10:30am CST
+  workflow_dispatch:
 
 jobs:
-  combine-files:
+  combine-player-data:
     runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
 
     steps:
-      - name: 📥 Checkout repo
+      - name: 🧾 Checkout repo
         uses: actions/checkout@v3
 
       - name: 🐍 Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: 3.11
 
       - name: 📦 Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install boto3
+          python -m pip install --upgrade pip boto3
 
-      - name: ⚙️ Run combine script
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-        run: |
-          python mlb_combine_all_files.py
+      - name: 🧠 Run Combine Script
+        run: python mlb_combine_all_files.py
+
+      - name: 🧾 List output for debug
+        run: ls -lh
