@@ -26,25 +26,26 @@ def load_json(name):
     return []
 
 # === Load All Files ===
-rosters            = load_json(f"mlb_rosters_{DATE}.json")
-probable_starters  = load_json(f"mlb_probable_starters_{DATE}.json")
-boxscores          = load_json(f"mlb_boxscores_{DATE}.json")
-weather            = load_json(f"mlb_weather_{DATE}.json")
-odds               = load_json(f"mlb_betting_odds_{DATE}.json")
-espn               = load_json(f"mlb_espn_articles_{DATE}.json")
-reddit             = load_json(f"reddit_fantasybaseball_articles_{DATE}.json")
+rosters = load_json(f"mlb_rosters_{DATE}.json")
+probable_starters = load_json(f"mlb_probable_starters_{DATE}.json")
+boxscores = load_json(f"mlb_boxscores_{DATE}.json")
+weather = load_json(f"mlb_weather_{DATE}.json")
+odds = load_json(f"mlb_betting_odds_{DATE}.json")
+espn = load_json(f"mlb_espn_articles_{DATE}.json")
+reddit = load_json(f"reddit_fantasybaseball_articles_{DATE}.json")
 
-# === Index Probable Starters by Name ===
+# === Identify Probable Starters by **Name** ===
 starter_names = set()
-for game in probable_starters:
-    if game.get("away_pitcher"):
-        starter_names.add(game["away_pitcher"])
-    if game.get("home_pitcher"):
-        starter_names.add(game["home_pitcher"])
-# e.g. Cal Quantrill is listed here as an away_pitcher for Miami Marlins :contentReference[oaicite:1]{index=1}
+for ps in probable_starters:
+    # add both away and home pitcher names if present
+    if ps.get("away_pitcher"):
+        starter_names.add(ps["away_pitcher"])
+    if ps.get("home_pitcher"):
+        starter_names.add(ps["home_pitcher"])
 
 # === Build Player Records ===
 players = {}
+
 for p in rosters:
     name = p.get("player", "").strip()
     if not name:
@@ -54,14 +55,15 @@ for p in rosters:
         "player_id": pid,
         "team": p.get("team"),
         "position": p.get("position"),
+        # **Now match on the player's name against the starter_names set**
         "starter": name in starter_names,
         "roster_status": {
             "status_code": p.get("status_code"),
             "status_description": p.get("status_description")
         },
         "handedness": {
-            "bats": p.get("bat_side", "R"),
-            "throws": p.get("throw_side", "R")
+            "bats": p.get("bats", p.get("bat_side", "R")),
+            "throws": p.get("throws", p.get("throw_side", "R"))
         },
         "box_score": {},
         "betting_context": {},
@@ -72,47 +74,12 @@ for p in rosters:
 
 # === Attach Box Score Stats ===
 for row in boxscores:
-    name = row.get("player", "")
-    if name in players:
-        players[name]["box_score"] = row
+    pname = row.get("player", "")
+    if pname in players:
+        players[pname]["box_score"] = row
 
-# === Attach Weather and Betting by Team ===
+# === Attach Weather Data by Team ===
 for w in weather:
     team = w.get("team", "")
-    for pl in players.values():
-        if pl["team"] == team:
-            pl["weather_context"] = w
-
-for o in odds:
-    team = o.get("team", "")
-    for pl in players.values():
-        if pl["team"] == team:
-            pl["betting_context"] = o
-
-# === Attach Mentions ===
-for art in espn:
-    content = art.get("content", "")
-    for name, pl in players.items():
-        if name in content:
-            pl["espn_mentions"].append(art)
-
-for post in reddit:
-    content = post.get("content", "")
-    for name, pl in players.items():
-        if name in content:
-            pl["reddit_mentions"].append(post)
-
-# === Write & Upload ===
-if players:
-    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
-        json.dump(players, f, indent=2, ensure_ascii=False)
-    print(f"✅ Player-level JSON written: {OUTPUT_PATH}")
-
-    try:
-        s3 = boto3.client("s3", region_name=REGION)
-        s3.upload_file(OUTPUT_PATH, BUCKET, S3_KEY)
-        print(f"✅ Upload complete: s3://{BUCKET}/{S3_KEY}")
-    except Exception as e:
-        print(f"❌ Upload failed: {e}")
-else:
-    print("⚠️ No players found, skipping upload.")
+    for p in players.values():
+        if p["team"] == team:
