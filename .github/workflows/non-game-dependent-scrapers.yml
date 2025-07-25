@@ -33,6 +33,3 @@ jobs:
 
       - name: 📰 Run ESPN Articles Scraper
         run: python mlb_espn_articles_scraper.py
-
-      - name: 📋 Run Roster Scraper
-        run: python mlb_rosters_scraper.py
