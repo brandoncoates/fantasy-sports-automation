@@ -26,26 +26,26 @@ def load_json(name):
     return []
 
 # === Load All Files ===
-rosters = load_json(f"mlb_rosters_{DATE}.json")
+rosters           = load_json(f"mlb_rosters_{DATE}.json")
 probable_starters = load_json(f"mlb_probable_starters_{DATE}.json")
-boxscores = load_json(f"mlb_boxscores_{DATE}.json")
-weather = load_json(f"mlb_weather_{DATE}.json")
-odds = load_json(f"mlb_betting_odds_{DATE}.json")
-espn = load_json(f"mlb_espn_articles_{DATE}.json")
-reddit = load_json(f"reddit_fantasybaseball_articles_{DATE}.json")
+boxscores         = load_json(f"mlb_boxscores_{DATE}.json")
+weather           = load_json(f"mlb_weather_{DATE}.json")
+odds              = load_json(f"mlb_betting_odds_{DATE}.json")
+espn              = load_json(f"mlb_espn_articles_{DATE}.json")
+reddit            = load_json(f"reddit_fantasybaseball_articles_{DATE}.json")
 
-# === Identify Probable Starters by **Name** ===
+# === Index Probable Starters by Name ===
 starter_names = set()
-for ps in probable_starters:
-    # add both away and home pitcher names if present
-    if ps.get("away_pitcher"):
-        starter_names.add(ps["away_pitcher"])
-    if ps.get("home_pitcher"):
-        starter_names.add(ps["home_pitcher"])
+for game in probable_starters:
+    away = game.get("away_pitcher")
+    home = game.get("home_pitcher")
+    if away:
+        starter_names.add(away)
+    if home:
+        starter_names.add(home)
 
 # === Build Player Records ===
 players = {}
-
 for p in rosters:
     name = p.get("player", "").strip()
     if not name:
@@ -53,21 +53,20 @@ for p in rosters:
     pid = str(p.get("player_id", ""))
     players[name] = {
         "player_id": pid,
-        "team": p.get("team"),
-        "position": p.get("position"),
-        # **Now match on the player's name against the starter_names set**
+        "team": p.get("team", ""),
+        "position": p.get("position", ""),
         "starter": name in starter_names,
         "roster_status": {
             "status_code": p.get("status_code"),
             "status_description": p.get("status_description")
         },
         "handedness": {
-            "bats": p.get("bats", p.get("bat_side", "R")),
-            "throws": p.get("throws", p.get("throw_side", "R"))
+            "bats": p.get("bat_side", "R"),
+            "throws": p.get("throw_side", "R")
         },
         "box_score": {},
-        "betting_context": {},
         "weather_context": {},
+        "betting_context": {},
         "espn_mentions": [],
         "reddit_mentions": []
     }
@@ -78,8 +77,45 @@ for row in boxscores:
     if pname in players:
         players[pname]["box_score"] = row
 
-# === Attach Weather Data by Team ===
+# === Attach Weather by Team ===
 for w in weather:
     team = w.get("team", "")
-    for p in players.values():
-        if p["team"] == team:
+    for rec in players.values():
+        if rec["team"] == team:
+            rec["weather_context"] = w
+
+# === Attach Betting Odds by Team ===
+for o in odds:
+    team = o.get("team", "")
+    for rec in players.values():
+        if rec["team"] == team:
+            rec["betting_context"] = o
+
+# === Attach ESPN Mentions ===
+for art in espn:
+    content = art.get("content", "")
+    for name, rec in players.items():
+        if name in content:
+            rec["espn_mentions"].append(art)
+
+# === Attach Reddit Mentions ===
+for post in reddit:
+    content = post.get("content", "")
+    for name, rec in players.items():
+        if name in content:
+            rec["reddit_mentions"].append(post)
+
+# === Write & Upload ===
+if players:
+    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+        json.dump(players, f, indent=2, ensure_ascii=False)
+    print(f"✅ Player JSON written: {OUTPUT_PATH}")
+
+    try:
+        s3 = boto3.client("s3", region_name=REGION)
+        s3.upload_file(OUTPUT_PATH, BUCKET, S3_KEY)
+        print(f"✅ Upload complete: s3://{BUCKET}/{S3_KEY}")
+    except Exception as e:
+        print(f"❌ Upload failed: {e}")
+else:
+    print("⚠️ No players found, skipping upload.")
