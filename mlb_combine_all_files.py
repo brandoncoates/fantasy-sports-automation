@@ -1,3 +1,4 @@
+
 import json
 import os
 from datetime import datetime
@@ -19,8 +20,11 @@ def load_json(name):
     path = os.path.join(INPUT_DIR, name)
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
+            data = json.load(f)
+            print(f"📄 Loaded {name} with {len(data)} entries")
+            return data
+    print(f"⚠️ File not found: {name}")
+    return []
 
 # === Load All Files ===
 rosters = load_json(f"mlb_rosters_{DATE}.json")
@@ -31,79 +35,47 @@ odds = load_json(f"mlb_betting_odds_{DATE}.json")
 espn = load_json(f"mlb_espn_articles_{DATE}.json")
 reddit = load_json(f"reddit_fantasybaseball_articles_{DATE}.json")
 
-# === Identify Probable Starters ===
-starter_ids = {str(p['player_id']) for p in probable_starters if 'player_id' in p}
+# === Index Probable Starters by Name ===
+starter_names = {
+    p.get("away_pitcher") for p in probable_starters if p.get("away_pitcher")
+}.union({
+    p.get("home_pitcher") for p in probable_starters if p.get("home_pitcher")
+})
 
-# === Build Player Records ===
+# === Build Final Player Dictionary ===
 players = {}
 
-for p in rosters:
-    name = p["player"]
-    pid = str(p["player_id"])
+for player in rosters:
+    name = player.get("full_name", "").strip()
+    if not name:
+        continue  # Skip unnamed players
+
+    pid = str(player.get("player_id", ""))
     players[name] = {
         "player_id": pid,
-        "team": p.get("team"),
-        "position": p.get("position"),
-        "starter": pid in starter_ids,
-        "roster_status": {
-            "status_code": p.get("status_code"),
-            "status_description": p.get("status_description")
-        },
-        "handedness": {
-            "bats": p.get("bat_side", "R"),
-            "throws": p.get("throw_side", "R")
-        },
-        "box_score": {},
-        "betting_context": {},
-        "weather_context": {},
-        "espn_mentions": [],
-        "reddit_mentions": []
+        "team": player.get("team", ""),
+        "position": player.get("position", ""),
+        "starter": name in starter_names,
+        "stats": {},
+        "weather": {},
+        "odds": {},
+        "articles": {
+            "espn": [],
+            "reddit": []
+        }
     }
 
-# === Attach Box Score Stats ===
-for row in boxscores:
-    name = row.get("player", "")
-    if name in players:
-        players[name]["box_score"] = row
+# === Upload to S3 if players found ===
+if players:
+    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+        json.dump(players, f, indent=2)
+    print(f"✅ Player JSON written to: {OUTPUT_PATH}")
 
-# === Attach Weather Data by Team ===
-for w in weather:
-    team = w.get("team", "")
-    for p in players.values():
-        if p["team"] == team:
-            p["weather_context"] = w
-
-# === Attach Betting Odds by Team ===
-for o in odds:
-    team = o.get("team", "")
-    for p in players.values():
-        if p["team"] == team:
-            p["betting_context"] = o
-
-# === ESPN Mentions ===
-for art in espn:
-    for name in players:
-        if name in art.get("content", ""):
-            players[name]["espn_mentions"].append(art)
-
-# === Reddit Mentions ===
-for post in reddit:
-    for name in players:
-        if name in post.get("content", ""):
-            players[name]["reddit_mentions"].append(post)
-
-# === Write JSON File ===
-with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
-    json.dump(players, f, indent=2, ensure_ascii=False)
-
-print(f"✅ Player-level JSON written: {OUTPUT_PATH}")
-
-# === Upload to S3 ===
-print(f"☁️ Uploading to s3://{BUCKET}/{S3_KEY}")
-s3 = boto3.client("s3", region_name=REGION)
-
-try:
-    s3.upload_file(OUTPUT_PATH, BUCKET, S3_KEY)
-    print(f"✅ Upload complete: s3://{BUCKET}/{S3_KEY}")
-except Exception as e:
-    print(f"❌ Upload failed: {e}")
+    try:
+        s3 = boto3.client("s3", region_name=REGION)
+        s3.upload_file(OUTPUT_PATH, BUCKET, S3_KEY)
+        print(f"✅ Upload complete: s3://{BUCKET}/{S3_KEY}")
+    except Exception as e:
+        print(f"❌ Upload failed: {e}")
+else:
+    print("⚠️ No players found, skipping upload.")
