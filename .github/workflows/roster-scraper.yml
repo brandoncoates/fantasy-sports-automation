@@ -1,0 +1,31 @@
+name: Run MLB Roster Scraper
+
+on:
+  schedule:
+    - cron: "5 9 * * *"  # Runs every day at 9:05 UTC (adjust time if needed)
+  workflow_dispatch:      # Allow manual trigger in GitHub UI
+
+jobs:
+  run-roster-scraper:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run MLB roster scraper
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        run: |
+          python mlb_rosters_scraper.py
