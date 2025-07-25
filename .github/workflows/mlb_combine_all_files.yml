@@ -1,4 +1,4 @@
-name: RUn Combine MLB Files
+name: Run Combine MLB Files
 
 on:
   schedule:
