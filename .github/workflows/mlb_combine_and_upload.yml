@@ -1,9 +1,9 @@
-name: MLB Combine and Upload
+name: Combine and Upload MLB JSON
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 15 * * *'  # Runs daily at 8am PT / 11am ET
+    - cron: '0 15 * * *'  # daily at 11:00 UTC (4 AM PT / 7 AM ET)
 
 jobs:
   build-and-upload:
@@ -25,8 +25,8 @@ jobs:
       - name: 📦 Install dependencies
         run: pip install boto3
 
-      - name: 📄 Download MLB JSON files from S3
+      - name: 📄 Download MLB JSON inputs from S3
         run: python download_mlb_json_inputs.py
 
-      - name: 🧠 Combine and Upload structured player data
+      - name: 🧠 Combine and upload structured player JSON
         run: python mlb_combine_all_files.py
