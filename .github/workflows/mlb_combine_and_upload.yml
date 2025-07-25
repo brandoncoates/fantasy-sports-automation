@@ -1,0 +1,29 @@
+name: Combine and Upload MLB JSON
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install boto3
+
+      - name: Download MLB JSON inputs from S3
+        run: python download_mlb_json_inputs.py
+
+      - name: Combine all files into structured player JSON
+        run: python mlb_combine_all_files_debug.py
+
+      - name: Upload combined JSON to S3 (if valid)
+        run: python upload_combined_json_debug.py
