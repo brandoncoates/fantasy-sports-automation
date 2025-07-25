@@ -1,0 +1,32 @@
+name: RUn Combine MLB Files
+
+on:
+  schedule:
+    - cron: '30 15 * * *'  # Runs at 10:30 AM CST (15:30 UTC)
+  workflow_dispatch:      # Allow manual trigger
+
+jobs:
+  combine-files:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v3
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install boto3
+
+      - name: ⚙️ Run combine script
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        run: |
+          python mlb_combine_all_files.py
