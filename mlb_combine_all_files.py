@@ -1,29 +1,50 @@
 #!/usr/bin/env python3
+"""
+mlb_combine_all_files.py
+────────────────────────
+Merge all daily MLB JSON feeds into structured_players_{DATE}.json
+and (optionally) upload to S3.
+
+Env‑vars respected:
+  • FORCE_DATE      – override slate date (YYYY‑MM‑DD)
+  • COMBINE_BASE_DIR– folder prefix (default 'baseball')
+  • UPLOAD_TO_S3    – 'true' to push to S3 (default false)
+"""
+
 import os, re, json, sys, boto3
 from datetime import datetime, timedelta
 from collections import Counter
 
+# ───── DATES / PATHS ─────
 DATE = os.getenv("FORCE_DATE", datetime.now().strftime("%Y-%m-%d"))
 YDAY = (datetime.strptime(DATE, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
-BASE = "baseball"
+BASE = os.getenv("COMBINE_BASE_DIR", "baseball").strip("/")
 
-def p(folder, fn): return f"{BASE}/{folder}/{fn}"
+def path(folder, fn): return f"{BASE}/{folder}/{fn}"
 
-FILE_ROSTER   = p("rosters",          f"mlb_rosters_{DATE}.json")
-FILE_STARTERS = p("probablestarters", f"mlb_probable_starters_{DATE}.json")
-FILE_WEATHER  = p("weather",          f"mlb_weather_{DATE}.json")
-FILE_ODDS     = p("betting",          f"mlb_betting_odds_{DATE}.json")
-FILE_ESPN     = p("news",             f"mlb_espn_articles_{DATE}.json")
-FILE_REDDIT   = p("news",             f"reddit_fantasybaseball_articles_{DATE}.json")
-FILE_BOX      = p("boxscores",        f"mlb_boxscores_{YDAY}.json")
+FILE_ROSTER   = path("rosters",          f"mlb_rosters_{DATE}.json")
+FILE_STARTERS = path("probablestarters", f"mlb_probable_starters_{DATE}.json")
+FILE_WEATHER  = path("weather",          f"mlb_weather_{DATE}.json")
+FILE_ODDS     = path("betting",          f"mlb_betting_odds_{DATE}.json")
+FILE_ESPN     = path("news",             f"mlb_espn_articles_{DATE}.json")
+FILE_REDDIT   = path("news",             f"reddit_fantasybaseball_articles_{DATE}.json")
+FILE_BOX      = path("boxscores",        f"mlb_boxscores_{YDAY}.json")
+
 OUT_FILE      = f"structured_players_{DATE}.json"
 
-UPLOAD_TO_S3, BUCKET, REGION = False, "fantasy-sports-csvs", "us-east-1"
-S3_KEY = f"{BASE}/combined/{OUT_FILE}"
+# ───── S3 CONFIG ─────
+UPLOAD_TO_S3 = os.getenv("UPLOAD_TO_S3", "false").lower() == "true"
+BUCKET       = "fantasy-sports-csvs"
+REGION       = "us-east-1"
+S3_KEY       = f"{BASE}/combined/{OUT_FILE}"
 
-# ---------- helpers ----------
-def load(path): 
-    return json.load(open(path)) if os.path.exists(path) else []
+# ───── HELPERS ─────
+def load(path):
+    if not os.path.exists(path):
+        print(f"⚠️  {path} missing — skipping")
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 def normalize(n): return re.sub(r"[ .'-]", "", n).lower()
 
@@ -34,17 +55,14 @@ def safe_get(d: dict, *keys, default=None):
             return v
     return default
 
-def roster_surname(row: dict) -> str | None:
-    """Return surname or None if cannot be determined safely."""
+def roster_surname(row):
     ln = safe_get(row, "last_name", "surname")
-    if ln:
-        return ln
+    if ln: return ln
     full = row.get("name", "").strip()
-    parts = full.split()
-    return parts[-1] if parts else None
+    return full.split()[-1] if full else None
 
-# ---------- load feeds ----------
-rosters   = load(FILE_ROSTER)
+# ───── LOAD FEEDS ─────
+rosters   = load(FILE_ROSTER)   # required
 starters  = load(FILE_STARTERS)
 weather   = load(FILE_WEATHER)
 odds      = load(FILE_ODDS)
@@ -53,13 +71,12 @@ reddit    = load(FILE_REDDIT)
 boxscores = load(FILE_BOX)
 
 if not rosters:
-    sys.exit("❌ roster feed missing – abort")
+    sys.exit("❌ roster feed missing – abort combine step")
 
-# ---------- indexes ----------
+# ───── INDEXES ─────
 weather_by_team = {w["team"]: w["weather"] for w in weather}
 
-box_by_pid = {str(pid): b
-              for b in boxscores
+box_by_pid = {str(pid): b for b in boxscores
               if (pid := safe_get(b, "player_id", "id", "mlb_id"))}
 
 starter_names = {normalize(safe_get(g, "home_pitcher", default="")) for g in starters} | \
@@ -74,7 +91,7 @@ for g in starters:
 
 bet_by_team = {tid: o for o in odds if (tid := safe_get(o, "team_id", "teamId", "team"))}
 
-# ---------- mentions ----------
+# ───── MENTIONS ─────
 espn_cnt, reddit_cnt = Counter(), Counter()
 for art in espn:
     title = str(art.get("headline", "")).lower()
@@ -82,7 +99,6 @@ for art in espn:
         ln = roster_surname(r)
         if ln and ln.lower() in title:
             espn_cnt[r["player_id"]] += 1
-
 for post in reddit:
     txt = str(post.get("title", "")).lower()
     for r in rosters:
@@ -90,13 +106,13 @@ for post in reddit:
         if ln and ln.lower() in txt:
             reddit_cnt[r["player_id"]] += 1
 
-# ---------- build players ----------
+# ───── BUILD STRUCTURED PLAYERS ─────
 players = {}
 for r in rosters:
     pid = str(r["player_id"])
     tid = safe_get(r, "team_id", "teamId")
-    if not tid:        # cannot place player without team
-        continue
+    if not tid:
+        continue  # skip orphan rows
 
     ln   = roster_surname(r) or ""
     fn   = r.get("first_name", "")
@@ -124,11 +140,14 @@ for r in rosters:
         "box_score":       box_by_pid.get(pid, {}),
     }
 
-print(f"✅ built {len(players)} players")
-
+print(f"✅ built {len(players)} player rows")
 json.dump(players, open(OUT_FILE, "w"), indent=2)
 print(f"💾 wrote {OUT_FILE}")
 
+# ───── S3 UPLOAD (optional) ─────
 if UPLOAD_TO_S3:
-    boto3.client("s3", region_name=REGION).upload_file(OUT_FILE, BUCKET, S3_KEY)
-    print(f"☁️ uploaded to s3://{BUCKET}/{S3_KEY}")
+    try:
+        boto3.client("s3", region_name=REGION).upload_file(OUT_FILE, BUCKET, S3_KEY)
+        print(f"☁️ uploaded to s3://{BUCKET}/{S3_KEY}")
+    except Exception as e:
+        print(f"❌ S3 upload failed: {e}")
