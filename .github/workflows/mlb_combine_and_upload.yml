@@ -42,5 +42,11 @@ jobs:
           echo "Workspace contents:"
           find baseball -type f -name '*.json' | sort
 
+      # Combine all files an dupload to S3 bucket    
       - name: 🧠 Combine and upload structured player JSON
         run: python mlb_combine_all_files.py
+        env:
+            COMBINE_BASE_DIR: baseball
+            UPLOAD_TO_S3: "true"          # ← enable push
+
+
