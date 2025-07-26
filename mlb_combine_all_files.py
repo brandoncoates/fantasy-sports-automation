@@ -4,26 +4,18 @@ mlb_combine_all_files.py
 ────────────────────────
 Merge daily JSON feeds and write structured_players_{DATE}.json.
 
-Folder layout (all under repo workspace after S3 sync):
+Folder layout (after S3 sync):
   baseball/
-    ├─ rosters/              mlb_rosters_{DATE}.json          [required]
-    ├─ probablestarters/     mlb_probable_starters_{DATE}.json
-    ├─ weather/              mlb_weather_{DATE}.json
-    ├─ betting/              mlb_betting_odds_{DATE}.json
-    ├─ news/                 mlb_espn_articles_{DATE}.json
-    │                        reddit_fantasybaseball_articles_{DATE}.json
-    └─ boxscores/            mlb_boxscores_{YESTERDAY}.json
-
-Output:
-  structured_players_{DATE}.json   (written to repo root and
-                                   optionally uploaded to baseball/combined/)
+    rosters/              mlb_rosters_{DATE}.json          [required]
+    probablestarters/     mlb_probable_starters_{DATE}.json
+    weather/              mlb_weather_{DATE}.json
+    betting/              mlb_betting_odds_{DATE}.json
+    news/                 mlb_espn_articles_{DATE}.json
+                          reddit_fantasybaseball_articles_{DATE}.json
+    boxscores/            mlb_boxscores_{YESTERDAY}.json
 """
 
-import os
-import re
-import json
-import sys
-import boto3
+import os, re, json, sys, boto3
 from datetime import datetime, timedelta
 from collections import defaultdict, Counter
 
@@ -31,7 +23,7 @@ from collections import defaultdict, Counter
 DATE = os.getenv("FORCE_DATE", datetime.now().strftime("%Y-%m-%d"))
 YDAY = (datetime.strptime(DATE, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
 
-BASE = "baseball"  # folder prefix preserved by S3 sync
+BASE = "baseball"                     # folder prefix
 
 # ───── FILE PATHS ─────
 FILE_ROSTER   = f"{BASE}/rosters/mlb_rosters_{DATE}.json"
@@ -61,6 +53,16 @@ def load_json(path):
 def normalize(name: str) -> str:
     return re.sub(r"[ .'-]", "", name).lower()
 
+def roster_surname(row: dict) -> str | None:
+    """Return player's last name from roster row or None if unavailable."""
+    if "last_name" in row:     # preferred key
+        return row["last_name"]
+    if "surname" in row:       # alternate key
+        return row["surname"]
+    if "name" in row:          # split full name
+        return row["name"].split()[-1]
+    return None
+
 # ───── LOAD FEEDS ─────
 rosters   = load_json(FILE_ROSTER)        # REQUIRED
 starters  = load_json(FILE_STARTERS)
@@ -76,7 +78,7 @@ if not rosters:
 # ───── INDEX AUX FEEDS ─────
 weather_by_team = {w["team"]: w["weather"] for w in weather}
 
-# Handle box‑score rows that might use player_id, id, or mlb_id
+# box_score: allow player_id / id / mlb_id
 box_by_pid = {}
 for b in boxscores:
     pid = b.get("player_id") or b.get("id") or b.get("mlb_id")
@@ -91,32 +93,32 @@ for g in starters:
     gp   = g.get("game_pk")
     home = g.get("home_team_id")
     away = g.get("away_team_id")
-    if gp is None or home is None or away is None:
-        # Skip malformed record
-        continue
-    team_to_gamepk[home] = team_to_gamepk[away] = gp
-    team_to_opp[home]    = away
-    team_to_opp[away]    = home
+    if gp and home and away:
+        team_to_gamepk[home] = team_to_gamepk[away] = gp
+        team_to_opp[home]    = away
+        team_to_opp[away]    = home
 
 bet_by_team = {}
 for o in odds:
-    tid = o.get("team_id") or o.get("teamId") or o.get("team")  # try alternates
-    if tid is None:
-        continue  # skip malformed row
-    bet_by_team[tid] = o
+    tid = o.get("team_id") or o.get("teamId") or o.get("team")
+    if tid:
+        bet_by_team[tid] = o
 
-
-# Mentions counters
+# ---------- ESPN & Reddit mention counters ----------
 espn_cnt, reddit_cnt = Counter(), Counter()
+
 for art in espn:
     title = str(art.get("headline", "")).lower()
     for r in rosters:
-        if r["last_name"].lower() in title:
+        ln = roster_surname(r)
+        if ln and ln.lower() in title:
             espn_cnt[r["player_id"]] += 1
+
 for post in reddit:
     txt = str(post.get("title", "")).lower()
     for r in rosters:
-        if r["last_name"].lower() in txt:
+        ln = roster_surname(r)
+        if ln and ln.lower() in txt:
             reddit_cnt[r["player_id"]] += 1
 
 # ───── BUILD STRUCTURED PLAYERS ─────
@@ -124,7 +126,9 @@ players_out = {}
 
 for r in rosters:
     pid   = str(r["player_id"])
-    name  = f'{r["first_name"]} {r["last_name"]}'
+    ln    = roster_surname(r) or ""
+    fn    = r.get("first_name", "")
+    name  = f"{fn} {ln}".strip() or r.get("name", f"ID_{pid}")
     team  = r["team"]
     tid   = r["team_id"]
 
