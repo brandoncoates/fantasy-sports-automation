@@ -98,7 +98,13 @@ for g in starters:
     team_to_opp[home]    = away
     team_to_opp[away]    = home
 
-bet_by_team = {o["team_id"]: o for o in odds}
+bet_by_team = {}
+for o in odds:
+    tid = o.get("team_id") or o.get("teamId") or o.get("team")  # try alternates
+    if tid is None:
+        continue  # skip malformed row
+    bet_by_team[tid] = o
+
 
 # Mentions counters
 espn_cnt, reddit_cnt = Counter(), Counter()
