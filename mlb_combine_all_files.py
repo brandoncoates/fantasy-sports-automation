@@ -88,9 +88,12 @@ starter_names = {normalize(g["home_pitcher"]) for g in starters} | \
 
 team_to_gamepk, team_to_opp = {}, {}
 for g in starters:
-    gp   = g["game_pk"]
-    home = g["home_team_id"]
-    away = g["away_team_id"]
+    gp   = g.get("game_pk")
+    home = g.get("home_team_id")
+    away = g.get("away_team_id")
+    if gp is None or home is None or away is None:
+        # Skip malformed record
+        continue
     team_to_gamepk[home] = team_to_gamepk[away] = gp
     team_to_opp[home]    = away
     team_to_opp[away]    = home
