@@ -35,7 +35,7 @@ UPLOAD_TO_S3 = os.getenv("UPLOAD_TO_S3", "false").lower() == "true"
 BUCKET       = os.getenv("S3_BUCKET_NAME", "fantasy-sports-csvs")
 REGION       = os.getenv("AWS_REGION", "us-east-1")
 
-# ───── UTILS ─────
+# ───── HELPERS ─────
 def load_json(path):
     if not os.path.exists(path):
         print(f"⚠️  Missing: {path}")
@@ -58,14 +58,14 @@ boxscores = load_json(FILE_BOX)
 if not rosters:
     sys.exit("❌ Roster file missing or empty — cannot continue.")
 
-# ───── INDEX AUX FEEDS ─────
-weather_by_team = {w["team"]: w for w in weather}
-box_by_pid      = {str(b.get("player_id")): b for b in boxscores}
+# ───── INDEX FEEDS ─────
+weather_by_team = {w.get("team"): w for w in weather}
+box_by_pid = {str(b.get("player_id")): b for b in boxscores}
 
 starter_names = {
-    normalize(g["home_pitcher"]) for g in starters
+    normalize(g.get("home_pitcher", "")) for g in starters
 }.union({
-    normalize(g["away_pitcher"]) for g in starters
+    normalize(g.get("away_pitcher", "")) for g in starters
 })
 
 team_to_gamepk, team_to_opp = {}, {}
@@ -86,37 +86,41 @@ espn_cnt, reddit_cnt = {}, {}
 for art in espn:
     title = str(art.get("headline", "")).lower()
     for r in rosters:
-        if r["player"].split()[-1].lower() in title:
+        last = r.get("player", "").split()[-1].lower()
+        if last in title:
             espn_cnt[r["player_id"]] = espn_cnt.get(r["player_id"], 0) + 1
+
 for post in reddit:
     txt = str(post.get("title", "")).lower()
     for r in rosters:
-        if r["player"].split()[-1].lower() in txt:
+        last = r.get("player", "").split()[-1].lower()
+        if last in txt:
             reddit_cnt[r["player_id"]] = reddit_cnt.get(r["player_id"], 0) + 1
 
 # ───── BUILD STRUCTURED OUTPUT ─────
 players_out = {}
 
 for r in rosters:
-    pid   = str(r["player_id"])
-    name  = r["player"]
-    team  = r["team"]
-    tid   = r.get("team_id")  # Optional field
+    pid   = str(r.get("player_id"))
+    name  = r.get("player", "")
+    team  = r.get("team", "")
+    tid   = r.get("team_id")
 
     players_out[name] = {
         "player_id": pid,
         "name": name,
         "team": team,
-        "position": r["position"],
+        "team_id": tid,
+        "position": r.get("position", ""),
         "handedness": {
-            "bats": r["bats"],
-            "throws": r["throws"]
+            "bats": r.get("bats", ""),
+            "throws": r.get("throws", "")
         },
         "roster_status": {
-            "status_code": r["status_code"],
-            "status_description": r["status_description"]
+            "status_code": r.get("status_code", ""),
+            "status_description": r.get("status_description", "")
         },
-        "starter": normalize(name) in starter_names if r["position"] == "P" else False,
+        "starter": normalize(name) in starter_names if r.get("position") == "P" else False,
         "opponent_team_id": team_to_opp.get(tid),
         "game_pk": team_to_gamepk.get(tid),
         "weather_context": weather_by_team.get(team),
@@ -133,7 +137,7 @@ with open(OUT_FILE, "w", encoding="utf-8") as f:
     json.dump(players_out, f, indent=2)
 print(f"💾 Wrote: {OUT_FILE}")
 
-# ───── OPTIONAL UPLOAD ─────
+# ───── OPTIONAL S3 UPLOAD ─────
 if UPLOAD_TO_S3:
     try:
         boto3.client("s3", region_name=REGION).upload_file(OUT_FILE, BUCKET, S3_KEY)
