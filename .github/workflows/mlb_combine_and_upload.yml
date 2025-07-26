@@ -3,15 +3,20 @@ name: Combine and Upload MLB JSON
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 15 * * *'  # daily at 11:00 UTC (4 AM PT / 7 AM ET)
+    # every day at 15:00 UTC  (≈ 08:00 PT / 11:00 ET)
+    - cron: '0 15 * * *'
 
 jobs:
   build-and-upload:
     runs-on: ubuntu-latest
+
     env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: us-east-1
+      AWS_REGION:            us-east-1
+      # 👇 Prefix where the JSON folders live ('' if they land in repo root)
+      COMBINE_BASE_DIR: baseball
+      # FORCE_DATE: 2025-07-27     # ← Uncomment only when back‑filling a slate
 
     steps:
       - name: 📥 Checkout repository
@@ -22,11 +27,20 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: 📦 Install dependencies
-        run: pip install boto3
+      - name: 📦 Install project dependencies
+        run: |
+          pip install boto3 pandas
 
+      # Downloads everything under baseball/ to the same folder structure locally
       - name: 📄 Download MLB JSON inputs from S3
-        run: python download_mlb_json_inputs.py
+        run: |
+          aws s3 cp --recursive s3://fantasy-sports-csvs/baseball/ baseball/
+
+      # Optional sanity check — remove once paths confirmed
+      - name: 🕵️ List downloaded JSON files
+        run: |
+          echo "Workspace contents:"
+          find baseball -type f -name '*.json' | sort
 
       - name: 🧠 Combine and upload structured player JSON
         run: python mlb_combine_all_files.py
