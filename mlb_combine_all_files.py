@@ -1,21 +1,9 @@
 #!/usr/bin/env python3
-"""
-mlb_combine_all_files.py
-────────────────────────
-Merge all daily MLB JSON feeds into structured_players_{DATE}.json
-and (optionally) upload to S3.
-
-Env‑vars respected:
-  • FORCE_DATE      – override slate date (YYYY‑MM‑DD)
-  • COMBINE_BASE_DIR– folder prefix (default 'baseball')
-  • UPLOAD_TO_S3    – 'true' to push to S3 (default false)
-"""
-
 import os, re, json, sys, boto3
 from datetime import datetime, timedelta
 from collections import Counter
 
-# ───── DATES / PATHS ─────
+# ───── DATE CONFIG ─────
 DATE = os.getenv("FORCE_DATE", datetime.now().strftime("%Y-%m-%d"))
 YDAY = (datetime.strptime(DATE, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
 BASE = os.getenv("COMBINE_BASE_DIR", "baseball").strip("/")
@@ -41,10 +29,14 @@ S3_KEY       = f"{BASE}/combined/{OUT_FILE}"
 # ───── HELPERS ─────
 def load(path):
     if not os.path.exists(path):
-        print(f"⚠️  {path} missing — skipping")
+        print(f"⚠️  File missing: {path}")
         return []
     with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            print(f"❌ JSON decode error in: {path}")
+            return []
 
 def normalize(n): return re.sub(r"[ .'-]", "", n).lower()
 
@@ -61,8 +53,8 @@ def roster_surname(row):
     full = row.get("name", "").strip()
     return full.split()[-1] if full else None
 
-# ───── LOAD FEEDS ─────
-rosters   = load(FILE_ROSTER)   # required
+# ───── LOAD DATA ─────
+rosters   = load(FILE_ROSTER)
 starters  = load(FILE_STARTERS)
 weather   = load(FILE_WEATHER)
 odds      = load(FILE_ODDS)
@@ -71,7 +63,10 @@ reddit    = load(FILE_REDDIT)
 boxscores = load(FILE_BOX)
 
 if not rosters:
-    sys.exit("❌ roster feed missing – abort combine step")
+    print("❌ No rosters loaded. Aborting.")
+    sys.exit(1)
+
+print(f"🔢 Loaded: {len(rosters)} rosters | {len(starters)} starters | {len(boxscores)} boxscores")
 
 # ───── INDEXES ─────
 weather_by_team = {w["team"]: w["weather"] for w in weather}
@@ -106,13 +101,13 @@ for post in reddit:
         if ln and ln.lower() in txt:
             reddit_cnt[r["player_id"]] += 1
 
-# ───── BUILD STRUCTURED PLAYERS ─────
+# ───── BUILD OUTPUT ─────
 players = {}
 for r in rosters:
     pid = str(r["player_id"])
     tid = safe_get(r, "team_id", "teamId")
     if not tid:
-        continue  # skip orphan rows
+        continue
 
     ln   = roster_surname(r) or ""
     fn   = r.get("first_name", "")
@@ -140,14 +135,17 @@ for r in rosters:
         "box_score":       box_by_pid.get(pid, {}),
     }
 
-print(f"✅ built {len(players)} player rows")
-json.dump(players, open(OUT_FILE, "w"), indent=2)
-print(f"💾 wrote {OUT_FILE}")
+print(f"✅ Built structured entries for {len(players)} players.")
 
-# ───── S3 UPLOAD (optional) ─────
+# ───── WRITE FILE ─────
+with open(OUT_FILE, "w", encoding="utf-8") as f:
+    json.dump(players, f, indent=2)
+print(f"💾 Wrote file: {OUT_FILE}")
+
+# ───── S3 PUSH ─────
 if UPLOAD_TO_S3:
     try:
         boto3.client("s3", region_name=REGION).upload_file(OUT_FILE, BUCKET, S3_KEY)
-        print(f"☁️ uploaded to s3://{BUCKET}/{S3_KEY}")
+        print(f"☁️ Uploaded to S3: s3://{BUCKET}/{S3_KEY}")
     except Exception as e:
         print(f"❌ S3 upload failed: {e}")

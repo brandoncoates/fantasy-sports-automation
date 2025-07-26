@@ -14,8 +14,8 @@ jobs:
       AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION:            us-east-1
-      # 👇 Prefix where the JSON folders live ('' if they land in repo root)
-      COMBINE_BASE_DIR: baseball
+      COMBINE_BASE_DIR:      baseball
+      UPLOAD_TO_S3:          "true"
       # FORCE_DATE: 2025-07-27     # ← Uncomment only when back‑filling a slate
 
     steps:
@@ -31,22 +31,18 @@ jobs:
         run: |
           pip install boto3 pandas
 
-      # Downloads everything under baseball/ to the same folder structure locally
       - name: 📄 Download MLB JSON inputs from S3
         run: |
           aws s3 cp --recursive s3://fantasy-sports-csvs/baseball/ baseball/
 
-      # Optional sanity check — remove once paths confirmed
       - name: 🕵️ List downloaded JSON files
         run: |
           echo "Workspace contents:"
           find baseball -type f -name '*.json' | sort
 
-      # Combine all files an dupload to S3 bucket    
       - name: 🧠 Combine and upload structured player JSON
         run: python mlb_combine_all_files.py
         env:
-            COMBINE_BASE_DIR: baseball
-            UPLOAD_TO_S3: "true"          # ← enable push
-
-
+          COMBINE_BASE_DIR: baseball
+          UPLOAD_TO_S3: "true"
+          # FORCE_DATE: 2025-07-27   # Uncomment if needed
