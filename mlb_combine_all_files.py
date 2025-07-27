@@ -10,19 +10,20 @@ import pytz
 # ───── TIMEZONE‑SAFE DATE ─────
 pst = pytz.timezone("US/Pacific")
 DATE = os.getenv("FORCE_DATE", datetime.now(pst).strftime("%Y-%m-%d"))
-YDAY = (datetime.strptime(DATE, "%Y‑%m‑%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+# Use ASCII hyphens here!
+YDAY = (datetime.strptime(DATE, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
 
 # ───── PATH CONFIG ─────
-BASE       = "baseball"
-ROSTER     = f"{BASE}/rosters/mlb_rosters_{DATE}.json"
-STARTERS   = f"{BASE}/probablestarters/mlb_probable_starters_{DATE}.json"
-WEATHER    = f"{BASE}/weather/mlb_weather_{DATE}.json"
-ODDS       = f"{BASE}/betting/mlb_betting_odds_{DATE}.json"
-ESPN       = f"{BASE}/news/mlb_espn_articles_{DATE}.json"
-REDDIT_DIR = f"{BASE}/news-headlines-csvs/reddit_fantasy_baseball"
-BOX        = f"{BASE}/boxscores/mlb_boxscores_{YDAY}.json"
+BASE         = "baseball"
+ROSTER       = f"{BASE}/rosters/mlb_rosters_{DATE}.json"
+STARTERS     = f"{BASE}/probablestarters/mlb_probable_starters_{DATE}.json"
+WEATHER      = f"{BASE}/weather/mlb_weather_{DATE}.json"
+ODDS         = f"{BASE}/betting/mlb_betting_odds_{DATE}.json"
+ESPN         = f"{BASE}/news/mlb_espn_articles_{DATE}.json"
+REDDIT_DIR   = f"{BASE}/news-headlines-csvs/reddit_fantasy_baseball"
+BOX          = f"{BASE}/boxscores/mlb_boxscores_{YDAY}.json"
 
-OUT_FILE   = f"structured_players_{DATE}.json"
+OUT_FILE     = f"structured_players_{DATE}.json"
 
 # ───── S3 CONFIG (OPTIONAL) ─────
 UPLOAD_TO_S3 = os.getenv("UPLOAD_TO_S3", "false").lower() == "true"
@@ -107,12 +108,10 @@ reddit    = load_all_reddit_jsons(DATE)
 boxscores = load_json(BOX)
 
 # ───── BUILD WEATHER LOOKUP ─────
-# away‑team entries
 weather_by_away = {
     TEAM_NAME_MAP.get(normalize(w["team"]), w["team"]): w
     for w in weather if w.get("team")
 }
-# copy to home teams via probables
 weather_by_team = dict(weather_by_away)
 for g in starters:
     away = TEAM_NAME_MAP.get(normalize(g.get("away_team","")), g.get("away_team",""))
@@ -120,7 +119,7 @@ for g in starters:
     if away in weather_by_away:
         weather_by_team[home] = weather_by_away[away]
 
-# ───── BUILD INDEXES ─────
+# ───── BUILD OTHER INDEXES ─────
 box_by_name = { normalize(bs.get("Player Name","")): bs for bs in boxscores }
 
 starter_names = {
@@ -131,21 +130,20 @@ starter_names = {
 
 bet_by_team = {}
 for o in odds:
-    team_raw  = o.get("team") or o.get("team_name","")
-    team_norm = TEAM_NAME_MAP.get(normalize(team_raw), team_raw)
-    bet_by_team[team_norm] = o
+    raw = o.get("team") or o.get("team_name","")
+    can = TEAM_NAME_MAP.get(normalize(raw), raw)
+    bet_by_team[can] = o
 
 espn_articles_by_pid = defaultdict(list)
 espn_cnt = Counter()
 for art in espn:
-    hl = art.get("headline","")
-    url= art.get("url","")
+    hl, url = art.get("headline",""), art.get("url","")
     nh = normalize(hl)
     for r in rosters:
         pid = str(r["player_id"])
         if normalize(r["player"].split()[-1]) in nh:
-            espn_cnt[pid]+=1
-            espn_articles_by_pid[pid].append({"headline":hl,"url":url})
+            espn_cnt[pid] += 1
+            espn_articles_by_pid[pid].append({"headline": hl, "url": url})
 
 reddit_cnt = Counter()
 for post in reddit:
@@ -153,16 +151,16 @@ for post in reddit:
     for r in rosters:
         pid = str(r["player_id"])
         if normalize(r["player"].split()[-1]) in nt:
-            reddit_cnt[pid]+=1
+            reddit_cnt[pid] += 1
 
 # ───── BUILD STRUCTURED OUTPUT ─────
 players_out = {}
 for r in rosters:
     pid      = str(r["player_id"])
     name     = r["player"].strip()
-    team_raw = r.get("team","")
+    raw_team = r.get("team","")
     pos      = r.get("position","")
-    team_can = TEAM_NAME_MAP.get(normalize(team_raw), team_raw)
+    team_can = TEAM_NAME_MAP.get(normalize(raw_team), raw_team)
 
     wc = weather_by_team.get(team_can, {})
     weather_context = {
@@ -203,9 +201,9 @@ print(f"✅ Wrote {len(players_out)} player entries to {OUT_FILE}")
 # ───── OPTIONAL UPLOAD ─────
 if UPLOAD_TO_S3:
     import boto3
-    s3 = boto3.client("s3",region_name=REGION)
+    s3 = boto3.client("s3", region_name=REGION)
     try:
-        s3.upload_file(OUT_FILE,BUCKET,S3_KEY)
+        s3.upload_file(OUT_FILE, BUCKET, S3_KEY)
         print(f"☁️ Uploaded to s3://{BUCKET}/{S3_KEY}")
     except Exception as e:
         print(f"❌ Upload failed: {e}")
