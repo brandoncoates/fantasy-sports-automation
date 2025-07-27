@@ -4,9 +4,9 @@ import re
 import json
 import sys
 import boto3
-import pytz
 from datetime import datetime, timedelta
 from collections import defaultdict, Counter
+import pytz
 
 # ───── DATE CONFIG ─────
 pst = pytz.timezone("US/Pacific")
@@ -39,12 +39,28 @@ def load_json(path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def normalize(name):
-    return re.sub(r"[ .'-]", "", name).lower()
+def normalize(text):
+    return re.sub(r"[ .'-]", "", str(text)).lower()
 
-def split_name(fullname):
-    parts = fullname.strip().split()
-    return parts[0], " ".join(parts[1:]) if len(parts) > 1 else ""
+# Map team nicknames → full names
+TEAM_NAME_MAP = {
+    "Giants": "San Francisco Giants",
+    "Dodgers": "Los Angeles Dodgers",
+    "Yankees": "New York Yankees",
+    "Mets": "New York Mets",
+    "Red Sox": "Boston Red Sox",
+    "Cubs": "Chicago Cubs",
+    "White Sox": "Chicago White Sox",
+    "Guardians": "Cleveland Guardians",
+    "Athletics": "Oakland Athletics",
+    "Rays": "Tampa Bay Rays",
+    "D-backs": "Arizona Diamondbacks",
+    "Diamondbacks": "Arizona Diamondbacks",
+    # Add any others as needed
+}
+
+def normalize_team(team_name):
+    return TEAM_NAME_MAP.get(team_name, team_name)
 
 # ───── LOAD FILES ─────
 rosters   = load_json(FILE_ROSTER)
@@ -59,9 +75,21 @@ if not rosters:
     sys.exit("❌ Roster file missing — cannot proceed.")
 
 # ───── INDEXES ─────
-weather_by_team = {item["team"]: item for item in weather}
-box_by_pid = {str(b.get("player_id") or b.get("id") or b.get("mlb_id")): b for b in boxscores}
-starter_names = {normalize(g.get("home_pitcher", "")) for g in starters} | {normalize(g.get("away_pitcher", "")) for g in starters}
+weather_by_team = {
+    normalize_team(item.get("team", "")): item
+    for item in weather
+}
+
+box_by_pid = {
+    str(b.get("player_id") or b.get("id") or b.get("mlb_id")): b
+    for b in boxscores
+}
+
+starter_names = {
+    normalize(g.get("home_pitcher", "")) for g in starters
+}.union({
+    normalize(g.get("away_pitcher", "")) for g in starters
+})
 
 team_to_gamepk = {}
 team_to_opp = {}
@@ -76,24 +104,22 @@ for g in starters:
 
 bet_by_team = {}
 for o in odds:
-    tid = o.get("team_id") or o.get("teamId") or o.get("team")
+    tid = str(o.get("team_id") or o.get("teamId") or o.get("team"))
     if tid:
-        bet_by_team[str(tid)] = o
+        bet_by_team[tid] = o
 
 # ───── COUNT MENTIONS ─────
 espn_cnt, reddit_cnt = Counter(), Counter()
 for article in espn:
     title = article.get("headline", "").lower()
     for r in rosters:
-        last_name = r.get("player", "").split()[-1].lower()
-        if last_name in title:
+        if r["last_name"].lower() in title:
             espn_cnt[r["player_id"]] += 1
 
 for post in reddit:
     title = post.get("title", "").lower()
     for r in rosters:
-        last_name = r.get("player", "").split()[-1].lower()
-        if last_name in title:
+        if r["last_name"].lower() in title:
             reddit_cnt[r["player_id"]] += 1
 
 # ───── BUILD STRUCTURED OUTPUT ─────
@@ -101,17 +127,16 @@ players_out = {}
 
 for r in rosters:
     pid = str(r["player_id"])
-    full_name = r.get("player", "").strip()
-    first_name, last_name = split_name(full_name)
-    team = r.get("team")
-    tid = r.get("team_id")
+    name = f'{r["first_name"]} {r["last_name"]}'.strip()
+    team = normalize_team(r.get("team", ""))
+    tid = str(r.get("team_id", ""))
 
-    if not full_name or not team:
+    if not name or not team:
         continue
 
-    players_out[full_name] = {
+    players_out[name] = {
         "player_id": pid,
-        "name": full_name,
+        "name": name,
         "team": team,
         "team_id": tid,
         "position": r.get("position"),
@@ -123,11 +148,11 @@ for r in rosters:
             "status_code": r.get("status_code"),
             "status_description": r.get("status_description"),
         },
-        "starter": normalize(full_name) in starter_names if r.get("position") == "P" else False,
+        "starter": normalize(name) in starter_names if r.get("position") == "P" else False,
         "opponent_team_id": team_to_opp.get(tid),
         "game_pk": team_to_gamepk.get(tid),
         "weather_context": weather_by_team.get(team),
-        "betting_context": bet_by_team.get(str(tid)),
+        "betting_context": bet_by_team.get(tid),
         "espn_mentions": espn_cnt.get(r["player_id"], 0),
         "reddit_mentions": reddit_cnt.get(r["player_id"], 0),
         "box_score": box_by_pid.get(pid, {})
