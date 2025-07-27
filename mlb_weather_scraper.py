@@ -15,28 +15,28 @@ import boto3
 
 # ───── CONFIG ─────
 BASE_URL     = "https://api.open-meteo.com/v1/forecast"
-INPUT_CSV    = "mlb_stadium_coordinates.csv"         # columns: Team,Stadium,Latitude,Longitude,Is_Dome
+INPUT_CSV    = "mlb_stadium_coordinates.csv"  # Team,Stadium,Latitude,Longitude,Is_Dome
 REGION       = "us-east-1"
 BUCKET       = "fantasy-sports-csvs"
 S3_FOLDER    = "baseball/weather"
 
-DATE    = datetime.now().strftime("%Y-%m-%d")
+DATE     = datetime.now().strftime("%Y-%m-%d")
 FILENAME = f"mlb_weather_{DATE}.json"
 S3_KEY   = f"{S3_FOLDER}/{FILENAME}"
 
 # ───── READ STADIUM COORDINATES ─────
-df_coords = pd.read_csv(INPUT_CSV)
-df_coords["Stadium"] = df_coords["Stadium"].str.lower()
+df = pd.read_csv(INPUT_CSV)
+df["Stadium"] = df["Stadium"].str.lower()
 
 records = []
-print(f"📡 Requesting weather data for {len(df_coords)} stadiums on {DATE}…")
+print(f"📡 Fetching weather for {len(df)} stadiums on {DATE}…")
 
-for _, row in df_coords.iterrows():
+for _, row in df.iterrows():
     team    = row["Team"]
     stadium = row["Stadium"].title()
     lat     = row["Latitude"]
     lon     = row["Longitude"]
-    is_dome = str(row.get("Is_Dome", "FALSE")).strip().lower() == "true"
+    is_dome = str(row.get("Is_Dome", "")).strip().lower() == "true"
 
     try:
         resp = requests.get(
@@ -44,11 +44,9 @@ for _, row in df_coords.iterrows():
             params={
                 "latitude":  lat,
                 "longitude": lon,
-                "hourly": (
-                    "temperature_2m,relativehumidity_2m,"
-                    "windspeed_10m,winddirection_10m,"
-                    "precipitation_probability,cloudcover,weathercode"
-                ),
+                "hourly": ("temperature_2m,relativehumidity_2m,"
+                           "windspeed_10m,winddirection_10m,"
+                           "precipitation_probability,cloudcover,weathercode"),
                 "timezone": "auto",
             },
             timeout=15,
@@ -59,13 +57,13 @@ for _, row in df_coords.iterrows():
         if not times:
             raise ValueError("no hourly data")
 
-        idx     = 0  # you can refine to first‑pitch hour if you like
-        temp_c  = hourly["temperature_2m"][idx]
-        temp_f  = round(temp_c * 9/5 + 32, 1)
+        idx      = 0  # you can refine to first‑pitch hour here
+        temp_c   = hourly["temperature_2m"][idx]
+        temp_f   = round(temp_c * 9/5 + 32, 1)
         wind_kph = hourly["windspeed_10m"][idx]
         wind_mph = round(wind_kph * 0.621371, 1)
 
-        record = {
+        records.append({
             "date": DATE,
             "team": team,
             "stadium": stadium,
@@ -80,22 +78,23 @@ for _, row in df_coords.iterrows():
             "precipitation_probability": hourly["precipitation_probability"][idx],
             "cloud_cover_pct":           hourly["cloudcover"][idx],
             "weather_code":              hourly["weathercode"][idx],
-        }
-        records.append(record)
-
+        })
     except Exception as e:
-        print(f"⚠️ Skipping {team} ({stadium}): {e}")
+        print(f"⚠️  Could not fetch {team} ({stadium}): {e}")
 
-# ───── STUB OUT ANY MISSING STADIUMS ─────
-fetched_teams = {r["team"] for r in records}
+# ───── STUB‑FALLBACK FOR MISSING STADIUMS ─────
+fetched = {r["team"] for r in records}
 stubbed = 0
-for _, row in df_coords.iterrows():
+
+for _, row in df.iterrows():
     team    = row["Team"]
-    if team in fetched_teams:
+    if team in fetched:
         continue
     stadium = row["Stadium"].title()
-    is_dome = str(row.get("Is_Dome", "FALSE")).strip().lower() == "true"
-    stub = {
+    is_dome = str(row.get("Is_Dome", "")).strip().lower() == "true"
+
+    print(f"🔨 Stubbing missing: {team} / {stadium}")
+    records.append({
         "date": DATE,
         "team": team,
         "stadium": stadium,
@@ -110,29 +109,26 @@ for _, row in df_coords.iterrows():
         "precipitation_probability": None,
         "cloud_cover_pct":           None,
         "weather_code":              None,
-    }
-    records.append(stub)
+    })
     stubbed += 1
 
-print(f"✅ Collected weather for {len(records)} stadiums (stubbed {stubbed})")
+print(f"✅ Total records: {len(records)} (stubbed {stubbed})")
 
-# ───── SAVE LOCALLY ─────
+# ───── SAVE & UPLOAD ─────
 os.makedirs("mlb_weather", exist_ok=True)
 local_path = os.path.join("mlb_weather", FILENAME)
 with open(local_path, "w", encoding="utf-8") as f:
     json.dump(records, f, ensure_ascii=False, indent=2)
-print(f"💾 JSON written locally: {local_path}")
+print(f"💾 Wrote local JSON: {local_path}")
 
-# ───── UPLOAD TO S3 ─────
-print(f"☁️ Uploading to s3://{BUCKET}/{S3_KEY}")
 s3 = boto3.client("s3", region_name=REGION)
+print(f"☁️ Uploading s3://{BUCKET}/{S3_KEY}")
 try:
     s3.upload_file(local_path, BUCKET, S3_KEY)
-    print(f"✅ Upload complete: s3://{BUCKET}/{S3_KEY}")
+    print(f"✅ Uploaded to s3://{BUCKET}/{S3_KEY}")
 except Exception as e:
-    print(f"❌ Upload to S3 failed: {e}")
+    print(f"❌ S3 upload failed: {e}")
     exit(1)
 
-# ───── CLEANUP ─────
 os.remove(local_path)
-print(f"🧹 Cleaned up local file {local_path}")
+print(f"🧹 Cleaned up {local_path}")
