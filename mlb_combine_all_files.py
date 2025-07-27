@@ -10,7 +10,6 @@ import pytz
 # ───── TIMEZONE‑SAFE DATE ─────
 pst = pytz.timezone("US/Pacific")
 DATE = os.getenv("FORCE_DATE", datetime.now(pst).strftime("%Y-%m-%d"))
-# Use ASCII hyphens here!
 YDAY = (datetime.strptime(DATE, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
 
 # ───── PATH CONFIG ─────
@@ -29,7 +28,7 @@ OUT_FILE     = f"structured_players_{DATE}.json"
 UPLOAD_TO_S3 = os.getenv("UPLOAD_TO_S3", "false").lower() == "true"
 BUCKET       = "fantasy-sports-csvs"
 S3_KEY       = f"{BASE}/combined/{OUT_FILE}"
-REGION       = "us-east-1"
+REGION       = "us-east-2"
 
 # ───── HELPERS ─────
 def load_json(path):
@@ -108,34 +107,23 @@ reddit    = load_all_reddit_jsons(DATE)
 boxscores = load_json(BOX)
 
 # ───── BUILD WEATHER LOOKUP ─────
-weather_by_away = {
-    TEAM_NAME_MAP.get(normalize(w["team"]), w["team"]): w
-    for w in weather if w.get("team")
-}
-weather_by_team = dict(weather_by_away)
-for g in starters:
-    away = TEAM_NAME_MAP.get(normalize(g.get("away_team","")), g.get("away_team",""))
-    home = TEAM_NAME_MAP.get(normalize(g.get("home_team","")), g.get("home_team",""))
-    if away in weather_by_away:
-        weather_by_team[home] = weather_by_away[away]
+weather_by_team = { rec["team"]: rec for rec in weather }
 
 # ───── BUILD OTHER INDEXES ─────
-box_by_name = { normalize(bs.get("Player Name","")): bs for bs in boxscores }
-
+box_by_name = { normalize(b.get("Player Name","")): b for b in boxscores }
 starter_names = {
     normalize(g.get("home_pitcher","")) for g in starters
 } | {
     normalize(g.get("away_pitcher","")) for g in starters
 }
-
 bet_by_team = {}
 for o in odds:
-    raw = o.get("team") or o.get("team_name","")
-    can = TEAM_NAME_MAP.get(normalize(raw), raw)
-    bet_by_team[can] = o
+    raw  = o.get("team") or o.get("team_name","")
+    canon = TEAM_NAME_MAP.get(normalize(raw), raw)
+    bet_by_team[canon] = o
 
-espn_articles_by_pid = defaultdict(list)
 espn_cnt = Counter()
+espn_articles_by_pid = defaultdict(list)
 for art in espn:
     hl, url = art.get("headline",""), art.get("url","")
     nh = normalize(hl)
@@ -158,11 +146,9 @@ players_out = {}
 for r in rosters:
     pid      = str(r["player_id"])
     name     = r["player"].strip()
-    raw_team = r.get("team","")
-    pos      = r.get("position","")
-    team_can = TEAM_NAME_MAP.get(normalize(raw_team), raw_team)
+    club     = TEAM_NAME_MAP.get(normalize(r.get("team","")), r.get("team",""))
+    wc       = weather_by_team.get(club, {})
 
-    wc = weather_by_team.get(team_can, {})
     weather_context = {
         "date":                      wc.get("date"),
         "team":                      wc.get("team"),
@@ -175,22 +161,20 @@ for r in rosters:
         "roof_type":                 (wc.get("weather") or {}).get("roof_status","open"),
     }
 
-    bs = box_by_name.get(normalize(name), {})
-
     players_out[name] = {
         "player_id":      pid,
         "name":           name,
-        "team":           team_can,
-        "position":       pos,
+        "team":           club,
+        "position":       r.get("position",""),
         "handedness":     {"bats": r.get("bats"), "throws": r.get("throws")},
         "roster_status":  {"status_code": r.get("status_code"), "status_description": r.get("status_description")},
-        "starter":        normalize(name) in starter_names if pos=="P" else False,
+        "starter":        normalize(name) in starter_names if r.get("position")=="P" else False,
         "weather_context":weather_context,
-        "betting_context":bet_by_team.get(team_can, {}),
+        "betting_context":bet_by_team.get(club, {}),
         "espn_mentions":  espn_cnt.get(pid,0),
         "espn_articles":  espn_articles_by_pid.get(pid,[]),
         "reddit_mentions":reddit_cnt.get(pid,0),
-        "box_score":      bs,
+        "box_score":      box_by_name.get(normalize(name), {}),
     }
 
 # ───── SAVE FILE ─────

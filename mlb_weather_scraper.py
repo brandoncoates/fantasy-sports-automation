@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Collect per‑stadium weather for today’s MLB slate (including open‑air parks)
-and upload to S3. Falls back to stubbing out any stadiums the API fails to
-return, using your Is_Dome flag to set “roof_status”.
+Collect per‑stadium weather for today’s MLB slate (including open‑air parks
+and special‑case Athletics in Sacramento) and upload to S3. Falls back to
+stubbing out any stadiums the API fails to return, using your Is_Dome flag
+to set “roof_status”.
 """
 
 import os
@@ -16,7 +17,7 @@ import boto3
 # ───── CONFIG ─────
 BASE_URL     = "https://api.open-meteo.com/v1/forecast"
 INPUT_CSV    = "mlb_stadium_coordinates.csv"  # Team,Stadium,Latitude,Longitude,Is_Dome
-REGION       = "us-east-1"
+REGION       = "us-east-2"
 BUCKET       = "fantasy-sports-csvs"
 S3_FOLDER    = "baseball/weather"
 
@@ -32,11 +33,18 @@ records = []
 print(f"📡 Fetching weather for {len(df)} stadiums on {DATE}…")
 
 for _, row in df.iterrows():
-    team    = row["Team"]
-    stadium = row["Stadium"].title()
-    lat     = row["Latitude"]
-    lon     = row["Longitude"]
-    is_dome = str(row.get("Is_Dome", "")).strip().lower() == "true"
+    team = row["Team"]
+
+    # Special-case: Athletics play in Sacramento
+    if team == "Oakland Athletics":
+        stadium = "Sutter Health Park"
+        lat, lon = 38.5816, -121.4944
+        is_dome = False
+    else:
+        stadium = row["Stadium"].title()
+        lat     = row["Latitude"]
+        lon     = row["Longitude"]
+        is_dome = str(row.get("Is_Dome", "")).strip().lower() == "true"
 
     try:
         resp = requests.get(
@@ -44,9 +52,11 @@ for _, row in df.iterrows():
             params={
                 "latitude":  lat,
                 "longitude": lon,
-                "hourly": ("temperature_2m,relativehumidity_2m,"
-                           "windspeed_10m,winddirection_10m,"
-                           "precipitation_probability,cloudcover,weathercode"),
+                "hourly": (
+                    "temperature_2m,relativehumidity_2m,"
+                    "windspeed_10m,winddirection_10m,"
+                    "precipitation_probability,cloudcover,weathercode"
+                ),
                 "timezone": "auto",
             },
             timeout=15,
@@ -57,7 +67,7 @@ for _, row in df.iterrows():
         if not times:
             raise ValueError("no hourly data")
 
-        idx      = 0  # you can refine to first‑pitch hour here
+        idx      = 0  # refine to first‑pitch hour if desired
         temp_c   = hourly["temperature_2m"][idx]
         temp_f   = round(temp_c * 9/5 + 32, 1)
         wind_kph = hourly["windspeed_10m"][idx]
@@ -79,6 +89,7 @@ for _, row in df.iterrows():
             "cloud_cover_pct":           hourly["cloudcover"][idx],
             "weather_code":              hourly["weathercode"][idx],
         })
+
     except Exception as e:
         print(f"⚠️  Could not fetch {team} ({stadium}): {e}")
 
@@ -87,11 +98,17 @@ fetched = {r["team"] for r in records}
 stubbed = 0
 
 for _, row in df.iterrows():
-    team    = row["Team"]
+    team = row["Team"]
     if team in fetched:
         continue
-    stadium = row["Stadium"].title()
-    is_dome = str(row.get("Is_Dome", "")).strip().lower() == "true"
+
+    # reuse special-case logic for A’s
+    if team == "Oakland Athletics":
+        stadium = "Sutter Health Park"
+        is_dome = False
+    else:
+        stadium = row["Stadium"].title()
+        is_dome = str(row.get("Is_Dome", "")).strip().lower() == "true"
 
     print(f"🔨 Stubbing missing: {team} / {stadium}")
     records.append({
