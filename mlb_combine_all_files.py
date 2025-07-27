@@ -144,9 +144,19 @@ for r in rosters:
     position  = r.get("position", "")
     team_norm = TEAM_NAME_MAP.get(normalize(team_raw), team_raw)
 
-    # weather_context with explicit roof_type
-    raw_wc = weather_by_team.get(team_norm, {}).copy()
-    raw_wc["roof_type"] = raw_wc.get("weather", {}).get("roof_status", "open")
+    # build full weather_context including roof_type
+    wc = weather_by_team.get(team_norm, {})
+    weather_context = {
+        "date":                      wc.get("date"),
+        "team":                      wc.get("team"),
+        "stadium":                   wc.get("stadium"),
+        "time_local":                wc.get("time_local"),
+        "weather":                   wc.get("weather"),
+        "precipitation_probability": wc.get("precipitation_probability"),
+        "cloud_cover_pct":           wc.get("cloud_cover_pct"),
+        "weather_code":              wc.get("weather_code"),
+        "roof_type":                 (wc.get("weather") or {}).get("roof_status", "open"),
+    }
 
     players_out[name] = {
         "player_id":      pid,
@@ -156,7 +166,7 @@ for r in rosters:
         "handedness":     {"bats": r.get("bats"), "throws": r.get("throws")},
         "roster_status":  {"status_code": r.get("status_code"), "status_description": r.get("status_description")},
         "starter":        normalize(name) in starter_names if position == "P" else False,
-        "weather_context": raw_wc,
+        "weather_context": weather_context,
         "betting_context": bet_by_team.get(team_norm, {}),
         "espn_mentions":  espn_cnt.get(r["player_id"], 0),
         "reddit_mentions":reddit_cnt.get(r["player_id"], 0),
