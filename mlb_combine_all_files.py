@@ -4,9 +4,9 @@ import re
 import json
 import sys
 import boto3
+import pytz
 from datetime import datetime, timedelta
 from collections import defaultdict, Counter
-import pytz
 
 # ───── DATE CONFIG ─────
 pst = pytz.timezone("US/Pacific")
@@ -42,6 +42,10 @@ def load_json(path):
 def normalize(name):
     return re.sub(r"[ .'-]", "", name).lower()
 
+def split_name(fullname):
+    parts = fullname.strip().split()
+    return parts[0], " ".join(parts[1:]) if len(parts) > 1 else ""
+
 # ───── LOAD FILES ─────
 rosters   = load_json(FILE_ROSTER)
 starters  = load_json(FILE_STARTERS)
@@ -54,14 +58,10 @@ boxscores = load_json(FILE_BOX)
 if not rosters:
     sys.exit("❌ Roster file missing — cannot proceed.")
 
-# ───── INDEX FILES ─────
+# ───── INDEXES ─────
 weather_by_team = {item["team"]: item for item in weather}
 box_by_pid = {str(b.get("player_id") or b.get("id") or b.get("mlb_id")): b for b in boxscores}
-starter_names = {
-    normalize(g.get("home_pitcher", "")) for g in starters
-} | {
-    normalize(g.get("away_pitcher", "")) for g in starters
-}
+starter_names = {normalize(g.get("home_pitcher", "")) for g in starters} | {normalize(g.get("away_pitcher", "")) for g in starters}
 
 team_to_gamepk = {}
 team_to_opp = {}
@@ -80,44 +80,38 @@ for o in odds:
     if tid:
         bet_by_team[str(tid)] = o
 
-# ───── COUNT ARTICLE MENTIONS ─────
+# ───── COUNT MENTIONS ─────
 espn_cnt, reddit_cnt = Counter(), Counter()
-
 for article in espn:
     title = article.get("headline", "").lower()
     for r in rosters:
-        last_name = r.get("last_name")
-        if last_name and last_name.lower() in title:
-            pid = r.get("player_id")
-            if pid:
-                espn_cnt[pid] += 1
+        last_name = r.get("player", "").split()[-1].lower()
+        if last_name in title:
+            espn_cnt[r["player_id"]] += 1
 
 for post in reddit:
     title = post.get("title", "").lower()
     for r in rosters:
-        last_name = r.get("last_name")
-        if last_name and last_name.lower() in title:
-            pid = r.get("player_id")
-            if pid:
-                reddit_cnt[pid] += 1
+        last_name = r.get("player", "").split()[-1].lower()
+        if last_name in title:
+            reddit_cnt[r["player_id"]] += 1
 
 # ───── BUILD STRUCTURED OUTPUT ─────
 players_out = {}
 
 for r in rosters:
-    pid = str(r.get("player_id"))
-    first = r.get("first_name", "")
-    last = r.get("last_name", "")
-    name = f"{first} {last}".strip()
+    pid = str(r["player_id"])
+    full_name = r.get("player", "").strip()
+    first_name, last_name = split_name(full_name)
     team = r.get("team")
     tid = r.get("team_id")
 
-    if not name or not team:
+    if not full_name or not team:
         continue
 
-    players_out[name] = {
+    players_out[full_name] = {
         "player_id": pid,
-        "name": name,
+        "name": full_name,
         "team": team,
         "team_id": tid,
         "position": r.get("position"),
@@ -129,13 +123,13 @@ for r in rosters:
             "status_code": r.get("status_code"),
             "status_description": r.get("status_description"),
         },
-        "starter": normalize(name) in starter_names if r.get("position") == "P" else False,
+        "starter": normalize(full_name) in starter_names if r.get("position") == "P" else False,
         "opponent_team_id": team_to_opp.get(tid),
         "game_pk": team_to_gamepk.get(tid),
         "weather_context": weather_by_team.get(team),
         "betting_context": bet_by_team.get(str(tid)),
-        "espn_mentions": espn_cnt.get(r.get("player_id"), 0),
-        "reddit_mentions": reddit_cnt.get(r.get("player_id"), 0),
+        "espn_mentions": espn_cnt.get(r["player_id"], 0),
+        "reddit_mentions": reddit_cnt.get(r["player_id"], 0),
         "box_score": box_by_pid.get(pid, {})
     }
 
