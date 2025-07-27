@@ -3,7 +3,7 @@ import os
 import re
 import json
 from datetime import datetime, timedelta
-from collections import Counter
+from collections import defaultdict, Counter
 import pytz
 
 # ───── TIMEZONE-SAFE DATE ─────
@@ -107,22 +107,40 @@ weather_by_team = {
     TEAM_NAME_MAP.get(normalize(w.get("team", "")), w.get("team", "")): w
     for w in weather if w.get("team")
 }
-box_by_pid = {
-    str(b.get("player_id") or b.get("id") or b.get("mlb_id")): b
-    for b in boxscores
+
+# index boxscores by normalized player name
+box_by_name = {
+    normalize(bs.get("Player Name", "")): bs
+    for bs in boxscores
 }
+
+# index starters
 starter_names = {
     normalize(g.get("home_pitcher", "")) for g in starters
 } | {
     normalize(g.get("away_pitcher", "")) for g in starters
 }
+
+# index odds
 bet_by_team = {}
 for o in odds:
     team_raw  = o.get("team") or o.get("team_name", "")
     team_norm = TEAM_NAME_MAP.get(normalize(team_raw), team_raw)
     bet_by_team[team_norm] = o
 
-# ───── COUNT MENTIONS ─────
+# index ESPN articles per player_id
+espn_articles_by_pid = defaultdict(list)
+for article in espn:
+    title = article.get("headline", "")
+    url   = article.get("url", "")
+    norm_title = normalize(title)
+    for r in rosters:
+        pid = str(r["player_id"])
+        last = normalize(r["player"].split()[-1])
+        if last in norm_title:
+            espn_articles_by_pid[pid].append({"headline": title, "url": url})
+
+# count mentions
 espn_cnt, reddit_cnt = Counter(), Counter()
 for article in espn:
     title = article.get("headline", "").lower()
@@ -144,7 +162,7 @@ for r in rosters:
     position  = r.get("position", "")
     team_norm = TEAM_NAME_MAP.get(normalize(team_raw), team_raw)
 
-    # build full weather_context including roof_type
+    # weather_context
     wc = weather_by_team.get(team_norm, {})
     weather_context = {
         "date":                      wc.get("date"),
@@ -158,19 +176,24 @@ for r in rosters:
         "roof_type":                 (wc.get("weather") or {}).get("roof_status", "open"),
     }
 
+    # box score by name
+    bs = box_by_name.get(normalize(name), {})
+
     players_out[name] = {
         "player_id":      pid,
         "name":           name,
         "team":           team_norm,
         "position":       position,
         "handedness":     {"bats": r.get("bats"), "throws": r.get("throws")},
-        "roster_status":  {"status_code": r.get("status_code"), "status_description": r.get("status_description")},
+        "roster_status":  {"status_code": r.get("status_code"),
+                           "status_description": r.get("status_description")},
         "starter":        normalize(name) in starter_names if position == "P" else False,
         "weather_context": weather_context,
         "betting_context": bet_by_team.get(team_norm, {}),
         "espn_mentions":  espn_cnt.get(r["player_id"], 0),
+        "espn_articles":  espn_articles_by_pid.get(pid, []),
         "reddit_mentions":reddit_cnt.get(r["player_id"], 0),
-        "box_score":      box_by_pid.get(pid, {}),
+        "box_score":      bs,
     }
 
 # ───── SAVE FILE ─────
