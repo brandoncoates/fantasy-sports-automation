@@ -10,20 +10,19 @@ import pytz
 # ───── TIMEZONE‑SAFE DATE ─────
 pst = pytz.timezone("US/Pacific")
 DATE = os.getenv("FORCE_DATE", datetime.now(pst).strftime("%Y-%m-%d"))
-YDAY = (datetime.strptime(DATE, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+YDAY = (datetime.strptime(DATE, "%Y‑%m‑%d") - timedelta(days=1)).strftime("%Y-%m-%d")
 
 # ───── PATH CONFIG ─────
-BASE         = "baseball"
-ROSTER       = f"{BASE}/rosters/mlb_rosters_{DATE}.json"
-STARTERS     = f"{BASE}/probablestarters/mlb_probable_starters_{DATE}.json"
-WEATHER      = f"{BASE}/weather/mlb_weather_{DATE}.json"
-ODDS         = f"{BASE}/betting/mlb_betting_odds_{DATE}.json"
-ESPN         = f"{BASE}/news/mlb_espn_articles_{DATE}.json"
-# point at the real reddit folder
-REDDIT_DIR   = f"{BASE}/news-headlines-csvs/reddit_fantasy_baseball"
-BOX          = f"{BASE}/boxscores/mlb_boxscores_{YDAY}.json"
+BASE       = "baseball"
+ROSTER     = f"{BASE}/rosters/mlb_rosters_{DATE}.json"
+STARTERS   = f"{BASE}/probablestarters/mlb_probable_starters_{DATE}.json"
+WEATHER    = f"{BASE}/weather/mlb_weather_{DATE}.json"
+ODDS       = f"{BASE}/betting/mlb_betting_odds_{DATE}.json"
+ESPN       = f"{BASE}/news/mlb_espn_articles_{DATE}.json"
+REDDIT_DIR = f"{BASE}/news-headlines-csvs/reddit_fantasy_baseball"
+BOX        = f"{BASE}/boxscores/mlb_boxscores_{YDAY}.json"
 
-OUT_FILE     = f"structured_players_{DATE}.json"
+OUT_FILE   = f"structured_players_{DATE}.json"
 
 # ───── S3 CONFIG (OPTIONAL) ─────
 UPLOAD_TO_S3 = os.getenv("UPLOAD_TO_S3", "false").lower() == "true"
@@ -40,7 +39,6 @@ def load_json(path):
         return json.load(f)
 
 def load_all_reddit_jsons(date):
-    """Load every JSON in REDDIT_DIR containing the date in its filename."""
     files = glob.glob(os.path.join(REDDIT_DIR, f"*{date}*.json"))
     data = []
     for fp in files:
@@ -48,7 +46,6 @@ def load_all_reddit_jsons(date):
     return data
 
 def normalize(text: str) -> str:
-    """Lowercase, strip spaces, periods, apostrophes, hyphens."""
     return re.sub(r"[ .'-]", "", (text or "")).lower()
 
 # ───── DYNAMIC TEAM NAME MAPPING ─────
@@ -109,12 +106,21 @@ espn      = load_json(ESPN)
 reddit    = load_all_reddit_jsons(DATE)
 boxscores = load_json(BOX)
 
-# ───── BUILD INDEXES ─────
-weather_by_team = {
-    TEAM_NAME_MAP.get(normalize(w.get("team","")), w.get("team","")): w
+# ───── BUILD WEATHER LOOKUP ─────
+# away‑team entries
+weather_by_away = {
+    TEAM_NAME_MAP.get(normalize(w["team"]), w["team"]): w
     for w in weather if w.get("team")
 }
+# copy to home teams via probables
+weather_by_team = dict(weather_by_away)
+for g in starters:
+    away = TEAM_NAME_MAP.get(normalize(g.get("away_team","")), g.get("away_team",""))
+    home = TEAM_NAME_MAP.get(normalize(g.get("home_team","")), g.get("home_team",""))
+    if away in weather_by_away:
+        weather_by_team[home] = weather_by_away[away]
 
+# ───── BUILD INDEXES ─────
 box_by_name = { normalize(bs.get("Player Name","")): bs for bs in boxscores }
 
 starter_names = {
@@ -143,10 +149,9 @@ for art in espn:
 
 reddit_cnt = Counter()
 for post in reddit:
-    tl=post.get("title","")
-    nt=normalize(tl)
+    nt = normalize(post.get("title",""))
     for r in rosters:
-        pid=str(r["player_id"])
+        pid = str(r["player_id"])
         if normalize(r["player"].split()[-1]) in nt:
             reddit_cnt[pid]+=1
 
@@ -157,9 +162,9 @@ for r in rosters:
     name     = r["player"].strip()
     team_raw = r.get("team","")
     pos      = r.get("position","")
-    team_can = TEAM_NAME_MAP.get(normalize(team_raw),team_raw)
+    team_can = TEAM_NAME_MAP.get(normalize(team_raw), team_raw)
 
-    wc = weather_by_team.get(team_can,{})
+    wc = weather_by_team.get(team_can, {})
     weather_context = {
         "date":                      wc.get("date"),
         "team":                      wc.get("team"),
@@ -180,10 +185,10 @@ for r in rosters:
         "team":           team_can,
         "position":       pos,
         "handedness":     {"bats": r.get("bats"), "throws": r.get("throws")},
-        "roster_status":  {"status_code": r.get("status_code"),"status_description": r.get("status_description")},
+        "roster_status":  {"status_code": r.get("status_code"), "status_description": r.get("status_description")},
         "starter":        normalize(name) in starter_names if pos=="P" else False,
         "weather_context":weather_context,
-        "betting_context":bet_by_team.get(team_can,{}),
+        "betting_context":bet_by_team.get(team_can, {}),
         "espn_mentions":  espn_cnt.get(pid,0),
         "espn_articles":  espn_articles_by_pid.get(pid,[]),
         "reddit_mentions":reddit_cnt.get(pid,0),
