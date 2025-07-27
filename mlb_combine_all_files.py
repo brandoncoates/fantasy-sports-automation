@@ -4,7 +4,6 @@ import re
 import json
 import sys
 import pytz
-import boto3
 from datetime import datetime, timedelta
 from collections import defaultdict, Counter
 
@@ -14,6 +13,7 @@ DATE = os.getenv("FORCE_DATE", datetime.now(pst).strftime("%Y-%m-%d"))
 YDAY = (datetime.strptime(DATE, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
 
 BASE = "baseball"
+OUT_FILE = f"structured_players_{DATE}.json"
 
 # ───── FILE PATHS ─────
 FILE_ROSTER   = f"{BASE}/rosters/mlb_rosters_{DATE}.json"
@@ -24,34 +24,7 @@ FILE_ESPN     = f"{BASE}/news/mlb_espn_articles_{DATE}.json"
 FILE_REDDIT   = f"{BASE}/news/reddit_fantasybaseball_articles_{DATE}.json"
 FILE_BOX      = f"{BASE}/boxscores/mlb_boxscores_{YDAY}.json"
 
-OUT_FILE = f"structured_players_{DATE}.json"
-
-# ───── S3 SETTINGS ─────
-UPLOAD_TO_S3 = os.getenv("UPLOAD_TO_S3", "false").lower() == "true"
-BUCKET       = "fantasy-sports-csvs"
-S3_KEY       = f"{BASE}/combined/{OUT_FILE}"
-REGION       = "us-east-1"
-
-# ───── TEAM NORMALIZATION ─────
-TEAM_ALIASES = {
-    "Giants": "San Francisco Giants",
-    "Mets": "New York Mets",
-    "Yankees": "New York Yankees",
-    "Red Sox": "Boston Red Sox",
-    "Dodgers": "Los Angeles Dodgers",
-    "Padres": "San Diego Padres",
-    "Cubs": "Chicago Cubs",
-    "White Sox": "Chicago White Sox",
-    "A's": "Oakland Athletics",
-    # Add others as needed...
-}
-
-def normalize_team(team):
-    return TEAM_ALIASES.get(team, team)
-
-def normalize_name(name):
-    return re.sub(r"[ .'-]", "", name).lower()
-
+# ───── HELPERS ─────
 def load_json(path):
     if not os.path.exists(path):
         print(f"⚠️ {path} not found — skipping.")
@@ -59,7 +32,25 @@ def load_json(path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-# ───── LOAD INPUT FILES ─────
+def normalize_name(name):
+    return re.sub(r"[ .'-]", "", name).lower()
+
+# Normalize short/alt team names
+TEAM_NAME_MAP = {
+    "Giants": "San Francisco Giants",
+    "Dodgers": "Los Angeles Dodgers",
+    "Yankees": "New York Yankees",
+    "Mets": "New York Mets",
+    "Red Sox": "Boston Red Sox",
+    "White Sox": "Chicago White Sox",
+    "Cubs": "Chicago Cubs",
+    "A's": "Oakland Athletics",
+    # Add other mappings as needed
+}
+def normalize_team(team):
+    return TEAM_NAME_MAP.get(team, team)
+
+# ───── LOAD FILES ─────
 rosters   = load_json(FILE_ROSTER)
 starters  = load_json(FILE_STARTERS)
 weather   = load_json(FILE_WEATHER)
@@ -68,17 +59,12 @@ espn      = load_json(FILE_ESPN)
 reddit    = load_json(FILE_REDDIT)
 boxscores = load_json(FILE_BOX)
 
-if not rosters:
-    sys.exit("❌ Roster file missing — cannot proceed.")
-
-# ───── INDEX DATA FOR MATCHING ─────
-weather_by_team = {normalize_team(w["team"]): w for w in weather}
-
-box_by_pid = {}
-for b in boxscores:
-    pid = str(b.get("player_id") or b.get("id") or b.get("mlb_id"))
-    if pid:
-        box_by_pid[pid] = b
+# ───── INDEXING ─────
+weather_by_team = {normalize_team(w["team"]): w for w in weather if "team" in w}
+box_by_pid = {
+    str(b.get("player_id") or b.get("id") or b.get("mlb_id")): b
+    for b in boxscores
+}
 
 starter_names = {
     normalize_name(g.get("home_pitcher", "")) for g in starters
@@ -86,88 +72,80 @@ starter_names = {
     normalize_name(g.get("away_pitcher", "")) for g in starters
 })
 
-team_to_gamepk = {}
-team_to_opp = {}
+team_to_gamepk, team_to_opp = {}, {}
 for g in starters:
-    gp = g.get("game_pk")
+    game_pk = g.get("game_pk")
     home = g.get("home_team_id")
     away = g.get("away_team_id")
-    if gp and home and away:
-        team_to_gamepk[home] = team_to_gamepk[away] = gp
+    if game_pk and home and away:
+        team_to_gamepk[home] = game_pk
+        team_to_gamepk[away] = game_pk
         team_to_opp[home] = away
         team_to_opp[away] = home
 
 bet_by_team = {}
 for o in odds:
-    team_key = o.get("team_id") or o.get("teamId") or o.get("team")
-    if team_key:
-        bet_by_team[str(team_key)] = o
+    tid = str(o.get("team_id") or o.get("teamId") or o.get("team"))
+    if tid:
+        bet_by_team[tid] = o
 
-# Count mentions
-espn_mentions = Counter()
-reddit_mentions = Counter()
+# Mentions
+espn_mentions = defaultdict(list)
+reddit_mentions = defaultdict(list)
+
 for article in espn:
     title = article.get("headline", "").lower()
-    for r in rosters:
-        if r["last_name"].lower() in title:
-            espn_mentions[r["player_id"]] += 1
+    for player in rosters:
+        if player["last_name"].lower() in title:
+            espn_mentions[player["player_id"]].append(article)
 
 for post in reddit:
     title = post.get("title", "").lower()
-    for r in rosters:
-        if r["last_name"].lower() in title:
-            reddit_mentions[r["player_id"]] += 1
+    for player in rosters:
+        if player["last_name"].lower() in title:
+            reddit_mentions[player["player_id"]].append(post)
 
-# ───── BUILD STRUCTURED JSON ─────
+# ───── COMBINE STRUCTURED PLAYER OUTPUT ─────
 players_out = {}
 
-for r in rosters:
-    pid = str(r.get("player_id"))
-    first = r.get("first_name", "")
-    last = r.get("last_name", "")
-    if not first or not last:
-        continue  # skip incomplete entries
-
+for player in rosters:
+    pid = str(player["player_id"])
+    first = player.get("first_name", "").strip()
+    last = player.get("last_name", "").strip()
     name = f"{first} {last}".strip()
-    team = normalize_team(r.get("team", ""))
-    tid = r.get("team_id")
+    if not name or not player.get("team"):
+        continue
 
-    players_out[name] = {
+    team_name = normalize_team(player["team"])
+    tid = player.get("team_id")
+    position = player.get("position", "")
+
+    players_out[pid] = {
         "player_id": pid,
         "name": name,
-        "team": team,
+        "team": team_name,
         "team_id": tid,
-        "position": r.get("position"),
+        "position": position,
         "handedness": {
-            "bats": r.get("bats"),
-            "throws": r.get("throws")
+            "bats": player.get("bats"),
+            "throws": player.get("throws"),
         },
         "roster_status": {
-            "status_code": r.get("status_code"),
-            "status_description": r.get("status_description"),
+            "status_code": player.get("status_code"),
+            "status_description": player.get("status_description"),
         },
-        "starter": normalize_name(name) in starter_names if r.get("position") == "P" else False,
+        "starter": normalize_name(name) in starter_names if position == "P" else False,
         "opponent_team_id": team_to_opp.get(tid),
         "game_pk": team_to_gamepk.get(tid),
-        "weather_context": weather_by_team.get(team),
+        "weather_context": weather_by_team.get(team_name),
         "betting_context": bet_by_team.get(str(tid)),
-        "espn_mentions": espn_mentions.get(r["player_id"], 0),
-        "reddit_mentions": reddit_mentions.get(r["player_id"], 0),
-        "box_score": box_by_pid.get(pid, {})
+        "espn_mentions": espn_mentions.get(player["player_id"], []),
+        "reddit_mentions": reddit_mentions.get(player["player_id"], []),
+        "box_score": box_by_pid.get(pid, {}),
     }
-
-print(f"✅ Built structured entries for {len(players_out)} players.")
 
 # ───── WRITE OUTPUT ─────
 with open(OUT_FILE, "w", encoding="utf-8") as f:
     json.dump(players_out, f, ensure_ascii=False, indent=2)
-print(f"💾 Wrote file: {OUT_FILE}")
 
-# ───── OPTIONAL S3 UPLOAD ─────
-if UPLOAD_TO_S3:
-    try:
-        s3 = boto3.client("s3", region_name=REGION)
-        s3.upload_file(OUT_FILE, BUCKET, S3_KEY)
-        print(f"☁️ Uploaded to s3://{BUCKET}/{S3_KEY}")
-    except Exception as e:
-        print(f"❌ Upload to S3 failed: {e}")
+print(f"✅ Combined {len(players_out)} players into {OUT_FILE}")
