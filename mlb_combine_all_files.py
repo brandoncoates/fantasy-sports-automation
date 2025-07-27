@@ -2,26 +2,28 @@
 import os
 import re
 import json
+import glob
 from datetime import datetime, timedelta
 from collections import defaultdict, Counter
 import pytz
 
-# ───── TIMEZONE-SAFE DATE ─────
+# ───── TIMEZONE‑SAFE DATE ─────
 pst = pytz.timezone("US/Pacific")
 DATE = os.getenv("FORCE_DATE", datetime.now(pst).strftime("%Y-%m-%d"))
 YDAY = (datetime.strptime(DATE, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
 
 # ───── PATH CONFIG ─────
-BASE     = "baseball"
-ROSTER   = f"{BASE}/rosters/mlb_rosters_{DATE}.json"
-STARTERS = f"{BASE}/probablestarters/mlb_probable_starters_{DATE}.json"
-WEATHER  = f"{BASE}/weather/mlb_weather_{DATE}.json"
-ODDS     = f"{BASE}/betting/mlb_betting_odds_{DATE}.json"
-ESPN     = f"{BASE}/news/mlb_espn_articles_{DATE}.json"
-REDDIT   = f"{BASE}/news/reddit_fantasybaseball_articles_{DATE}.json"
-BOX      = f"{BASE}/boxscores/mlb_boxscores_{YDAY}.json"
+BASE         = "baseball"
+ROSTER       = f"{BASE}/rosters/mlb_rosters_{DATE}.json"
+STARTERS     = f"{BASE}/probablestarters/mlb_probable_starters_{DATE}.json"
+WEATHER      = f"{BASE}/weather/mlb_weather_{DATE}.json"
+ODDS         = f"{BASE}/betting/mlb_betting_odds_{DATE}.json"
+ESPN         = f"{BASE}/news/mlb_espn_articles_{DATE}.json"
+# point at the real reddit folder
+REDDIT_DIR   = f"{BASE}/news-headlines-csvs/reddit_fantasy_baseball"
+BOX          = f"{BASE}/boxscores/mlb_boxscores_{YDAY}.json"
 
-OUT_FILE = f"structured_players_{DATE}.json"
+OUT_FILE     = f"structured_players_{DATE}.json"
 
 # ───── S3 CONFIG (OPTIONAL) ─────
 UPLOAD_TO_S3 = os.getenv("UPLOAD_TO_S3", "false").lower() == "true"
@@ -37,58 +39,66 @@ def load_json(path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
+def load_all_reddit_jsons(date):
+    """Load every JSON in REDDIT_DIR containing the date in its filename."""
+    files = glob.glob(os.path.join(REDDIT_DIR, f"*{date}*.json"))
+    data = []
+    for fp in files:
+        data.extend(load_json(fp))
+    return data
+
 def normalize(text: str) -> str:
     """Lowercase, strip spaces, periods, apostrophes, hyphens."""
     return re.sub(r"[ .'-]", "", (text or "")).lower()
 
 # ───── DYNAMIC TEAM NAME MAPPING ─────
 mlb_clubs = [
-    {"name":"Arizona Diamondbacks",  "city":"Arizona",     "nick":"Diamondbacks", "abbr3":"ARI", "abbr2":"AZ"},
-    {"name":"Atlanta Braves",        "city":"Atlanta",     "nick":"Braves",       "abbr3":"ATL", "abbr2":"GA"},
-    {"name":"Baltimore Orioles",     "city":"Baltimore",   "nick":"Orioles",      "abbr3":"BAL", "abbr2":"MD"},
-    {"name":"Boston Red Sox",        "city":"Boston",      "nick":"Red Sox",      "abbr3":"BOS", "abbr2":"MA"},
-    {"name":"Chicago White Sox",     "city":"Chicago",     "nick":"White Sox",    "abbr3":"CHW", "abbr2":"IL"},
-    {"name":"Chicago Cubs",          "city":"Chicago",     "nick":"Cubs",         "abbr3":"CHC", "abbr2":"IL"},
-    {"name":"Cincinnati Reds",       "city":"Cincinnati",  "nick":"Reds",         "abbr3":"CIN", "abbr2":"OH"},
-    {"name":"Cleveland Guardians",   "city":"Cleveland",   "nick":"Guardians",    "abbr3":"CLE", "abbr2":"OH"},
-    {"name":"Colorado Rockies",      "city":"Colorado",    "nick":"Rockies",      "abbr3":"COL", "abbr2":"CO"},
-    {"name":"Detroit Tigers",        "city":"Detroit",     "nick":"Tigers",       "abbr3":"DET", "abbr2":"MI"},
-    {"name":"Houston Astros",        "city":"Houston",     "nick":"Astros",       "abbr3":"HOU", "abbr2":"TX"},
-    {"name":"Kansas City Royals",    "city":"Kansas City", "nick":"Royals",      "abbr3":"KC",  "abbr2":"MO"},
-    {"name":"Los Angeles Angels",    "city":"Los Angeles", "nick":"Angels",      "abbr3":"LAA", "abbr2":"CA"},
-    {"name":"Los Angeles Dodgers",   "city":"Los Angeles", "nick":"Dodgers",     "abbr3":"LAD", "abbr2":"CA"},
-    {"name":"Miami Marlins",         "city":"Miami",      "nick":"Marlins",      "abbr3":"MIA", "abbr2":"FL"},
-    {"name":"Milwaukee Brewers",     "city":"Milwaukee",   "nick":"Brewers",      "abbr3":"MIL", "abbr2":"WI"},
-    {"name":"Minnesota Twins",       "city":"Minnesota",   "nick":"Twins",        "abbr3":"MIN", "abbr2":"MN"},
-    {"name":"New York Mets",         "city":"New York",    "nick":"Mets",         "abbr3":"NYM", "abbr2":"NY"},
-    {"name":"New York Yankees",      "city":"New York",    "nick":"Yankees",      "abbr3":"NYY", "abbr2":"NY"},
-    {"name":"Oakland Athletics",     "city":"Oakland",     "nick":"Athletics",    "abbr3":"OAK", "abbr2":"CA"},
-    {"name":"Philadelphia Phillies", "city":"Philadelphia","nick":"Phillies",    "abbr3":"PHI", "abbr2":"PA"},
-    {"name":"Pittsburgh Pirates",    "city":"Pittsburgh",  "nick":"Pirates",      "abbr3":"PIT", "abbr2":"PA"},
-    {"name":"San Diego Padres",      "city":"San Diego",   "nick":"Padres",       "abbr3":"SDP", "abbr2":"CA"},
-    {"name":"San Francisco Giants",  "city":"San Francisco","nick":"Giants",     "abbr3":"SFG", "abbr2":"CA"},
-    {"name":"Seattle Mariners",      "city":"Seattle",     "nick":"Mariners",     "abbr3":"SEA", "abbr2":"WA"},
-    {"name":"St. Louis Cardinals",   "city":"St. Louis",   "nick":"Cardinals",    "abbr3":"STL", "abbr2":"MO"},
-    {"name":"Tampa Bay Rays",        "city":"Tampa Bay",   "nick":"Rays",         "abbr3":"TB",  "abbr2":"FL"},
-    {"name":"Texas Rangers",         "city":"Texas",       "nick":"Rangers",      "abbr3":"TEX", "abbr2":"TX"},
-    {"name":"Toronto Blue Jays",     "city":"Toronto",     "nick":"Blue Jays",    "abbr3":"TOR", "abbr2":"ON"},
-    {"name":"Washington Nationals",  "city":"Washington",  "nick":"Nationals",    "abbr3":"WSH", "abbr2":"DC"},
+    {"name":"Arizona Diamondbacks","city":"Arizona","nick":"Diamondbacks","abbr3":"ARI","abbr2":"AZ"},
+    {"name":"Atlanta Braves","city":"Atlanta","nick":"Braves","abbr3":"ATL","abbr2":"GA"},
+    {"name":"Baltimore Orioles","city":"Baltimore","nick":"Orioles","abbr3":"BAL","abbr2":"MD"},
+    {"name":"Boston Red Sox","city":"Boston","nick":"Red Sox","abbr3":"BOS","abbr2":"MA"},
+    {"name":"Chicago White Sox","city":"Chicago","nick":"White Sox","abbr3":"CHW","abbr2":"IL"},
+    {"name":"Chicago Cubs","city":"Chicago","nick":"Cubs","abbr3":"CHC","abbr2":"IL"},
+    {"name":"Cincinnati Reds","city":"Cincinnati","nick":"Reds","abbr3":"CIN","abbr2":"OH"},
+    {"name":"Cleveland Guardians","city":"Cleveland","nick":"Guardians","abbr3":"CLE","abbr2":"OH"},
+    {"name":"Colorado Rockies","city":"Colorado","nick":"Rockies","abbr3":"COL","abbr2":"CO"},
+    {"name":"Detroit Tigers","city":"Detroit","nick":"Tigers","abbr3":"DET","abbr2":"MI"},
+    {"name":"Houston Astros","city":"Houston","nick":"Astros","abbr3":"HOU","abbr2":"TX"},
+    {"name":"Kansas City Royals","city":"Kansas City","nick":"Royals","abbr3":"KC","abbr2":"MO"},
+    {"name":"Los Angeles Angels","city":"Los Angeles","nick":"Angels","abbr3":"LAA","abbr2":"CA"},
+    {"name":"Los Angeles Dodgers","city":"Los Angeles","nick":"Dodgers","abbr3":"LAD","abbr2":"CA"},
+    {"name":"Miami Marlins","city":"Miami","nick":"Marlins","abbr3":"MIA","abbr2":"FL"},
+    {"name":"Milwaukee Brewers","city":"Milwaukee","nick":"Brewers","abbr3":"MIL","abbr2":"WI"},
+    {"name":"Minnesota Twins","city":"Minnesota","nick":"Twins","abbr3":"MIN","abbr2":"MN"},
+    {"name":"New York Mets","city":"New York","nick":"Mets","abbr3":"NYM","abbr2":"NY"},
+    {"name":"New York Yankees","city":"New York","nick":"Yankees","abbr3":"NYY","abbr2":"NY"},
+    {"name":"Oakland Athletics","city":"Oakland","nick":"Athletics","abbr3":"OAK","abbr2":"CA"},
+    {"name":"Philadelphia Phillies","city":"Philadelphia","nick":"Phillies","abbr3":"PHI","abbr2":"PA"},
+    {"name":"Pittsburgh Pirates","city":"Pittsburgh","nick":"Pirates","abbr3":"PIT","abbr2":"PA"},
+    {"name":"San Diego Padres","city":"San Diego","nick":"Padres","abbr3":"SDP","abbr2":"CA"},
+    {"name":"San Francisco Giants","city":"San Francisco","nick":"Giants","abbr3":"SFG","abbr2":"CA"},
+    {"name":"Seattle Mariners","city":"Seattle","nick":"Mariners","abbr3":"SEA","abbr2":"WA"},
+    {"name":"St. Louis Cardinals","city":"St. Louis","nick":"Cardinals","abbr3":"STL","abbr2":"MO"},
+    {"name":"Tampa Bay Rays","city":"Tampa Bay","nick":"Rays","abbr3":"TB","abbr2":"FL"},
+    {"name":"Texas Rangers","city":"Texas","nick":"Rangers","abbr3":"TEX","abbr2":"TX"},
+    {"name":"Toronto Blue Jays","city":"Toronto","nick":"Blue Jays","abbr3":"TOR","abbr2":"ON"},
+    {"name":"Washington Nationals","city":"Washington","nick":"Nationals","abbr3":"WSH","abbr2":"DC"},
 ]
 
 TEAM_NAME_MAP = {}
 for club in mlb_clubs:
-    canonical = club["name"]
+    canon = club["name"]
     variants = {
         normalize(club["city"]),
         normalize(club["nick"]),
         normalize(f"{club['city']} {club['nick']}"),
-        normalize(canonical),
+        normalize(canon),
         normalize(club["abbr3"]),
         normalize(club["abbr2"]),
     }
     variants |= {v.replace(" ", "") for v in variants}
     for key in variants:
-        TEAM_NAME_MAP[key] = canonical
+        TEAM_NAME_MAP[key] = canon
 
 # ───── LOAD DATA FILES ─────
 rosters   = load_json(ROSTER)
@@ -96,74 +106,60 @@ starters  = load_json(STARTERS)
 weather   = load_json(WEATHER)
 odds      = load_json(ODDS)
 espn      = load_json(ESPN)
-reddit    = load_json(REDDIT)
+reddit    = load_all_reddit_jsons(DATE)
 boxscores = load_json(BOX)
-
-if not rosters:
-    raise SystemExit("❌ No roster data — cannot proceed.")
 
 # ───── BUILD INDEXES ─────
 weather_by_team = {
-    TEAM_NAME_MAP.get(normalize(w.get("team", "")), w.get("team", "")): w
+    TEAM_NAME_MAP.get(normalize(w.get("team","")), w.get("team","")): w
     for w in weather if w.get("team")
 }
 
-# index boxscores by normalized player name
-box_by_name = {
-    normalize(bs.get("Player Name", "")): bs
-    for bs in boxscores
-}
+box_by_name = { normalize(bs.get("Player Name","")): bs for bs in boxscores }
 
-# index starters
 starter_names = {
-    normalize(g.get("home_pitcher", "")) for g in starters
+    normalize(g.get("home_pitcher","")) for g in starters
 } | {
-    normalize(g.get("away_pitcher", "")) for g in starters
+    normalize(g.get("away_pitcher","")) for g in starters
 }
 
-# index odds
 bet_by_team = {}
 for o in odds:
-    team_raw  = o.get("team") or o.get("team_name", "")
+    team_raw  = o.get("team") or o.get("team_name","")
     team_norm = TEAM_NAME_MAP.get(normalize(team_raw), team_raw)
     bet_by_team[team_norm] = o
 
-# index ESPN articles per player_id
 espn_articles_by_pid = defaultdict(list)
-for article in espn:
-    title = article.get("headline", "")
-    url   = article.get("url", "")
-    norm_title = normalize(title)
+espn_cnt = Counter()
+for art in espn:
+    hl = art.get("headline","")
+    url= art.get("url","")
+    nh = normalize(hl)
     for r in rosters:
         pid = str(r["player_id"])
-        last = normalize(r["player"].split()[-1])
-        if last in norm_title:
-            espn_articles_by_pid[pid].append({"headline": title, "url": url})
+        if normalize(r["player"].split()[-1]) in nh:
+            espn_cnt[pid]+=1
+            espn_articles_by_pid[pid].append({"headline":hl,"url":url})
 
-# count mentions
-espn_cnt, reddit_cnt = Counter(), Counter()
-for article in espn:
-    title = article.get("headline", "").lower()
-    for r in rosters:
-        if normalize(r["player"].split()[-1]) in normalize(title):
-            espn_cnt[r["player_id"]] += 1
+reddit_cnt = Counter()
 for post in reddit:
-    title = post.get("title", "").lower()
+    tl=post.get("title","")
+    nt=normalize(tl)
     for r in rosters:
-        if normalize(r["player"].split()[-1]) in normalize(title):
-            reddit_cnt[r["player_id"]] += 1
+        pid=str(r["player_id"])
+        if normalize(r["player"].split()[-1]) in nt:
+            reddit_cnt[pid]+=1
 
 # ───── BUILD STRUCTURED OUTPUT ─────
 players_out = {}
 for r in rosters:
-    pid       = str(r["player_id"])
-    name      = r["player"].strip()
-    team_raw  = r.get("team", "")
-    position  = r.get("position", "")
-    team_norm = TEAM_NAME_MAP.get(normalize(team_raw), team_raw)
+    pid      = str(r["player_id"])
+    name     = r["player"].strip()
+    team_raw = r.get("team","")
+    pos      = r.get("position","")
+    team_can = TEAM_NAME_MAP.get(normalize(team_raw),team_raw)
 
-    # weather_context
-    wc = weather_by_team.get(team_norm, {})
+    wc = weather_by_team.get(team_can,{})
     weather_context = {
         "date":                      wc.get("date"),
         "team":                      wc.get("team"),
@@ -173,40 +169,38 @@ for r in rosters:
         "precipitation_probability": wc.get("precipitation_probability"),
         "cloud_cover_pct":           wc.get("cloud_cover_pct"),
         "weather_code":              wc.get("weather_code"),
-        "roof_type":                 (wc.get("weather") or {}).get("roof_status", "open"),
+        "roof_type":                 (wc.get("weather") or {}).get("roof_status","open"),
     }
 
-    # box score by name
     bs = box_by_name.get(normalize(name), {})
 
     players_out[name] = {
         "player_id":      pid,
         "name":           name,
-        "team":           team_norm,
-        "position":       position,
+        "team":           team_can,
+        "position":       pos,
         "handedness":     {"bats": r.get("bats"), "throws": r.get("throws")},
-        "roster_status":  {"status_code": r.get("status_code"),
-                           "status_description": r.get("status_description")},
-        "starter":        normalize(name) in starter_names if position == "P" else False,
-        "weather_context": weather_context,
-        "betting_context": bet_by_team.get(team_norm, {}),
-        "espn_mentions":  espn_cnt.get(r["player_id"], 0),
-        "espn_articles":  espn_articles_by_pid.get(pid, []),
-        "reddit_mentions":reddit_cnt.get(r["player_id"], 0),
+        "roster_status":  {"status_code": r.get("status_code"),"status_description": r.get("status_description")},
+        "starter":        normalize(name) in starter_names if pos=="P" else False,
+        "weather_context":weather_context,
+        "betting_context":bet_by_team.get(team_can,{}),
+        "espn_mentions":  espn_cnt.get(pid,0),
+        "espn_articles":  espn_articles_by_pid.get(pid,[]),
+        "reddit_mentions":reddit_cnt.get(pid,0),
         "box_score":      bs,
     }
 
 # ───── SAVE FILE ─────
-with open(OUT_FILE, "w", encoding="utf-8") as f:
-    json.dump(players_out, f, indent=2)
+with open(OUT_FILE,"w",encoding="utf-8") as f:
+    json.dump(players_out,f,indent=2)
 print(f"✅ Wrote {len(players_out)} player entries to {OUT_FILE}")
 
 # ───── OPTIONAL UPLOAD ─────
 if UPLOAD_TO_S3:
     import boto3
+    s3 = boto3.client("s3",region_name=REGION)
     try:
-        s3 = boto3.client("s3", region_name=REGION)
-        s3.upload_file(OUT_FILE, BUCKET, S3_KEY)
+        s3.upload_file(OUT_FILE,BUCKET,S3_KEY)
         print(f"☁️ Uploaded to s3://{BUCKET}/{S3_KEY}")
     except Exception as e:
         print(f"❌ Upload failed: {e}")
