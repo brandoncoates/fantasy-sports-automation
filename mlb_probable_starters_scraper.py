@@ -75,9 +75,12 @@ for game in games:
     home_hd  = get_throw_hand(home_id)
     away_hd  = get_throw_hand(away_id)
 
+    game_datetime_utc = game.get("gameDate")
+    
     records.append({
         "date":             DATE,
         "game_id":          gid,
+        "game_datetime":    game_datetime_utc,
         "away_team":        away_tm,
         "away_pitcher":     away_nm,
         "away_throw_hand":  away_hd,
@@ -85,6 +88,7 @@ for game in games:
         "home_pitcher":     home_nm,
         "home_throw_hand":  home_hd
     })
+
 
 print(f"✅ Found {len(records)} probable starters for {DATE}")
 
