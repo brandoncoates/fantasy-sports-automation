@@ -79,9 +79,19 @@ BACKOFF_SEC   = 2
 OUT_FILE      = f"mlb_weather_{DATE}.json"
 S3_KEY        = f"{S3_FOLDER}/{OUT_FILE}"
 
-# ───── LOAD DATA ─────
-with open(STARTERS_JSON, encoding="utf-8") as f:
-    starters = json.load(f)
+# ───── LOAD DATA FROM S3 ─────
+s3 = boto3.client("s3", region_name=REGION)
+
+try:
+    print(f"📥 Downloading starters from S3: s3://{BUCKET}/{STARTERS_JSON}")
+    response = s3.get_object(Bucket=BUCKET, Key=STARTERS_JSON)
+    content = response["Body"].read().decode("utf-8")
+    starters = json.loads(content)
+    print(f"✅ Loaded probable starters from S3 ({len(starters)} entries)")
+except Exception as e:
+    print(f"❌ Failed to read starters from S3: {e}")
+    raise SystemExit(1)
+
 df_coords = pd.read_csv(INPUT_CSV)
 df_coords["Stadium"] = df_coords["Stadium"].str.lower()
 
