@@ -28,8 +28,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install boto3 requests pandas beautifulsoup4
 
-      - name: 🌦️ Run Weather Scraper
-        run: python mlb_weather_scraper.py
-
       - name: 📰 Run ESPN Articles Scraper
         run: python mlb_espn_articles_scraper.py

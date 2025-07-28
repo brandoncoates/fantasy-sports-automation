@@ -30,5 +30,9 @@ jobs:
       - name: 🔮 Run Probable Starters Scraper
         run: python mlb_probable_starters_scraper.py
 
+      - name: 🌦️ Run Weather Scraper
+        run: python mlb_weather_scraper.py
+
       - name: 💰 Run Betting Odds Scraper
         run: python mlb_betting_odds_scraper.py
+
