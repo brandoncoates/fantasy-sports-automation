@@ -4,7 +4,7 @@ Collect per‑stadium weather for today’s MLB slate and upload to S3, with:
  - hourly forecast
  - fallback to current_weather
  - retry logic on API failures
- - per‑team debug logging
+ - per‑team debug logging including full request URL and response snippets
  - stub fallback only after all retries and fallbacks fail
 """
 
@@ -18,7 +18,7 @@ import boto3
 
 # ───── CONFIG ─────
 BASE_URL       = "https://api.open-meteo.com/v1/forecast"
-INPUT_CSV      = "mlb_stadium_coordinates.csv"        # your updated CSV
+INPUT_CSV      = "mlb_stadium_coordinates.csv"   # ensure this is your updated CSV
 REGION         = "us-east-2"
 BUCKET         = "fantasy-sports-csvs"
 S3_FOLDER      = "baseball/weather"
@@ -38,15 +38,14 @@ print(f"📡 Fetching weather for {len(df)} stadiums on {DATE}…")
 
 for _, row in df.iterrows():
     team = row["Team"]
-    # Athletics in Sacramento override
+    # Special‑case Athletics in Sacramento
     if team == "Oakland Athletics":
         stadium = "Sutter Health Park"
         lat, lon = 38.6254, -121.5050
         is_dome = False
     else:
         stadium = row["Stadium"].title()
-        lat     = row["Latitude"]
-        lon     = row["Longitude"]
+        lat, lon = row["Latitude"], row["Longitude"]
         is_dome = str(row.get("Is_Dome","")).strip().lower() == "true"
 
     params = {
@@ -63,6 +62,10 @@ for _, row in df.iterrows():
 
     data = None
     for attempt in range(1, MAX_ATTEMPTS + 1):
+        resp = None
+        # build and log full request URL
+        prep = requests.Request('GET', BASE_URL, params=params).prepare()
+        print(f"➡️ [{attempt}] {team} requesting: {prep.url}")
         try:
             resp = requests.get(BASE_URL, params=params, timeout=15)
             resp.raise_for_status()
@@ -70,8 +73,12 @@ for _, row in df.iterrows():
             break
         except Exception as e:
             print(f"⚠️  {team} attempt {attempt}/{MAX_ATTEMPTS} failed: {e}")
+            if resp is not None and resp.text:
+                snippet = resp.text.replace('\n',' ')[:200]
+                print(f"   response body snippet: {snippet}")
             if attempt < MAX_ATTEMPTS:
                 time.sleep(BACKOFF_SEC)
+
     if data is None:
         print(f"❌ All attempts failed for {team}; will stub later")
         continue
