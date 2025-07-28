@@ -48,7 +48,7 @@ def load_all_reddit_jsons(date):
 def normalize(text: str) -> str:
     return re.sub(r"[ .'-]", "", (text or "")).lower()
 
-# ───── DYNAMIC TEAM NAME MAPPING ─────
+# ───── TEAM NORMALIZATION ─────
 mlb_clubs = [
     {"name":"Arizona Diamondbacks","city":"Arizona","nick":"Diamondbacks","abbr3":"ARI","abbr2":"AZ"},
     {"name":"Atlanta Braves","city":"Atlanta","nick":"Braves","abbr3":"ATL","abbr2":"GA"},
@@ -106,8 +106,11 @@ espn      = load_json(ESPN)
 reddit    = load_all_reddit_jsons(DATE)
 boxscores = load_json(BOX)
 
-# ───── BUILD WEATHER LOOKUP ─────
-weather_by_team = { rec["team"]: rec for rec in weather }
+# ───── BUILD WEATHER LOOKUP (Normalized) ─────
+weather_by_team = {}
+for rec in weather:
+    canon = TEAM_NAME_MAP.get(normalize(rec["team"]), rec["team"])
+    weather_by_team[canon] = rec
 
 # ───── BUILD OTHER INDEXES ─────
 box_by_name = { normalize(b.get("Player Name","")): b for b in boxscores }
@@ -120,6 +123,7 @@ bet_by_team = {}
 for o in odds:
     raw  = o.get("team") or o.get("team_name","")
     canon = TEAM_NAME_MAP.get(normalize(raw), raw)
+    o["over_under"] = o.get("over_under") or o.get("total")  # ensure over_under exists
     bet_by_team[canon] = o
 
 espn_cnt = Counter()
