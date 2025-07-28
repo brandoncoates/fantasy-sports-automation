@@ -102,8 +102,11 @@ for g in starters:
         dt = datetime.fromisoformat(g["game_datetime"].replace("Z", "+00:00"))
         home = TEAM_NAME_MAP.get(normalize(g["home_team"]), g["home_team"])
         away = TEAM_NAME_MAP.get(normalize(g["away_team"]), g["away_team"])
-        game_start[home] = dt
-        game_start[away] = dt
+        if home not in game_start:
+            game_start[home] = dt
+        if away not in game_start:
+            game_start[away] = dt
+
     except Exception as e:
         print(f"⚠️ Skipping game due to datetime error: {g}")
         print(f"   Reason: {e}")
