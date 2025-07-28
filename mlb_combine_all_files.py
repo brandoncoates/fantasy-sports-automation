@@ -19,9 +19,8 @@ STARTERS     = f"{BASE}/probablestarters/mlb_probable_starters_{DATE}.json"
 WEATHER      = f"{BASE}/weather/mlb_weather_{DATE}.json"
 ODDS         = f"{BASE}/betting/mlb_betting_odds_{DATE}.json"
 ESPN         = f"{BASE}/news/mlb_espn_articles_{DATE}.json"
-REDDIT_DIR   = f"{BASE}/news-headlines-csvs/reddit_fantasy_baseball"
+REDDIT_DIR   = "news-headlines-csvs/reddit_fantasy_baseball"
 BOX          = f"{BASE}/boxscores/mlb_boxscores_{YDAY}.json"
-
 OUT_FILE     = f"structured_players_{DATE}.json"
 
 # ───── S3 CONFIG (OPTIONAL) ─────
@@ -109,7 +108,7 @@ boxscores = load_json(BOX)
 # ───── BUILD WEATHER LOOKUP (Normalized) ─────
 weather_by_team = {}
 for rec in weather:
-    canon = TEAM_NAME_MAP.get(normalize(rec["team"]), rec["team"])
+    canon = TEAM_NAME_MAP.get(normalize(rec.get("team", "")), rec.get("team", ""))
     weather_by_team[canon] = rec
 
 # ───── BUILD OTHER INDEXES ─────
@@ -123,7 +122,7 @@ bet_by_team = {}
 for o in odds:
     raw  = o.get("team") or o.get("team_name","")
     canon = TEAM_NAME_MAP.get(normalize(raw), raw)
-    o["over_under"] = o.get("over_under") or o.get("total")  # ensure over_under exists
+    o["over_under"] = o.get("over_under") or o.get("total")
     bet_by_team[canon] = o
 
 espn_cnt = Counter()
