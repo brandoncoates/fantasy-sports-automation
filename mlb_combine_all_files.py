@@ -108,8 +108,10 @@ boxscores = load_json(BOX)
 # ───── BUILD WEATHER LOOKUP (Normalized) ─────
 weather_by_team = {}
 for rec in weather:
-    canon = TEAM_NAME_MAP.get(normalize(rec.get("team", "")), rec.get("team", ""))
-    weather_by_team[canon] = rec
+    team_name = rec.get("team") or rec.get("team_name", "")
+    canon = TEAM_NAME_MAP.get(normalize(team_name), team_name)
+    if canon:
+        weather_by_team[canon] = rec
 
 # ───── BUILD OTHER INDEXES ─────
 box_by_name = { normalize(b.get("Player Name","")): b for b in boxscores }
@@ -120,10 +122,17 @@ starter_names = {
 }
 bet_by_team = {}
 for o in odds:
-    raw  = o.get("team") or o.get("team_name","")
-    canon = TEAM_NAME_MAP.get(normalize(raw), raw)
-    o["over_under"] = o.get("over_under") or o.get("total")
-    bet_by_team[canon] = o
+    raw_team = o.get("team") or o.get("team_name", "")
+    canon = TEAM_NAME_MAP.get(normalize(raw_team), raw_team)
+    if canon not in bet_by_team:
+        bet_by_team[canon] = {
+            "team": canon,
+            "over_under": o.get("over_under") or o.get("total"),
+            "bookmaker": o.get("bookmaker"),
+            "odds": o.get("odds"),
+            "market": o.get("market"),
+            "point": o.get("point"),
+        }
 
 espn_cnt = Counter()
 espn_articles_by_pid = defaultdict(list)
