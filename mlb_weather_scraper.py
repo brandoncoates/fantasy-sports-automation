@@ -161,7 +161,8 @@ for _, row in df_coords.iterrows():
     idx = 0
     if game_dt and times:
         for i, t in enumerate(times):
-            if datetime.fromisoformat(t) >= game_dt:
+            forecast_time = datetime.fromisoformat(t).replace(tzinfo=game_dt.tzinfo)
+            if forecast_time >= game_dt:
                 idx = i
                 break
 
