@@ -105,13 +105,32 @@ espn      = load_json(ESPN)
 reddit    = load_all_reddit_jsons(DATE)
 boxscores = load_json(BOX)
 
-# ───── LOOKUPS ─────
+# ───── WEATHER LOOKUP ─────
 weather_by_team = {}
 for rec in weather:
-    team_key = rec.get("team") or rec.get("team_name", "")
-    canon = TEAM_NAME_MAP.get(normalize(team_key), team_key)
-    weather_by_team[canon] = rec
+    raw_team = rec.get("team") or rec.get("team_name", "")
+    canon = TEAM_NAME_MAP.get(normalize(raw_team))
+    if canon:
+        weather_by_team[canon] = rec
 
+# ───── BETTING LOOKUP ─────
+bet_by_team = defaultdict(lambda: {"over_under": None, "markets": []})
+for o in odds:
+    raw_team = o.get("team") or o.get("team_name", "") or o.get("home_team") or o.get("away_team")
+    canon = TEAM_NAME_MAP.get(normalize(raw_team))
+    if not canon:
+        continue
+    entry = {
+        "bookmaker": o.get("bookmaker"),
+        "market":    o.get("market"),
+        "odds":      o.get("odds"),
+        "point":     o.get("point"),
+    }
+    if o.get("market") == "totals" and o.get("point") is not None:
+        bet_by_team[canon]["over_under"] = o["point"]
+    bet_by_team[canon]["markets"].append(entry)
+
+# ───── STARTERS + BOX ─────
 box_by_name = { normalize(b.get("Player Name","")): b for b in boxscores }
 starter_names = {
     normalize(g.get("home_pitcher","")) for g in starters
@@ -119,21 +138,7 @@ starter_names = {
     normalize(g.get("away_pitcher","")) for g in starters
 }
 
-bet_by_team = defaultdict(lambda: {"over_under": None, "markets": []})
-for o in odds:
-    raw_team = o.get("team") or o.get("team_name", "")
-    canon = TEAM_NAME_MAP.get(normalize(raw_team), raw_team)
-    market_entry = {
-        "bookmaker": o.get("bookmaker"),
-        "market": o.get("market"),
-        "odds": o.get("odds"),
-        "point": o.get("point"),
-    }
-    if o.get("market") == "totals" and o.get("point"):
-        bet_by_team[canon]["over_under"] = o["point"]
-    if market_entry not in bet_by_team[canon]["markets"]:
-        bet_by_team[canon]["markets"].append(market_entry)
-
+# ───── NEWS ─────
 espn_cnt = Counter()
 espn_articles_by_pid = defaultdict(list)
 for art in espn:
@@ -153,44 +158,48 @@ for post in reddit:
         if normalize(r["player"].split()[-1]) in nt:
             reddit_cnt[pid] += 1
 
-# ───── FINAL STRUCTURED OUTPUT ─────
+# ───── STRUCTURE OUTPUT ─────
 players_out = {}
 for r in rosters:
     pid  = str(r["player_id"])
     name = r["player"].strip()
-    club = TEAM_NAME_MAP.get(normalize(r.get("team","")), r.get("team",""))
-    wc   = weather_by_team.get(club, {})
+    raw_team = r.get("team", "")
+    club = TEAM_NAME_MAP.get(normalize(raw_team), raw_team)
 
+    wc = weather_by_team.get(club, {})
     weather_context = {
-        "date":                      wc.get("date"),
-        "team":                      wc.get("team"),
-        "stadium":                   wc.get("stadium"),
-        "time_local":                wc.get("time_local"),
-        "weather":                   wc.get("weather"),
-        "precipitation_probability": wc.get("precipitation_probability"),
-        "cloud_cover_pct":           wc.get("cloud_cover_pct"),
-        "weather_code":              wc.get("weather_code"),
-        "roof_type":                 (wc.get("weather") or {}).get("roof_status","open"),
+        "date": wc.get("date") or "",
+        "team": wc.get("team") or club,
+        "stadium": wc.get("stadium") or "",
+        "time_local": wc.get("time_local") or "",
+        "weather": wc.get("weather") or {},
+        "precipitation_probability": wc.get("precipitation_probability") or 0,
+        "cloud_cover_pct": wc.get("cloud_cover_pct") or 0,
+        "weather_code": wc.get("weather_code") or "",
+        "roof_type": (wc.get("weather") or {}).get("roof_status", "open"),
     }
 
     bet = bet_by_team.get(club, {})
     players_out[name] = {
-        "player_id":       pid,
-        "name":            name,
-        "team":            club,
-        "position":        r.get("position",""),
-        "handedness":      {"bats": r.get("bats"), "throws": r.get("throws")},
-        "roster_status":   {"status_code": r.get("status_code"), "status_description": r.get("status_description")},
-        "starter":         normalize(name) in starter_names if r.get("position")=="P" else False,
+        "player_id": pid,
+        "name": name,
+        "team": club,
+        "position": r.get("position", ""),
+        "handedness": {"bats": r.get("bats"), "throws": r.get("throws")},
+        "roster_status": {
+            "status_code": r.get("status_code"),
+            "status_description": r.get("status_description"),
+        },
+        "starter": normalize(name) in starter_names if r.get("position") == "P" else False,
         "weather_context": weather_context,
         "betting_context": {
             "over_under": bet.get("over_under"),
             "markets": bet.get("markets", [])
         },
-        "espn_mentions":   espn_cnt.get(pid,0),
-        "espn_articles":   espn_articles_by_pid.get(pid,[]),
-        "reddit_mentions": reddit_cnt.get(pid,0),
-        "box_score":       box_by_name.get(normalize(name), {}),
+        "espn_mentions": espn_cnt.get(pid, 0),
+        "espn_articles": espn_articles_by_pid.get(pid, []),
+        "reddit_mentions": reddit_cnt.get(pid, 0),
+        "box_score": box_by_name.get(normalize(name), {}),
     }
 
 # ───── SAVE FILE ─────

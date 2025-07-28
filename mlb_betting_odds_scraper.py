@@ -9,7 +9,6 @@ import boto3
 # === CONFIG ===
 API_KEY    = os.getenv("ODDS_API_KEY", "32c95ea767253beab2da2d1563a9150e")
 REGION     = os.getenv("AWS_REGION", "us-east-1")
-# This will default to your real bucket if S3_BUCKET_NAME is missing or empty
 BUCKET     = os.getenv("S3_BUCKET_NAME") or "fantasy-sports-csvs"
 S3_FOLDER  = "baseball/betting"
 
@@ -20,14 +19,14 @@ BOOKMAKERS = "draftkings,fanduel,pointsbetus"
 # Today's date
 target_date = datetime.now().strftime("%Y-%m-%d")
 
-# Prepare paths
+# Paths
 output_dir  = "mlb_daily_odds"
 os.makedirs(output_dir, exist_ok=True)
 filename    = f"mlb_betting_odds_{target_date}.json"
 local_path  = os.path.join(output_dir, filename)
 s3_key      = f"{S3_FOLDER}/{filename}"
 
-# === DEBUG: print out what we’ve got ===
+# === DEBUG INFO ===
 print("🔍 DEBUG:")
 print("  ODDS_API_KEY    :", "******" if API_KEY else "(empty)")
 print("  AWS_REGION      :", REGION)
@@ -58,14 +57,20 @@ if not odds_json:
 # === PARSE INTO FLAT LIST ===
 odds_data = []
 for game in odds_json:
-    home = game.get("home_team","")
-    away = game.get("away_team","")
-    tm   = game.get("commence_time","")[:19].replace("T"," ")
-    for book in game.get("bookmakers",[]):
-        bname = book.get("title","")
-        for m in book.get("markets",[]):
-            mkey = m.get("key","")
-            for o in m.get("outcomes",[]):
+    home = game.get("home_team", "")
+    away = game.get("away_team", "")
+    tm   = game.get("commence_time", "")[:19].replace("T", " ")
+    
+    totals_map = {}
+    for book in game.get("bookmakers", []):
+        bname = book.get("title", "")
+        for m in book.get("markets", []):
+            mkey = m.get("key", "")
+            for o in m.get("outcomes", []):
+                if mkey == "totals" and o.get("name", "").lower() == "over":
+                    # Save over/under for this game and bookmaker
+                    totals_map[bname] = o.get("point")
+                
                 odds_data.append({
                     "date":       target_date,
                     "time":       tm,
@@ -73,9 +78,10 @@ for game in odds_json:
                     "market":     mkey,
                     "home_team":  home,
                     "away_team":  away,
-                    "team":       o.get("name",""),
-                    "odds":       o.get("price",None),
-                    "point":      o.get("point",None),
+                    "team":       o.get("name", ""),
+                    "odds":       o.get("price", None),
+                    "point":      o.get("point", None),
+                    "over_under": totals_map.get(bname) if mkey != "totals" else o.get("point"),
                 })
 
 # === SAVE TO JSON LOCALLY ===
