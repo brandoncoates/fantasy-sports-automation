@@ -98,12 +98,16 @@ df_coords["Stadium"] = df_coords["Stadium"].str.lower()
 # map each team to its first‑pitch datetime
 game_start = {}
 for g in starters:
-    start_iso = g.get("game_datetime") or f"{g['game_date']}T{g['game_time_local']}"
-    dt = datetime.fromisoformat(start_iso)
-    home = TEAM_NAME_MAP.get(normalize(g["home_team"]), g["home_team"])
-    away = TEAM_NAME_MAP.get(normalize(g["away_team"]), g["away_team"])
-    game_start[home] = dt
-    game_start[away] = dt
+    try:
+        dt = datetime.fromisoformat(g["game_datetime"].replace("Z", "+00:00"))
+        home = TEAM_NAME_MAP.get(normalize(g["home_team"]), g["home_team"])
+        away = TEAM_NAME_MAP.get(normalize(g["away_team"]), g["away_team"])
+        game_start[home] = dt
+        game_start[away] = dt
+    except Exception as e:
+        print(f"⚠️ Skipping game due to datetime error: {g}")
+        print(f"   Reason: {e}")
+
 
 # ───── FETCH FORECAST ─────
 records = []
