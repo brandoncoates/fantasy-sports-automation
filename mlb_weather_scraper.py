@@ -1,14 +1,4 @@
 #!/usr/bin/env python3
-"""
-Collect gametime weather for today’s MLB slate and upload to S3:
- - reads each game’s scheduled start from probable_starters JSON
- - pulls the hourly forecast for the hour nearest (>=) first pitch
- - falls back to current_weather if hourly data is missing
- - retry logic on API failures
- - per-team debug logging of requests
- - special handling for temporary Oakland Athletics location
-"""
-
 import os
 import json
 import time
@@ -34,22 +24,21 @@ BACKOFF_SEC   = 2
 OUT_FILE      = f"mlb_weather_{DATE}.json"
 S3_KEY        = f"{S3_FOLDER}/{OUT_FILE}"
 
-# ───── LOAD STARTERS JSON ─────
+# ───── LOAD STARTERS ─────
 s3 = boto3.client("s3", region_name=REGION)
 try:
     print(f"📅 Downloading starters from S3: s3://{BUCKET}/{STARTERS_JSON}")
     response = s3.get_object(Bucket=BUCKET, Key=STARTERS_JSON)
     starters = json.loads(response["Body"].read().decode("utf-8"))
-    print(f"✅ Loaded probable starters from S3 ({len(starters)} entries)")
+    print(f"✅ Loaded {len(starters)} starters")
 except Exception as e:
     print(f"❌ Failed to read starters from S3: {e}")
     raise SystemExit(1)
 
-# ───── LOAD STADIUM CSV ─────
+# ───── LOAD STADIUMS ─────
 stadiums = pd.read_csv(INPUT_CSV)
 stadiums["Stadium"] = stadiums["Stadium"].str.lower()
 
-# ───── STADIUM MAPPING ─────
 stadium_map = {}
 for _, row in stadiums.iterrows():
     team = normalize(row["Team"])
@@ -60,26 +49,31 @@ for _, row in stadiums.iterrows():
         "is_dome": str(row.get("Is_Dome", "")).strip().lower() == "true"
     }
 
-# ───── PATCH FOR OAKLAND ATHLETICS (SACRAMENTO) ─────
+# ───── OVERRIDE FOR ATHLETICS ─────
 athletics_override = {
     "name": "Sutter Health Park",
     "lat": 38.6254,
     "lon": -121.5050,
     "is_dome": False
 }
-for key in ["oak", "oaklandathletics", "athletics", "as", "sacramento", "sutterhealthpark"]:
-    stadium_map[key] = athletics_override
+stadium_map["oaklandathletics"] = athletics_override
+stadium_map["sacramento"] = athletics_override
+stadium_map["sacramentoathletics"] = athletics_override
+stadium_map["sutterhealthpark"] = athletics_override
 
-# ───── FETCH FORECAST PER GAME ─────
-records = []
+# ───── WEATHER COLLECTION ─────
+team_weather = {}  # ensure 1 per team
 for g in starters:
     try:
         game_dt = datetime.fromisoformat(g["game_datetime"].replace("Z", "+00:00"))
         for side in ["home_team", "away_team"]:
             team_name = g[side]
             team_key = normalize(team_name)
-            stadium = stadium_map.get(team_key)
 
+            if team_key in team_weather:
+                continue  # already got earliest game
+
+            stadium = athletics_override if team_name == "Oakland Athletics" else stadium_map.get(team_key)
             if not stadium:
                 print(f"⚠️ No stadium found for {team_name}, skipping")
                 continue
@@ -127,7 +121,7 @@ for g in starters:
             temp_f = round(temp_c * 9 / 5 + 32, 1)
             wind_mph = round(hourly["windspeed_10m"][idx] * 0.621371, 1)
 
-            records.append({
+            team_weather[team_key] = {
                 "date": DATE,
                 "team": team_name,
                 "stadium": stadium["name"],
@@ -142,15 +136,17 @@ for g in starters:
                 "precipitation_probability": hourly["precipitation_probability"][idx],
                 "cloud_cover_pct": hourly["cloudcover"][idx],
                 "weather_code": hourly["weathercode"][idx],
-            })
+            }
+
             time.sleep(1)
 
     except Exception as e:
         print(f"❌ Skipping game {g.get('game_id')} due to error: {e}")
 
-print(f"✅ Total records: {len(records)}")
+# ───── SAVE TO FILE ─────
+records = list(team_weather.values())
+print(f"✅ Total unique teams: {len(records)}")
 
-# ───── SAVE & UPLOAD ─────
 os.makedirs("baseball/weather", exist_ok=True)
 local_path = os.path.join("baseball/weather", OUT_FILE)
 with open(local_path, "w", encoding="utf-8") as f:
