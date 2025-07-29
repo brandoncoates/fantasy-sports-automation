@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-import os, re, json, glob
+import os
+import re
+import json
+import glob
 from datetime import datetime, timedelta
 from collections import defaultdict, Counter
 import pytz
 
-# ───── TIMEZONE-SAFE DATE ─────
+# ───── TIMEZONE‑SAFE DATE ─────
 pst = pytz.timezone("US/Pacific")
 DATE = os.getenv("FORCE_DATE", datetime.now(pst).strftime("%Y-%m-%d"))
 YDAY = (datetime.strptime(DATE, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
@@ -93,7 +96,7 @@ for club in mlb_clubs:
     for key in variants:
         TEAM_NAME_MAP[key] = canon
 
-# ───── LOAD FILES ─────
+# ───── LOAD DATA FILES ─────
 rosters   = load_json(ROSTER)
 starters  = load_json(STARTERS)
 weather   = load_json(WEATHER)
@@ -102,61 +105,36 @@ espn      = load_json(ESPN)
 reddit    = load_all_reddit_jsons(DATE)
 boxscores = load_json(BOX)
 
-from datetime import datetime
-
-def select_relevant_weather(records):
-    """Select the weather record closest to 7 PM local time."""
-    TARGET_HOUR = 19
-    def hour_diff(rec):
-        try:
-            t = datetime.fromisoformat(rec.get("time_local", ""))
-            return abs(t.hour - TARGET_HOUR)
-        except:
-            return 99  # Push invalid time entries to end
-    return sorted(records, key=hour_diff)[0]  # Closest to 7 PM
-
 # ───── WEATHER LOOKUP ─────
-weather_by_team = defaultdict(list)
+weather_by_team = {}
 for rec in weather:
     raw_team = rec.get("team") or rec.get("team_name", "")
     canon = TEAM_NAME_MAP.get(normalize(raw_team))
     if canon:
-        weather_by_team[canon].append(rec)
-
-# Choose most relevant entry per team
-weather_by_team = {
-    team: select_relevant_weather(recs)
-    for team, recs in weather_by_team.items()
-}
-
+        weather_by_team[canon] = rec
+missing_weather = [team for team in TEAM_NAME_MAP.values() if team not in weather_by_team]
+if missing_weather:
+    print("⚠️ Unmatched weather teams:", missing_weather)
 
 # ───── BETTING LOOKUP ─────
 bet_by_team = defaultdict(lambda: {"over_under": None, "markets": []})
-seen_games = set()
 for o in odds:
-    home = TEAM_NAME_MAP.get(normalize(o.get("home_team","")), o.get("home_team"))
-    away = TEAM_NAME_MAP.get(normalize(o.get("away_team","")), o.get("away_team"))
-    team = TEAM_NAME_MAP.get(normalize(o.get("team") or ""), o.get("team") or "")
-
-    game_key = tuple(sorted([home, away]))
+    raw_team = o.get("team") or o.get("team_name") or o.get("home_team") or o.get("away_team")
+    canon = TEAM_NAME_MAP.get(normalize(raw_team))
+    if not canon:
+        continue
     entry = {
         "bookmaker": o.get("bookmaker"),
-        "market": o.get("market"),
-        "odds": o.get("odds"),
-        "point": o.get("point"),
+        "market":    o.get("market"),
+        "odds":      o.get("odds"),
+        "point":     o.get("point"),
     }
-
-    # Assign over/under ONCE per game
-    if o.get("market") == "totals" and o.get("point") and game_key not in seen_games:
-        seen_games.add(game_key)
-        for t in game_key:
-            bet_by_team[t]["over_under"] = o["point"]
-
-    # Add all market entries to both teams
-    if home:
-        bet_by_team[home]["markets"].append(entry)
-    if away:
-        bet_by_team[away]["markets"].append(entry)
+    if o.get("market") == "totals" and o.get("point") is not None:
+        bet_by_team[canon]["over_under"] = o["point"]
+    bet_by_team[canon]["markets"].append(entry)
+missing_bets = [team for team in TEAM_NAME_MAP.values() if team not in bet_by_team]
+if missing_bets:
+    print("⚠️ Unmatched betting teams:", missing_bets)
 
 # ───── STARTERS + BOX ─────
 box_by_name = { normalize(b.get("Player Name","")): b for b in boxscores }
@@ -166,7 +144,7 @@ starter_names = {
     normalize(g.get("away_pitcher","")) for g in starters
 }
 
-# ───── NEWS MENTIONS ─────
+# ───── NEWS ─────
 espn_cnt = Counter()
 espn_articles_by_pid = defaultdict(list)
 for art in espn:
@@ -186,16 +164,17 @@ for post in reddit:
         if normalize(r["player"].split()[-1]) in nt:
             reddit_cnt[pid] += 1
 
-# ───── STRUCTURE FINAL PLAYER FILE ─────
+# ───── STRUCTURE OUTPUT ─────
 players_out = {}
 for r in rosters:
     pid  = str(r["player_id"])
     name = r["player"].strip()
-    club = TEAM_NAME_MAP.get(normalize(r.get("team","")), r.get("team",""))
-    wc   = weather_by_team.get(club, {})
+    raw_team = r.get("team", "")
+    club = TEAM_NAME_MAP.get(normalize(raw_team), raw_team)
 
+    wc = weather_by_team.get(club, {})
     weather_context = {
-        "date": wc.get("date") or "",
+        "date": wc.get("date") or DATE,
         "team": wc.get("team") or club,
         "stadium": wc.get("stadium") or "",
         "time_local": wc.get("time_local") or "",
@@ -203,7 +182,7 @@ for r in rosters:
         "precipitation_probability": wc.get("precipitation_probability") or 0,
         "cloud_cover_pct": wc.get("cloud_cover_pct") or 0,
         "weather_code": wc.get("weather_code") or "",
-        "roof_type": (wc.get("weather") or {}).get("roof_status", "open"),
+        "roof_type": wc.get("weather", {}).get("roof_status", "open") if isinstance(wc.get("weather"), dict) else "open"
     }
 
     bet = bet_by_team.get(club, {})
@@ -229,12 +208,12 @@ for r in rosters:
         "box_score": box_by_name.get(normalize(name), {}),
     }
 
-# ───── SAVE OUTPUT ─────
-with open(OUT_FILE,"w",encoding="utf-8") as f:
-    json.dump(players_out,f,indent=2)
-print(f"✅ Wrote {len(players_out)} players to {OUT_FILE}")
+# ───── SAVE FILE ─────
+with open(OUT_FILE, "w", encoding="utf-8") as f:
+    json.dump(players_out, f, indent=2)
+print(f"✅ Wrote", len(players_out), "players to", OUT_FILE)
 
-# ───── OPTIONAL S3 UPLOAD ─────
+# ───── OPTIONAL UPLOAD ─────
 if UPLOAD_TO_S3:
     import boto3
     s3 = boto3.client("s3", region_name=REGION)
