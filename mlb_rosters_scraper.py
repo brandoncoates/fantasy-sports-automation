@@ -15,6 +15,7 @@ DATE       = datetime.now().strftime("%Y-%m-%d")
 filename   = f"mlb_rosters_{DATE}.json"
 S3_KEY     = f"{S3_FOLDER}/{filename}"
 TEAMS_URL  = "https://statsapi.mlb.com/api/v1/teams?sportId=1"
+PROBABLES  = f"baseball/probablestarters/mlb_probable_starters_{DATE}.json"
 
 # === GET MLB TEAMS ===
 print("📡 Getting MLB teams...")
@@ -67,7 +68,36 @@ for team in teams:
             "throws": throws
         })
 
-print(f"✅ Pulled {len(records)} active players across {len(teams)} teams.")
+# === LOAD PROBABLE STARTERS FOR FALLBACK ===
+try:
+    with open(PROBABLES, "r", encoding="utf-8") as f:
+        starters = json.load(f)
+except Exception as e:
+    print(f"⚠️ Could not load probable starters: {e}")
+    starters = []
+
+# Normalize names for comparison
+roster_names = {rec["player"].strip().lower() for rec in records}
+
+for game in starters:
+    for role in ["home_pitcher", "away_pitcher"]:
+        name = game.get(role, "").strip()
+        if not name or name.lower() in roster_names:
+            continue  # already in roster
+        print(f"➕ Injecting missing probable starter: {name}")
+        records.append({
+            "date": DATE,
+            "team": game.get("home_team") if role == "home_pitcher" else game.get("away_team"),
+            "player": name,
+            "player_id": f"manual-{normalize_name(name)}",
+            "position": "P",
+            "status_code": "A",
+            "status_description": "Active",
+            "bats": "R",
+            "throws": "R"
+        })
+
+print(f"✅ Final roster count: {len(records)} players.")
 
 # === SAVE TO JSON ===
 output_dir = "mlb_rosters"
