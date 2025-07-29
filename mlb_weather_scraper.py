@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 """
 Collect gametime weather for today’s MLB slate and upload to S3:
- - reads each game’s scheduled start from probable_starters JSON
- - pulls the hourly forecast for the hour nearest (>=) first pitch
- - falls back to current_weather if hourly data is missing
- - retry logic on API failures
- - per-team debug logging of requests
- - special handling for temporary Oakland Athletics location
+ - handles all team aliases and naming inconsistencies
+ - eliminates duplicate entries
+ - ensures Athletics data is included (temporary stadium)
 """
 
 import os
@@ -52,43 +49,45 @@ stadiums["Stadium"] = stadiums["Stadium"].str.lower()
 # ───── STADIUM MAPPING ─────
 stadium_map = {}
 for _, row in stadiums.iterrows():
-    team = normalize(row["Team"])
-    stadium_map[team] = {
+    key = normalize(row["Team"])
+    stadium_map[key] = {
         "name": row["Stadium"].title(),
         "lat": row["Latitude"],
         "lon": row["Longitude"],
         "is_dome": str(row.get("Is_Dome", "")).strip().lower() == "true"
     }
 
-# ───── PATCH FOR OAKLAND ATHLETICS (SACRAMENTO) ─────
+# Athletics override (temporary Sacramento location)
 athletics_override = {
     "name": "Sutter Health Park",
     "lat": 38.6254,
     "lon": -121.5050,
     "is_dome": False
 }
-# Add all normalizations that could map to "Athletics"
-for key in ["oaklandathletics", "sacramentoathletics", "athletics"]:
-    stadium_map[key] = athletics_override
+for alias in ["oaklandathletics", "athletics", "sacramento", "sacramentoathletics"]:
+    stadium_map[alias] = athletics_override
 
 # ───── FETCH FORECAST PER GAME ─────
 records = []
+seen_keys = set()
+
 for g in starters:
     try:
         game_dt = datetime.fromisoformat(g["game_datetime"].replace("Z", "+00:00"))
         for side in ["home_team", "away_team"]:
             team_name = g[side]
+            norm_team = normalize(team_name)
 
-            # Patch team name for Athletics
-            if team_name.strip().lower() == "athletics":
-                team_name = "Oakland Athletics"
-
-            team_key = normalize(team_name)
-            stadium = stadium_map.get(team_key)
-
+            stadium = stadium_map.get(norm_team)
             if not stadium:
                 print(f"⚠️ No stadium found for {team_name}, skipping")
                 continue
+
+            # Avoid duplicate requests per team per day
+            key = (norm_team, game_dt.isoformat())
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
 
             params = {
                 "latitude": stadium["lat"],
@@ -109,9 +108,6 @@ for g in starters:
                     break
                 except Exception as e:
                     print(f"⚠️  {team_name} attempt {attempt} failed: {e}")
-                    if resp is not None and resp.text:
-                        snippet = resp.text.replace('\n',' ')[:200]
-                        print(f"   snippet: {snippet}")
                     if attempt < MAX_ATTEMPTS:
                         time.sleep(BACKOFF_SEC)
 
