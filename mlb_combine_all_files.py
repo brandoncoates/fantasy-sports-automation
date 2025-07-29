@@ -105,24 +105,22 @@ espn      = load_json(ESPN)
 reddit    = load_all_reddit_jsons(DATE)
 boxscores = load_json(BOX)
 
-# ───── WEATHER LOOKUP — ROBUST ─────
+# ───── WEATHER LOOKUP — USE EARLIEST TIME IF MULTIPLE ─────
 weather_by_team = {}
-unmatched_weather_teams = set()
-
+weather_grouped = defaultdict(list)
 for rec in weather:
     raw_team = rec.get("team") or rec.get("team_name") or ""
     canon = TEAM_NAME_MAP.get(normalize(raw_team))
-    if not canon:
-        unmatched_weather_teams.add(raw_team)
-        continue
-    weather_by_team[canon] = rec
+    if canon:
+        weather_grouped[canon].append(rec)
 
-if unmatched_weather_teams:
-    print("⚠️ Unmatched weather teams in weather file:", sorted(unmatched_weather_teams))
-
-missing_weather = [team for team in TEAM_NAME_MAP.values() if team not in weather_by_team]
-if missing_weather:
-    print("⚠️ No weather data found for:", sorted(missing_weather))
+for team, entries in weather_grouped.items():
+    if len(entries) == 1:
+        weather_by_team[team] = entries[0]
+    else:
+        # Sort by earliest local game time
+        sorted_entries = sorted(entries, key=lambda x: x.get("time_local", ""))
+        weather_by_team[team] = sorted_entries[0]
 
 # ───── BETTING LOOKUP — FIXED OVER/UNDER ─────
 bet_by_team = defaultdict(lambda: {"over_under": None, "markets": []})
