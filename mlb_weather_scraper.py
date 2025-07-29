@@ -144,4 +144,5 @@ for g in starters:
             time.sleep(1)
 
     except Exception as e:
-        print(f"❌ S
+        print(f"❌ Skipping game {g.get('game_id')} due to error: {e}")
+
