@@ -212,7 +212,8 @@ for r in rosters:
             "status_code": r.get("status_code"),
             "status_description": r.get("status_description"),
         },
-        "starter": normalize(name) in starter_names if r.get("position") == "P" else False,
+        "is_probable_starter": normalize(name) in starter_names if r.get("position") == "P" else False,
+        "starter": r.get("position") != "P" and normalize(name) in starter_names,
         "weather_context": weather_context,
         "betting_context": {
             "over_under": bet.get("over_under"),
