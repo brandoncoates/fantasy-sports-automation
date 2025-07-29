@@ -105,36 +105,53 @@ espn      = load_json(ESPN)
 reddit    = load_all_reddit_jsons(DATE)
 boxscores = load_json(BOX)
 
-# ───── WEATHER LOOKUP ─────
+# ───── WEATHER LOOKUP — ROBUST ─────
 weather_by_team = {}
-for rec in weather:
-    raw_team = rec.get("team") or rec.get("team_name", "")
-    canon = TEAM_NAME_MAP.get(normalize(raw_team))
-    if canon:
-        weather_by_team[canon] = rec
-missing_weather = [team for team in TEAM_NAME_MAP.values() if team not in weather_by_team]
-if missing_weather:
-    print("⚠️ Unmatched weather teams:", missing_weather)
+unmatched_weather_teams = set()
 
-# ───── BETTING LOOKUP ─────
-bet_by_team = defaultdict(lambda: {"over_under": None, "markets": []})
-for o in odds:
-    raw_team = o.get("team") or o.get("team_name") or o.get("home_team") or o.get("away_team")
+for rec in weather:
+    raw_team = rec.get("team") or rec.get("team_name") or ""
     canon = TEAM_NAME_MAP.get(normalize(raw_team))
     if not canon:
+        unmatched_weather_teams.add(raw_team)
         continue
-    entry = {
-        "bookmaker": o.get("bookmaker"),
-        "market":    o.get("market"),
-        "odds":      o.get("odds"),
-        "point":     o.get("point"),
-    }
-    if o.get("market") == "totals" and o.get("point") is not None:
-        bet_by_team[canon]["over_under"] = o["point"]
-    bet_by_team[canon]["markets"].append(entry)
-missing_bets = [team for team in TEAM_NAME_MAP.values() if team not in bet_by_team]
-if missing_bets:
-    print("⚠️ Unmatched betting teams:", missing_bets)
+    weather_by_team[canon] = rec
+
+if unmatched_weather_teams:
+    print("⚠️ Unmatched weather teams in weather file:", sorted(unmatched_weather_teams))
+
+missing_weather = [team for team in TEAM_NAME_MAP.values() if team not in weather_by_team]
+if missing_weather:
+    print("⚠️ No weather data found for:", sorted(missing_weather))
+
+# ───── BETTING LOOKUP — FIXED OVER/UNDER ─────
+bet_by_team = defaultdict(lambda: {"over_under": None, "markets": []})
+game_totals_seen = set()
+
+for o in odds:
+    home_team = o.get("home_team")
+    away_team = o.get("away_team")
+    team = o.get("team") or o.get("team_name", "")
+    canon_team = TEAM_NAME_MAP.get(normalize(team))
+    canon_home = TEAM_NAME_MAP.get(normalize(home_team))
+    canon_away = TEAM_NAME_MAP.get(normalize(away_team))
+    market = o.get("market")
+
+    if canon_team:
+        entry = {
+            "bookmaker": o.get("bookmaker"),
+            "market":    market,
+            "odds":      o.get("odds"),
+            "point":     o.get("point"),
+        }
+        bet_by_team[canon_team]["markets"].append(entry)
+
+    if market == "totals" and o.get("point") is not None and canon_home and canon_away:
+        key = tuple(sorted([canon_home, canon_away]))
+        if key not in game_totals_seen:
+            bet_by_team[canon_home]["over_under"] = o["point"]
+            bet_by_team[canon_away]["over_under"] = o["point"]
+            game_totals_seen.add(key)
 
 # ───── STARTERS + BOX ─────
 box_by_name = { normalize(b.get("Player Name","")): b for b in boxscores }
