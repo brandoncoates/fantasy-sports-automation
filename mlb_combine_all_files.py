@@ -180,6 +180,16 @@ for post in reddit:
         if normalize(r["player"].split()[-1]) in nt:
             reddit_cnt[pid] += 1
 
+# ───── STARTERS + BOX ─────
+box_by_name = { normalize(b.get("Player Name","")): b for b in boxscores }
+
+starter_names = set()
+for game in starters:
+    for key in ["home_pitcher", "away_pitcher"]:
+        name = game.get(key, "").strip()
+        if name:
+            starter_names.add(normalize(name))
+
 # ───── STRUCTURE OUTPUT ─────
 players_out = {}
 for r in rosters:
@@ -202,6 +212,10 @@ for r in rosters:
     }
 
     bet = bet_by_team.get(club, {})
+
+    is_pitcher = r.get("position") == "P"
+    is_starter = is_pitcher and normalize(name) in starter_names
+
     players_out[name] = {
         "player_id": pid,
         "name": name,
@@ -212,8 +226,8 @@ for r in rosters:
             "status_code": r.get("status_code"),
             "status_description": r.get("status_description"),
         },
-        "is_probable_starter": normalize(name) in starter_names if r.get("position") == "P" else False,
-        "starter": r.get("position") != "P" and normalize(name) in starter_names,
+        "is_probable_starter": is_starter,
+        "starter": is_starter,
         "weather_context": weather_context,
         "betting_context": {
             "over_under": bet.get("over_under"),
