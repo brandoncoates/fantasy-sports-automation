@@ -68,7 +68,7 @@ for team in teams:
             "throws": throws
         })
 
-# === LOAD PROBABLE STARTERS FOR FALLBACK ===
+# === FALLBACK: ADD MISSING PROBABLE STARTERS ===
 try:
     with open(PROBABLES, "r", encoding="utf-8") as f:
         starters = json.load(f)
@@ -76,23 +76,27 @@ except Exception as e:
     print(f"⚠️ Could not load probable starters: {e}")
     starters = []
 
-# Normalize names for comparison
+# Build set of names already included
 roster_names = {rec["player"].strip().lower() for rec in records}
 
 for game in starters:
     for role in ["home_pitcher", "away_pitcher"]:
         name = game.get(role, "").strip()
         if not name or name.lower() in roster_names:
-            continue  # already in roster
+            continue  # already in list
+
+        # Guess team name from game context
+        team = game.get("home_team") if role == "home_pitcher" else game.get("away_team")
+
         print(f"➕ Injecting missing probable starter: {name}")
         records.append({
             "date": DATE,
-            "team": game.get("home_team") if role == "home_pitcher" else game.get("away_team"),
+            "team": team,
             "player": name,
             "player_id": f"manual-{normalize_name(name)}",
             "position": "P",
             "status_code": "A",
-            "status_description": "Active",
+            "status_description": "Probable Starter (Injected)",
             "bats": "R",
             "throws": "R"
         })
