@@ -102,13 +102,33 @@ espn      = load_json(ESPN)
 reddit    = load_all_reddit_jsons(DATE)
 boxscores = load_json(BOX)
 
+from datetime import datetime
+
+def select_relevant_weather(records):
+    """Select the weather record closest to 7 PM local time."""
+    TARGET_HOUR = 19
+    def hour_diff(rec):
+        try:
+            t = datetime.fromisoformat(rec.get("time_local", ""))
+            return abs(t.hour - TARGET_HOUR)
+        except:
+            return 99  # Push invalid time entries to end
+    return sorted(records, key=hour_diff)[0]  # Closest to 7 PM
+
 # ───── WEATHER LOOKUP ─────
-weather_by_team = {}
+weather_by_team = defaultdict(list)
 for rec in weather:
     raw_team = rec.get("team") or rec.get("team_name", "")
     canon = TEAM_NAME_MAP.get(normalize(raw_team))
     if canon:
-        weather_by_team[canon] = rec
+        weather_by_team[canon].append(rec)
+
+# Choose most relevant entry per team
+weather_by_team = {
+    team: select_relevant_weather(recs)
+    for team, recs in weather_by_team.items()
+}
+
 
 # ───── BETTING LOOKUP ─────
 bet_by_team = defaultdict(lambda: {"over_under": None, "markets": []})
