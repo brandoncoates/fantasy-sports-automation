@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+"""
+Collect gametime weather for today’s MLB slate and upload to S3:
+ - reads each game’s scheduled start from probable_starters JSON
+ - pulls the hourly forecast for the hour nearest (>=) first pitch
+ - includes fix for temporary Oakland Athletics location (Sutter Health Park)
+ - deduplicates per-team weather output
+"""
+
 import os
 import json
 import time
@@ -8,6 +16,7 @@ from datetime import datetime
 import boto3
 import re
 
+# ───── HELPERS ─────
 def normalize(text: str) -> str:
     return re.sub(r"[ .'-]", "", (text or "")).lower()
 
@@ -42,107 +51,117 @@ stadiums["Stadium"] = stadiums["Stadium"].str.lower()
 # ───── STADIUM MAPPING ─────
 stadium_map = {}
 for _, row in stadiums.iterrows():
-    team = normalize(row["Team"])
-    stadium_map[team] = {
+    team_key = normalize(row["Team"])
+    stadium_map[team_key] = {
         "name": row["Stadium"].title(),
         "lat": row["Latitude"],
         "lon": row["Longitude"],
         "is_dome": str(row.get("Is_Dome", "")).strip().lower() == "true"
     }
 
-# ───── OAKLAND ATHLETICS PATCH ─────
+# ───── PATCH FOR OAKLAND ATHLETICS (SACRAMENTO) ─────
 athletics_override = {
     "name": "Sutter Health Park",
     "lat": 38.6254,
     "lon": -121.5050,
     "is_dome": False
 }
-for key in ["oaklandathletics", "athletics", "sacramento", "sacramentoathletics", "sutterhealthpark"]:
-    stadium_map[key] = athletics_override
+# Add normalized aliases to point to Sacramento
+for alias in ["oaklandathletics", "athletics", "sacramentoathletics", "sutterhealthpark"]:
+    stadium_map[alias] = athletics_override
 
-# ───── FETCH FORECAST ─────
+# ───── FETCH FORECAST PER UNIQUE TEAM ─────
+seen_teams = set()
 records = []
-seen_keys = set()
 
 for g in starters:
-    try:
-        game_dt = datetime.fromisoformat(g["game_datetime"].replace("Z", "+00:00"))
-        for side in ["home_team", "away_team"]:
-            team_name = g[side]
-            team_key = normalize(team_name)
+    game_dt = datetime.fromisoformat(g["game_datetime"].replace("Z", "+00:00"))
+    for side in ["home_team", "away_team"]:
+        team_name = g[side]
+        team_key = normalize(team_name)
 
-            # Prevent duplicates across games
-            dedup_key = (team_key, game_dt.isoformat())
-            if dedup_key in seen_keys:
-                continue
-            seen_keys.add(dedup_key)
+        if team_key in seen_teams:
+            continue
+        seen_teams.add(team_key)
 
-            stadium = stadium_map.get(team_key)
-            if not stadium:
-                print(f"⚠️ No stadium found for team: {team_name} ({team_key}) — skipping")
-                continue
+        stadium = stadium_map.get(team_key)
+        if not stadium:
+            print(f"⚠️ No stadium found for team: {team_name} (key: {team_key}) — skipping")
+            continue
 
-            params = {
-                "latitude": stadium["lat"],
-                "longitude": stadium["lon"],
-                "hourly": "temperature_2m,relativehumidity_2m,windspeed_10m,winddirection_10m,precipitation_probability,cloudcover,weathercode",
-                "current_weather": True,
-                "timezone": "auto",
-            }
+        # Build API params
+        params = {
+            "latitude": stadium["lat"],
+            "longitude": stadium["lon"],
+            "hourly": "temperature_2m,relativehumidity_2m,windspeed_10m,winddirection_10m,precipitation_probability,cloudcover,weathercode",
+            "current_weather": True,
+            "timezone": "auto",
+        }
 
-            data = None
-            for attempt in range(1, MAX_ATTEMPTS + 1):
-                try:
-                    prep = requests.Request("GET", BASE_URL, params=params).prepare()
-                    print(f"➡️ [{attempt}] {team_name} requesting: {prep.url}")
-                    resp = requests.get(BASE_URL, params=params, timeout=15)
-                    resp.raise_for_status()
-                    data = resp.json()
+        data = None
+        for attempt in range(1, MAX_ATTEMPTS + 1):
+            try:
+                prep = requests.Request("GET", BASE_URL, params=params).prepare()
+                print(f"➡️ [{attempt}] {team_name} request: {prep.url}")
+                resp = requests.get(BASE_URL, params=params, timeout=15)
+                resp.raise_for_status()
+                data = resp.json()
+                break
+            except Exception as e:
+                print(f"⚠️  {team_name} attempt {attempt} failed: {e}")
+                if attempt < MAX_ATTEMPTS:
+                    time.sleep(BACKOFF_SEC)
+
+        if not data:
+            print(f"❌ All attempts failed for {team_name}, skipping")
+            continue
+
+        hourly = data.get("hourly", {})
+        times = hourly.get("time", [])
+        idx = 0
+        if game_dt and times:
+            for i, t in enumerate(times):
+                forecast_time = datetime.fromisoformat(t).replace(tzinfo=game_dt.tzinfo)
+                if forecast_time >= game_dt:
+                    idx = i
                     break
-                except Exception as e:
-                    print(f"⚠️  {team_name} attempt {attempt} failed: {e}")
-                    if resp is not None and resp.text:
-                        snippet = resp.text.replace('\n',' ')[:200]
-                        print(f"   snippet: {snippet}")
-                    if attempt < MAX_ATTEMPTS:
-                        time.sleep(BACKOFF_SEC)
 
-            if not data:
-                print(f"❌ All attempts failed for {team_name}, skipping")
-                continue
+        temp_c = hourly["temperature_2m"][idx]
+        temp_f = round(temp_c * 9 / 5 + 32, 1)
+        wind_mph = round(hourly["windspeed_10m"][idx] * 0.621371, 1)
 
-            hourly = data.get("hourly", {})
-            times = hourly.get("time", [])
-            idx = 0
-            if game_dt and times:
-                for i, t in enumerate(times):
-                    forecast_time = datetime.fromisoformat(t).replace(tzinfo=game_dt.tzinfo)
-                    if forecast_time >= game_dt:
-                        idx = i
-                        break
+        records.append({
+            "date": DATE,
+            "team": team_name,
+            "stadium": stadium["name"],
+            "time_local": times[idx],
+            "weather": {
+                "temperature_f": temp_f,
+                "humidity_pct": hourly["relativehumidity_2m"][idx],
+                "wind_speed_mph": wind_mph,
+                "wind_direction_deg": hourly["winddirection_10m"][idx],
+                "roof_status": "closed" if stadium["is_dome"] else "open",
+            },
+            "precipitation_probability": hourly["precipitation_probability"][idx],
+            "cloud_cover_pct": hourly["cloudcover"][idx],
+            "weather_code": hourly["weathercode"][idx],
+        })
 
-            temp_c = hourly["temperature_2m"][idx]
-            temp_f = round(temp_c * 9 / 5 + 32, 1)
-            wind_mph = round(hourly["windspeed_10m"][idx] * 0.621371, 1)
+        time.sleep(1)
 
-            records.append({
-                "date": DATE,
-                "team": team_name,
-                "stadium": stadium["name"],
-                "time_local": times[idx],
-                "weather": {
-                    "temperature_f": temp_f,
-                    "humidity_pct": hourly["relativehumidity_2m"][idx],
-                    "wind_speed_mph": wind_mph,
-                    "wind_direction_deg": hourly["winddirection_10m"][idx],
-                    "roof_status": "closed" if stadium["is_dome"] else "open",
-                },
-                "precipitation_probability": hourly["precipitation_probability"][idx],
-                "cloud_cover_pct": hourly["cloudcover"][idx],
-                "weather_code": hourly["weathercode"][idx],
-            })
-            time.sleep(1)
+# ───── SAVE AND UPLOAD ─────
+print(f"✅ Total unique records: {len(records)}")
+os.makedirs("baseball/weather", exist_ok=True)
+local_path = os.path.join("baseball/weather", OUT_FILE)
 
-    except Exception as e:
-        print(f"❌ Skipping game {g.get('game_id')} due to error: {e}")
+with open(local_path, "w", encoding="utf-8") as f:
+    json.dump(records, f, ensure_ascii=False, indent=2)
+print(f"📀 Wrote {local_path}")
 
+# Upload to S3
+try:
+    print(f"☁️ Uploading to s3://{BUCKET}/{S3_KEY}")
+    s3.upload_file(local_path, BUCKET, S3_KEY)
+    print("✅ Upload complete")
+except Exception as e:
+    print(f"❌ Upload failed: {e}")
