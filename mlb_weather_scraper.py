@@ -67,10 +67,8 @@ athletics_override = {
     "lon": -121.5050,
     "is_dome": False
 }
-stadium_map["oaklandathletics"] = athletics_override
-stadium_map["sacramento"] = athletics_override
-stadium_map["sacramentoathletics"] = athletics_override
-stadium_map["sutterhealthpark"] = athletics_override
+for key in ["oak", "oaklandathletics", "athletics", "as", "sacramento", "sutterhealthpark"]:
+    stadium_map[key] = athletics_override
 
 # ───── FETCH FORECAST PER GAME ─────
 records = []
@@ -80,12 +78,7 @@ for g in starters:
         for side in ["home_team", "away_team"]:
             team_name = g[side]
             team_key = normalize(team_name)
-
-            # Patch for Oakland Athletics to use Sacramento stadium
-            if team_name == "Oakland Athletics":
-                stadium = athletics_override
-            else:
-                stadium = stadium_map.get(team_key)
+            stadium = stadium_map.get(team_key)
 
             if not stadium:
                 print(f"⚠️ No stadium found for {team_name}, skipping")
