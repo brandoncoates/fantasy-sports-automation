@@ -1,11 +1,4 @@
 #!/usr/bin/env python3
-"""
-Collect gametime weather for today’s MLB slate and upload to S3:
- - handles all team aliases and naming inconsistencies
- - eliminates duplicate entries
- - ensures Athletics data is included (temporary stadium)
-"""
-
 import os
 import json
 import time
@@ -49,25 +42,25 @@ stadiums["Stadium"] = stadiums["Stadium"].str.lower()
 # ───── STADIUM MAPPING ─────
 stadium_map = {}
 for _, row in stadiums.iterrows():
-    key = normalize(row["Team"])
-    stadium_map[key] = {
+    team = normalize(row["Team"])
+    stadium_map[team] = {
         "name": row["Stadium"].title(),
         "lat": row["Latitude"],
         "lon": row["Longitude"],
         "is_dome": str(row.get("Is_Dome", "")).strip().lower() == "true"
     }
 
-# Athletics override (temporary Sacramento location)
+# ───── OAKLAND ATHLETICS PATCH ─────
 athletics_override = {
     "name": "Sutter Health Park",
     "lat": 38.6254,
     "lon": -121.5050,
     "is_dome": False
 }
-for alias in ["oaklandathletics", "athletics", "sacramento", "sacramentoathletics"]:
-    stadium_map[alias] = athletics_override
+for key in ["oaklandathletics", "athletics", "sacramento", "sacramentoathletics", "sutterhealthpark"]:
+    stadium_map[key] = athletics_override
 
-# ───── FETCH FORECAST PER GAME ─────
+# ───── FETCH FORECAST ─────
 records = []
 seen_keys = set()
 
@@ -76,18 +69,18 @@ for g in starters:
         game_dt = datetime.fromisoformat(g["game_datetime"].replace("Z", "+00:00"))
         for side in ["home_team", "away_team"]:
             team_name = g[side]
-            norm_team = normalize(team_name)
+            team_key = normalize(team_name)
 
-            stadium = stadium_map.get(norm_team)
+            # Prevent duplicates across games
+            dedup_key = (team_key, game_dt.isoformat())
+            if dedup_key in seen_keys:
+                continue
+            seen_keys.add(dedup_key)
+
+            stadium = stadium_map.get(team_key)
             if not stadium:
-                print(f"⚠️ No stadium found for {team_name}, skipping")
+                print(f"⚠️ No stadium found for team: {team_name} ({team_key}) — skipping")
                 continue
-
-            # Avoid duplicate requests per team per day
-            key = (norm_team, game_dt.isoformat())
-            if key in seen_keys:
-                continue
-            seen_keys.add(key)
 
             params = {
                 "latitude": stadium["lat"],
@@ -108,6 +101,9 @@ for g in starters:
                     break
                 except Exception as e:
                     print(f"⚠️  {team_name} attempt {attempt} failed: {e}")
+                    if resp is not None and resp.text:
+                        snippet = resp.text.replace('\n',' ')[:200]
+                        print(f"   snippet: {snippet}")
                     if attempt < MAX_ATTEMPTS:
                         time.sleep(BACKOFF_SEC)
 
@@ -148,17 +144,4 @@ for g in starters:
             time.sleep(1)
 
     except Exception as e:
-        print(f"❌ Skipping game {g.get('game_id')} due to error: {e}")
-
-print(f"✅ Total records: {len(records)}")
-
-# ───── SAVE & UPLOAD ─────
-os.makedirs("baseball/weather", exist_ok=True)
-local_path = os.path.join("baseball/weather", OUT_FILE)
-with open(local_path, "w", encoding="utf-8") as f:
-    json.dump(records, f, ensure_ascii=False, indent=2)
-print(f"📀 Wrote {local_path}")
-
-print(f"☁️ Uploading to s3://{BUCKET}/{S3_KEY}")
-s3.upload_file(local_path, BUCKET, S3_KEY)
-print("✅ Upload complete")
+        print(f"❌ S
