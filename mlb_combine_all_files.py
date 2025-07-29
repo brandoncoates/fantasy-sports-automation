@@ -96,9 +96,11 @@ for club in mlb_clubs:
     for key in variants:
         TEAM_NAME_MAP[key] = canon
 
-# Add alias for Athletics
+# Add extra mappings
+TEAM_NAME_MAP[normalize("As")] = "Oakland Athletics"
 TEAM_NAME_MAP[normalize("A's")] = "Oakland Athletics"
-TEAM_NAME_MAP[normalize("As")]  = "Oakland Athletics"
+TEAM_NAME_MAP[normalize("Sacramento Athletics")] = "Oakland Athletics"
+TEAM_NAME_MAP[normalize("Sutter Health Park")] = "Oakland Athletics"
 
 # ───── LOAD DATA FILES ─────
 rosters   = load_json(ROSTER)
@@ -119,12 +121,7 @@ for rec in weather:
         weather_grouped[canon].append(rec)
 
 for team, entries in weather_grouped.items():
-    if len(entries) == 1:
-        weather_by_team[team] = entries[0]
-    else:
-        # Sort by earliest local game time
-        sorted_entries = sorted(entries, key=lambda x: x.get("time_local", ""))
-        weather_by_team[team] = sorted_entries[0]
+    weather_by_team[team] = sorted(entries, key=lambda x: x.get("time_local", ""))[0]
 
 # ───── BETTING LOOKUP — FIXED OVER/UNDER ─────
 bet_by_team = defaultdict(lambda: {"over_under": None, "markets": []})
@@ -142,9 +139,9 @@ for o in odds:
     if canon_team:
         entry = {
             "bookmaker": o.get("bookmaker"),
-            "market":    market,
-            "odds":      o.get("odds"),
-            "point":     o.get("point"),
+            "market": market,
+            "odds": o.get("odds"),
+            "point": o.get("point"),
         }
         bet_by_team[canon_team]["markets"].append(entry)
 

@@ -6,7 +6,7 @@ Collect gametime weather for today’s MLB slate and upload to S3:
  - falls back to current_weather if hourly data is missing
  - retry logic on API failures
  - per-team debug logging of requests
- - no more missing data for teams due to CSV mapping mismatches
+ - special handling for temporary Oakland Athletics location
 """
 
 import os
@@ -34,7 +34,7 @@ BACKOFF_SEC   = 2
 OUT_FILE      = f"mlb_weather_{DATE}.json"
 S3_KEY        = f"{S3_FOLDER}/{OUT_FILE}"
 
-# ───── LOAD DATA ─────
+# ───── LOAD STARTERS JSON ─────
 s3 = boto3.client("s3", region_name=REGION)
 try:
     print(f"📅 Downloading starters from S3: s3://{BUCKET}/{STARTERS_JSON}")
@@ -45,10 +45,11 @@ except Exception as e:
     print(f"❌ Failed to read starters from S3: {e}")
     raise SystemExit(1)
 
+# ───── LOAD STADIUM CSV ─────
 stadiums = pd.read_csv(INPUT_CSV)
 stadiums["Stadium"] = stadiums["Stadium"].str.lower()
 
-# Map stadiums by normalized team name
+# ───── STADIUM MAPPING ─────
 stadium_map = {}
 for _, row in stadiums.iterrows():
     team = normalize(row["Team"])
@@ -59,6 +60,18 @@ for _, row in stadiums.iterrows():
         "is_dome": str(row.get("Is_Dome", "")).strip().lower() == "true"
     }
 
+# ───── PATCH FOR OAKLAND ATHLETICS (SACRAMENTO) ─────
+athletics_override = {
+    "name": "Sutter Health Park",
+    "lat": 38.6254,
+    "lon": -121.5050,
+    "is_dome": False
+}
+stadium_map["oaklandathletics"] = athletics_override
+stadium_map["sacramento"] = athletics_override
+stadium_map["sacramentoathletics"] = athletics_override
+stadium_map["sutterhealthpark"] = athletics_override
+
 # ───── FETCH FORECAST PER GAME ─────
 records = []
 for g in starters:
@@ -67,18 +80,16 @@ for g in starters:
         for side in ["home_team", "away_team"]:
             team_name = g[side]
             team_key = normalize(team_name)
-            stadium = stadium_map.get(team_key)
+
+            # Patch for Oakland Athletics to use Sacramento stadium
+            if team_name == "Oakland Athletics":
+                stadium = athletics_override
+            else:
+                stadium = stadium_map.get(team_key)
 
             if not stadium:
                 print(f"⚠️ No stadium found for {team_name}, skipping")
                 continue
-
-            # Override for Athletics
-            if team_name == "Oakland Athletics":
-                stadium["name"] = "Sutter Health Park"
-                stadium["lat"] = 38.6254
-                stadium["lon"] = -121.5050
-                stadium["is_dome"] = False
 
             params = {
                 "latitude": stadium["lat"],
