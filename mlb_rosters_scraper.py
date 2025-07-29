@@ -17,6 +17,9 @@ S3_KEY     = f"{S3_FOLDER}/{filename}"
 TEAMS_URL  = "https://statsapi.mlb.com/api/v1/teams?sportId=1"
 PROBABLES  = f"baseball/probablestarters/mlb_probable_starters_{DATE}.json"
 
+# === INIT S3 CLIENT ===
+s3 = boto3.client("s3", region_name=REGION)
+
 # === GET MLB TEAMS ===
 print("📡 Getting MLB teams...")
 teams_response = requests.get(TEAMS_URL)
@@ -69,12 +72,21 @@ for team in teams:
         })
 
 # === FALLBACK: ADD MISSING PROBABLE STARTERS ===
+LOCAL_PROBABLES = f"mlb_probable_starters_{DATE}.json"
 try:
-    with open(PROBABLES, "r", encoding="utf-8") as f:
-        starters = json.load(f)
+    print(f"☁️ Downloading {PROBABLES} from S3...")
+    s3.download_file(BUCKET, PROBABLES, LOCAL_PROBABLES)
 except Exception as e:
-    print(f"⚠️ Could not load probable starters: {e}")
-    starters = []
+    print(f"⚠️ Failed to download probable starters from S3: {e}")
+    LOCAL_PROBABLES = None
+
+starters = []
+if LOCAL_PROBABLES:
+    try:
+        with open(LOCAL_PROBABLES, "r", encoding="utf-8") as f:
+            starters = json.load(f)
+    except Exception as e:
+        print(f"⚠️ Could not load probable starters from {LOCAL_PROBABLES}: {e}")
 
 # Build set of names already included
 roster_names = {rec["player"].strip().lower() for rec in records}
@@ -115,7 +127,6 @@ print(f"💾 JSON written locally: {local_path}")
 
 # === UPLOAD TO S3 ===
 print(f"☁️ Uploading to s3://{BUCKET}/{S3_KEY}")
-s3 = boto3.client("s3", region_name=REGION)
 try:
     s3.upload_file(local_path, BUCKET, S3_KEY)
     print(f"✅ Upload complete: s3://{BUCKET}/{S3_KEY}")
