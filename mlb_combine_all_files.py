@@ -65,11 +65,16 @@ if os.path.exists(TEAM_FILE):
             for key in variants:
                 TEAM_NAME_MAP[key] = canon
 
-TEAM_NAME_MAP[normalize("As")] = "Oakland Athletics"
-TEAM_NAME_MAP[normalize("A's")] = "Oakland Athletics"
-TEAM_NAME_MAP[normalize("Sacramento Athletics")] = "Oakland Athletics"
-TEAM_NAME_MAP[normalize("Sutter Health Park")] = "Oakland Athletics"
-TEAM_NAME_MAP[normalize("Athletics")] = "Oakland Athletics"
+# Manual patches for common issues
+patches = [
+    "As", "A's", "Sacramento Athletics", "Sutter Health Park", "Athletics",
+    "NYY", "NY Yankees", "New York Yankees",
+    "LAD", "LA Dodgers", "Los Angeles Dodgers",
+    "SD", "SDP", "San Diego Padres",
+    "SF", "SFG", "San Francisco Giants"
+]
+for patch in patches:
+    TEAM_NAME_MAP[normalize(patch)] = "Oakland Athletics" if "Athletic" in patch else TEAM_NAME_MAP.get(normalize(patch), patch)
 
 # ─── LOAD DATA FILES ───
 rosters   = load_json(ROSTER)
@@ -105,8 +110,8 @@ unmatched_starter_teams = set()
 for game in starters:
     raw_home = game.get("home_team", "")
     raw_away = game.get("away_team", "")
-    canon_home = TEAM_NAME_MAP.get(normalize(raw_home), normalize(raw_home))
-    canon_away = TEAM_NAME_MAP.get(normalize(raw_away), normalize(raw_away))
+    canon_home = TEAM_NAME_MAP.get(normalize(raw_home))
+    canon_away = TEAM_NAME_MAP.get(normalize(raw_away))
 
     if canon_home and canon_away:
         matchup_by_team[canon_home] = {
@@ -182,7 +187,7 @@ for r in rosters:
     club_key = normalize(club)
 
     wc = weather_by_team.get(club, {})
-    matchup = matchup_by_team.get(club_key, {})
+    matchup = matchup_by_team.get(club, {})
     bet = bet_by_team.get(club, {})
 
     is_pitcher = r.get("position") == "P"
