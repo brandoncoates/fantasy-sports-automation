@@ -157,11 +157,13 @@ for r in rosters:
     name = r["player"].strip()
     raw_team = r.get("team", "")
     club = TEAM_NAME_MAP.get(normalize(raw_team), raw_team)
-    key = normalize(club)
+
     wc = weather_by_team.get(club, {})
-    matchup = matchup_by_team.get(key, {})
+    matchup = matchup_by_team.get(club, {})
     bet = bet_by_team.get(club, {})
+
     is_starter = normalize(name) in starter_names
+
 
     players_out[name] = {
         "player_id": pid,
