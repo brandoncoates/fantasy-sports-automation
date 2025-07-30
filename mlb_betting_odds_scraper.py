@@ -12,7 +12,7 @@ REGION     = os.getenv("AWS_REGION", "us-east-1")
 BUCKET     = os.getenv("S3_BUCKET_NAME", "fantasy-sports-csvs")
 S3_FOLDER  = "baseball/betting"
 SPORT      = "baseball_mlb"
-MARKETS    = "totals,spreads,team_totals"
+MARKETS    = "totals,spreads"
 BOOKMAKERS = "fanduel"
 
 # === DATE + FILE SETUP ===
@@ -23,24 +23,37 @@ filename    = f"mlb_betting_odds_{target_date}.json"
 local_path  = os.path.join(output_dir, filename)
 s3_key      = f"{S3_FOLDER}/{filename}"
 
-# === TEAM NAME NORMALIZATION ===
 TEAM_NAME_MAP = {
-    "dbacks": "Arizona Diamondbacks", "diamondbacks": "Arizona Diamondbacks",
-    "braves": "Atlanta Braves", "orioles": "Baltimore Orioles",
-    "redsox": "Boston Red Sox", "whitesox": "Chicago White Sox",
-    "cubs": "Chicago Cubs", "reds": "Cincinnati Reds",
-    "guardians": "Cleveland Guardians", "rockies": "Colorado Rockies",
-    "tigers": "Detroit Tigers", "astros": "Houston Astros",
-    "royals": "Kansas City Royals", "angels": "Los Angeles Angels",
-    "dodgers": "Los Angeles Dodgers", "marlins": "Miami Marlins",
-    "brewers": "Milwaukee Brewers", "twins": "Minnesota Twins",
-    "mets": "New York Mets", "yankees": "New York Yankees",
-    "athletics": "Oakland Athletics", "phillies": "Philadelphia Phillies",
-    "pirates": "Pittsburgh Pirates", "padres": "San Diego Padres",
-    "giants": "San Francisco Giants", "mariners": "Seattle Mariners",
-    "cardinals": "St. Louis Cardinals", "rays": "Tampa Bay Rays",
-    "rangers": "Texas Rangers", "bluejays": "Toronto Blue Jays",
-    "nationals": "Washington Nationals"
+    "dbacks": "Arizona Diamondbacks", "diamondbacks": "Arizona Diamondbacks", "arizona": "Arizona Diamondbacks",
+    "braves": "Atlanta Braves", "atlanta": "Atlanta Braves",
+    "orioles": "Baltimore Orioles", "baltimore": "Baltimore Orioles",
+    "redsox": "Boston Red Sox", "redsox": "Boston Red Sox", "boston": "Boston Red Sox",
+    "whitesox": "Chicago White Sox", "chicagowhitesox": "Chicago White Sox",
+    "cubs": "Chicago Cubs", "chicagocubs": "Chicago Cubs",
+    "reds": "Cincinnati Reds", "cincinnati": "Cincinnati Reds",
+    "guardians": "Cleveland Guardians", "cleveland": "Cleveland Guardians",
+    "rockies": "Colorado Rockies", "colorado": "Colorado Rockies",
+    "tigers": "Detroit Tigers", "detroit": "Detroit Tigers",
+    "astros": "Houston Astros", "houston": "Houston Astros",
+    "royals": "Kansas City Royals", "kansascity": "Kansas City Royals",
+    "angels": "Los Angeles Angels", "losangelesangels": "Los Angeles Angels",
+    "dodgers": "Los Angeles Dodgers", "losangelesdodgers": "Los Angeles Dodgers",
+    "marlins": "Miami Marlins", "miami": "Miami Marlins",
+    "brewers": "Milwaukee Brewers", "milwaukee": "Milwaukee Brewers",
+    "twins": "Minnesota Twins", "minnesota": "Minnesota Twins",
+    "mets": "New York Mets", "newyorkmets": "New York Mets",
+    "yankees": "New York Yankees", "newyorkyankees": "New York Yankees",
+    "athletics": "Oakland Athletics", "oakland": "Oakland Athletics",
+    "phillies": "Philadelphia Phillies", "philadelphia": "Philadelphia Phillies",
+    "pirates": "Pittsburgh Pirates", "pittsburgh": "Pittsburgh Pirates",
+    "padres": "San Diego Padres", "sandiego": "San Diego Padres",
+    "giants": "San Francisco Giants", "sanfrancisco": "San Francisco Giants",
+    "mariners": "Seattle Mariners", "seattle": "Seattle Mariners",
+    "cardinals": "St. Louis Cardinals", "stlouis": "St. Louis Cardinals",
+    "rays": "Tampa Bay Rays", "tampabay": "Tampa Bay Rays",
+    "rangers": "Texas Rangers", "texas": "Texas Rangers",
+    "bluejays": "Toronto Blue Jays", "toronto": "Toronto Blue Jays",
+    "nationals": "Washington Nationals", "washington": "Washington Nationals"
 }
 def normalize(name): return re.sub(r"[ .'-]", "", name.lower())
 
