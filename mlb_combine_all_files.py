@@ -96,14 +96,20 @@ unmatched_weather_teams = set()
 for rec in weather:
     raw_team = rec.get("team") or rec.get("team_name") or ""
     norm_team = normalize(raw_team)
-    canon = TEAM_NAME_MAP.get(norm_team, raw_team)
+    canon = TEAM_NAME_MAP.get(norm_team)
+
     if canon:
         weather_grouped[canon].append(rec)
     else:
         unmatched_weather_teams.add(raw_team)
 
+# PATCH: If "Athletics" is present, ensure "Oakland Athletics" exists in the map
+if "Athletics" in [rec.get("team") for rec in weather]:
+    if "Oakland Athletics" not in weather_grouped and "Athletics" in weather_grouped:
+        weather_grouped["Oakland Athletics"] = weather_grouped["Athletics"]
+
+# Build final weather_by_team using canonical names
 for team, entries in weather_grouped.items():
-    # Guarantee the key is "Oakland Athletics" if Athletics is in the weather data
     canon_team = TEAM_NAME_MAP.get(normalize(team), team)
     weather_by_team[canon_team] = sorted(entries, key=lambda x: x.get("time_local", ""))[0]
 
