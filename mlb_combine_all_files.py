@@ -105,8 +105,8 @@ unmatched_starter_teams = set()
 for game in starters:
     raw_home = game.get("home_team", "")
     raw_away = game.get("away_team", "")
-    canon_home = TEAM_NAME_MAP.get(normalize(raw_home))
-    canon_away = TEAM_NAME_MAP.get(normalize(raw_away))
+    canon_home = TEAM_NAME_MAP.get(normalize(raw_home), normalize(raw_home))
+    canon_away = TEAM_NAME_MAP.get(normalize(raw_away), normalize(raw_away))
 
     if canon_home and canon_away:
         matchup_by_team[canon_home] = {
@@ -179,9 +179,10 @@ for r in rosters:
     name = r["player"].strip()
     raw_team = r.get("team", "")
     club = TEAM_NAME_MAP.get(normalize(raw_team), raw_team)
+    club_key = normalize(club)
 
     wc = weather_by_team.get(club, {})
-    matchup = matchup_by_team.get(club, {})
+    matchup = matchup_by_team.get(club_key, {})
     bet = bet_by_team.get(club, {})
 
     is_pitcher = r.get("position") == "P"
