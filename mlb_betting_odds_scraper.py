@@ -9,10 +9,10 @@ import re
 # === CONFIG ===
 API_KEY    = os.getenv("ODDS_API_KEY", "your_api_key_here")
 REGION     = os.getenv("AWS_REGION", "us-east-1")
-BUCKET     = os.getenv("S3_BUCKET_NAME", "fantasy-sports-csvs")
+BUCKET     = "fantasy-sports-csvs"  # ✅ Directly hardcoded like your box score script
 S3_FOLDER  = "baseball/betting"
 SPORT      = "baseball_mlb"
-MARKETS    = "totals,spreads"
+MARKETS    = "totals,spreads,team_totals"
 BOOKMAKERS = "fanduel"
 
 # === DATE + FILE SETUP ===
