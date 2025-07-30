@@ -103,6 +103,11 @@ for team, entries in weather_grouped.items():
     weather_by_team[team] = sorted(entries, key=lambda x: x.get("time_local", ""))[0]
 
 if unmatched_weather_teams:
+    print(f"⚠️ Unmatched weather teams: {sorted(unmatched_weather_teams)}")
+else:
+    print("✅ All weather teams matched.")
+
+if unmatched_weather_teams:
     print(f"⚠️ Unmatched weather teams: {unmatched_weather_teams}")
 
 # ─── MATCHUPS + BETTING ───
