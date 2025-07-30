@@ -122,7 +122,7 @@ else:
 bet_by_team = {}
 matchup_by_team = {}
 
-# Build matchups from starters
+# Matchups from starters
 for game in starters:
     h_raw, a_raw = game.get("home_team", ""), game.get("away_team", "")
     h_key, a_key = normalize(h_raw), normalize(a_raw)
@@ -131,23 +131,22 @@ for game in starters:
         matchup_by_team[normalize(h_team)] = {"opponent": a_team, "home_or_away": "home"}
         matchup_by_team[normalize(a_team)] = {"opponent": h_team, "home_or_away": "away"}
 
-# Simplified FanDuel-only betting extraction
+# FanDuel-only betting parsing
 for o in odds:
     if o.get("bookmaker") != "FanDuel":
         continue
 
+    market = o.get("market")
     h_raw = o.get("home_team", "")
     a_raw = o.get("away_team", "")
     h_team = TEAM_NAME_MAP.get(normalize(h_raw))
     a_team = TEAM_NAME_MAP.get(normalize(a_raw))
-    market = o.get("market")
     point = o.get("point")
-    odds_data = o.get("odds", {})
 
     if not (h_team and a_team):
         continue
 
-    # Initialize both teams
+    # Ensure both teams are in bet_by_team
     for team in [h_team, a_team]:
         if team not in bet_by_team:
             bet_by_team[team] = {
@@ -155,38 +154,24 @@ for o in odds:
                 "spread": None,
                 "favorite": None,
                 "underdog": None,
-                "implied_totals": {}
+                "implied_totals": {}  # Placeholder; not in this file yet
             }
 
-    if market == "totals" and point is not None:
+    if market == "totals" and isinstance(point, (int, float)):
         bet_by_team[h_team]["over_under"] = point
         bet_by_team[a_team]["over_under"] = point
 
     elif market == "spreads" and isinstance(point, (int, float)):
-        # Negative spread => favorite
-        if point < 0:
-            bet_by_team[h_team]["favorite"] = h_team
-            bet_by_team[a_team]["underdog"] = a_team
-        else:
-            bet_by_team[a_team]["favorite"] = a_team
-            bet_by_team[h_team]["underdog"] = h_team
+        # Use odds to determine favorite
+        favored_team = h_team if point < 0 else a_team
+        underdog_team = a_team if point < 0 else h_team
+        abs_spread = abs(point)
 
-        bet_by_team[h_team]["spread"] = abs(point)
-        bet_by_team[a_team]["spread"] = abs(point)
+        for team in [h_team, a_team]:
+            bet_by_team[team]["spread"] = abs_spread
 
-    elif market == "team_totals":
-        # Format: {"team": "Seattle Mariners", "market": "team_totals", "point": 4.5, ...}
-        team = TEAM_NAME_MAP.get(normalize(o.get("team", "")))
-        if team and point is not None:
-            if team not in bet_by_team:
-                bet_by_team[team] = {
-                    "over_under": None,
-                    "spread": None,
-                    "favorite": None,
-                    "underdog": None,
-                    "implied_totals": {}
-                }
-            bet_by_team[team]["implied_totals"]["over"] = point
+        bet_by_team[favored_team]["favorite"] = favored_team
+        bet_by_team[underdog_team]["underdog"] = underdog_team
 
 # ─── STRUCTURE OUTPUT ───
 players_out = {}
