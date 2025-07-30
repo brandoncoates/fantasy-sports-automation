@@ -93,12 +93,14 @@ for team, entries in weather_grouped.items():
     weather_by_team[team] = sorted(entries, key=lambda x: x.get("time_local", ""))[0]
 
 # ─── BETTING AND MATCHUPS ───
-bet_by_team = defaultdict(lambda: {"over_under": None, "markets": [], "opponent": None})
+bet_by_team = defaultdict(lambda: {"over_under": None, "markets": []})
 matchup_by_team = {}
 
 for game in starters:
-    h_team = TEAM_NAME_MAP.get(normalize(game.get("home_team")))
-    a_team = TEAM_NAME_MAP.get(normalize(game.get("away_team")))
+    raw_home = game.get("home_team")
+    raw_away = game.get("away_team")
+    h_team = TEAM_NAME_MAP.get(normalize(raw_home))
+    a_team = TEAM_NAME_MAP.get(normalize(raw_away))
     if h_team and a_team:
         matchup_by_team[h_team] = {"opponent": a_team, "home_or_away": "home"}
         matchup_by_team[a_team] = {"opponent": h_team, "home_or_away": "away"}
