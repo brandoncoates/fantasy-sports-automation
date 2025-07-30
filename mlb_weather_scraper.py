@@ -130,6 +130,10 @@ for g in starters:
         temp_f = round(temp_c * 9 / 5 + 32, 1)
         wind_mph = round(hourly["windspeed_10m"][idx] * 0.621371, 1)
 
+        # Normalize Oakland team name to match combine script expectations
+        if team_name in ["Athletics", "A's", "As", "Sacramento Athletics", "Sutter Health Park"]:
+            team_name = "Oakland Athletics"
+
         records.append({
             "date": DATE,
             "team": team_name,
