@@ -159,7 +159,7 @@ for r in rosters:
     club = TEAM_NAME_MAP.get(normalize(raw_team), raw_team)
 
     wc = weather_by_team.get(club, {})
-    matchup = matchup_by_team.get(club, {})
+    matchup = matchup_by_team.get(normalize(club), {})
     bet = bet_by_team.get(club, {})
 
     is_starter = normalize(name) in starter_names
