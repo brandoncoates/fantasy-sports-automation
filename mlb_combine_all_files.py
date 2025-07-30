@@ -231,7 +231,7 @@ for r in rosters:
         for stat in ["Innings Pitched", "Earned Runs", "Strikeouts (Pitching)", "Wins", "Quality Start"]:
             box.pop(stat, None)
 
-    players_out[name] = {
+        players_out[name] = {
         "player_id": pid,
         "name": name,
         "team": club,
@@ -253,12 +253,12 @@ for r in rosters:
             "underdog": bet.get("underdog"),
             "implied_totals": bet.get("implied_totals", {})
         },
-        },
         "espn_mentions": espn_cnt.get(pid, 0),
         "espn_articles": espn_articles_by_pid.get(pid, []),
         "reddit_mentions": reddit_cnt.get(pid, 0),
         "box_score": box,
     }
+
 
 with open(OUT_FILE, "w", encoding="utf-8") as f:
     json.dump(players_out, f, indent=2)
