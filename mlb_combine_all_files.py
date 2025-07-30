@@ -171,7 +171,7 @@ for r in rosters:
     raw_team = r.get("team", "")
     club = TEAM_NAME_MAP.get(normalize(raw_team), raw_team)
 
-    wc = weather_by_team.get(club, {
+    wc = weather_by_team.get(TEAM_NAME_MAP.get(normalize(club), club), {
         "team": club,
         "weather": {},
         "precipitation_probability": None,
