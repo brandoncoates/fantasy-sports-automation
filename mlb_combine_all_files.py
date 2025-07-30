@@ -31,7 +31,7 @@ REGION       = "us-east-2"
 # ─── HELPERS ───
 def load_json(path):
     if not os.path.exists(path):
-        print(f"⚠️ {path} not found — skipping.")
+        print(f"\u26a0\ufe0f {path} not found — skipping.")
         return []
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -46,9 +46,19 @@ def load_all_reddit_jsons(date):
 def normalize(text: str) -> str:
     return re.sub(r"[ .'-]", "", (text or "")).lower()
 
-# ─── TEAM NAME MAP ───
+# ─── LOAD FILES ───
+rosters   = load_json(ROSTER)
+starters  = load_json(STARTERS)
+weather   = load_json(WEATHER)
+odds      = load_json(ODDS)
+espn      = load_json(ESPN)
+reddit    = load_all_reddit_jsons(DATE)
+boxscores = load_json(BOX)
+
+# ─── BUILD TEAM NAME MAP ───
 TEAM_NAME_MAP = {}
 TEAM_FILE = "team_map.json"
+
 if os.path.exists(TEAM_FILE):
     with open(TEAM_FILE, "r") as f:
         for club in json.load(f):
@@ -65,83 +75,48 @@ if os.path.exists(TEAM_FILE):
             for key in variants:
                 TEAM_NAME_MAP[key] = canon
 
-# Manual patches for common issues
-patches = [
-    "As", "A's", "Sacramento Athletics", "Sutter Health Park", "Athletics",
-    "NYY", "NY Yankees", "New York Yankees",
-    "LAD", "LA Dodgers", "Los Angeles Dodgers",
-    "SD", "SDP", "San Diego Padres",
-    "SF", "SFG", "San Francisco Giants"
-]
-for patch in patches:
-    TEAM_NAME_MAP[normalize(patch)] = "Oakland Athletics" if "Athletic" in patch else TEAM_NAME_MAP.get(normalize(patch), patch)
+# Manually patch probable starter examples
+for game in starters:
+    for k in ["home_team", "away_team"]:
+        raw = game.get(k, "")
+        TEAM_NAME_MAP[normalize(raw)] = raw
 
-# ─── LOAD DATA FILES ───
-rosters   = load_json(ROSTER)
-starters  = load_json(STARTERS)
-weather   = load_json(WEATHER)
-odds      = load_json(ODDS)
-espn      = load_json(ESPN)
-reddit    = load_all_reddit_jsons(DATE)
-boxscores = load_json(BOX)
+TEAM_NAME_MAP[normalize("As")] = "Oakland Athletics"
+TEAM_NAME_MAP[normalize("A's")] = "Oakland Athletics"
+TEAM_NAME_MAP[normalize("Sacramento Athletics")] = "Oakland Athletics"
+TEAM_NAME_MAP[normalize("Sutter Health Park")] = "Oakland Athletics"
+TEAM_NAME_MAP[normalize("Athletics")] = "Oakland Athletics"
 
 # ─── WEATHER LOOKUP ───
 weather_by_team = {}
 weather_grouped = defaultdict(list)
-unmatched_weather_teams = set()
 for rec in weather:
     raw_team = rec.get("team") or rec.get("team_name") or ""
     canon = TEAM_NAME_MAP.get(normalize(raw_team))
     if canon:
         weather_grouped[canon].append(rec)
-    else:
-        unmatched_weather_teams.add(raw_team)
-
 for team, entries in weather_grouped.items():
     weather_by_team[team] = sorted(entries, key=lambda x: x.get("time_local", ""))[0]
-
-if unmatched_weather_teams:
-    print("❌ Unmatched teams in weather data:", unmatched_weather_teams)
 
 # ─── MATCHUPS + BETTING ───
 bet_by_team = defaultdict(lambda: {"over_under": None, "markets": []})
 matchup_by_team = {}
-unmatched_starter_teams = set()
 for game in starters:
-    raw_home = game.get("home_team", "")
-    raw_away = game.get("away_team", "")
-    canon_home = TEAM_NAME_MAP.get(normalize(raw_home))
-    canon_away = TEAM_NAME_MAP.get(normalize(raw_away))
-
-    if canon_home and canon_away:
-        matchup_by_team[canon_home] = {
-            "opponent": canon_away,
-            "home_or_away": "home",
-        }
-        matchup_by_team[canon_away] = {
-            "opponent": canon_home,
-            "home_or_away": "away",
-        }
-    else:
-        if not canon_home:
-            unmatched_starter_teams.add(raw_home)
-        if not canon_away:
-            unmatched_starter_teams.add(raw_away)
-
-if unmatched_starter_teams:
-    print("❌ Unmatched teams in probable starters:", unmatched_starter_teams)
+    h_raw, a_raw = game.get("home_team", ""), game.get("away_team", "")
+    h_key, a_key = normalize(h_raw), normalize(a_raw)
+    h_team, a_team = TEAM_NAME_MAP.get(h_key), TEAM_NAME_MAP.get(a_key)
+    if h_team and a_team:
+        matchup_by_team[normalize(h_team)] = {"opponent": a_team, "home_or_away": "home"}
+        matchup_by_team[normalize(a_team)] = {"opponent": h_team, "home_or_away": "away"}
 
 for o in odds:
-    home_team = TEAM_NAME_MAP.get(normalize(o.get("home_team", "")))
-    away_team = TEAM_NAME_MAP.get(normalize(o.get("away_team", "")))
-    market = o.get("market")
-    point = o.get("point")
-
-    if home_team and away_team and market == "totals" and point is not None:
-        bet_by_team[home_team]["over_under"] = point
-        bet_by_team[away_team]["over_under"] = point
-
-    for team in [home_team, away_team]:
+    h = TEAM_NAME_MAP.get(normalize(o.get("home_team", "")))
+    a = TEAM_NAME_MAP.get(normalize(o.get("away_team", "")))
+    market, point = o.get("market"), o.get("point")
+    if h and a and market == "totals" and point is not None:
+        bet_by_team[h]["over_under"] = point
+        bet_by_team[a]["over_under"] = point
+    for team in [h, a]:
         if team:
             bet_by_team[team]["markets"].append({
                 "bookmaker": o.get("bookmaker"),
@@ -153,9 +128,9 @@ for o in odds:
 # ─── STRUCTURE OUTPUT ───
 players_out = {}
 box_by_name = {normalize(b.get("Player Name", "")): b for b in boxscores}
-
 espn_cnt = Counter()
 espn_articles_by_pid = defaultdict(list)
+
 for art in espn:
     hl, url = art.get("headline", ""), art.get("url", "")
     nh = normalize(hl)
@@ -173,9 +148,7 @@ for post in reddit:
         if normalize(r["player"].split()[-1]) in nt:
             reddit_cnt[pid] += 1
 
-starter_names = {
-    normalize(game.get("home_pitcher", "")) for game in starters
-} | {
+starter_names = {normalize(game.get("home_pitcher", "")) for game in starters} | {
     normalize(game.get("away_pitcher", "")) for game in starters
 }
 
@@ -184,13 +157,10 @@ for r in rosters:
     name = r["player"].strip()
     raw_team = r.get("team", "")
     club = TEAM_NAME_MAP.get(normalize(raw_team), raw_team)
-    club_key = normalize(club)
-
+    key = normalize(club)
     wc = weather_by_team.get(club, {})
-    matchup = matchup_by_team.get(club, {})
+    matchup = matchup_by_team.get(key, {})
     bet = bet_by_team.get(club, {})
-
-    is_pitcher = r.get("position") == "P"
     is_starter = normalize(name) in starter_names
 
     players_out[name] = {
