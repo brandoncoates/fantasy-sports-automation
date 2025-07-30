@@ -174,15 +174,16 @@ for r in rosters:
     club_key = normalize(club)
     canon_club = TEAM_NAME_MAP.get(club_key, club)
     wc = weather_by_team.get(
-    canon_club,
-    {
-        "team": club,
-        "weather": {},
-        "precipitation_probability": None,
-        "cloud_cover_pct": None,
-        "weather_code": None
-    }
+        canon_club,
+        weather_by_team.get(club, {
+            "team": club,
+            "weather": {},
+            "precipitation_probability": None,
+            "cloud_cover_pct": None,
+            "weather_code": None
+    })
 )
+    
 
     matchup = matchup_by_team.get(normalize(club), {})
     bet = bet_by_team.get(club, {})
