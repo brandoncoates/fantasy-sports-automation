@@ -75,12 +75,11 @@ if os.path.exists(TEAM_FILE):
             for key in variants:
                 TEAM_NAME_MAP[key] = canon
 
-# Manually patch probable starter examples
+# Manual overrides
 for game in starters:
     for k in ["home_team", "away_team"]:
         raw = game.get(k, "")
         TEAM_NAME_MAP[normalize(raw)] = raw
-
 TEAM_NAME_MAP[normalize("As")] = "Oakland Athletics"
 TEAM_NAME_MAP[normalize("A's")] = "Oakland Athletics"
 TEAM_NAME_MAP[normalize("Sacramento Athletics")] = "Oakland Athletics"
@@ -90,13 +89,21 @@ TEAM_NAME_MAP[normalize("Athletics")] = "Oakland Athletics"
 # ─── WEATHER LOOKUP ───
 weather_by_team = {}
 weather_grouped = defaultdict(list)
+unmatched_weather_teams = set()
+
 for rec in weather:
     raw_team = rec.get("team") or rec.get("team_name") or ""
     canon = TEAM_NAME_MAP.get(normalize(raw_team))
     if canon:
         weather_grouped[canon].append(rec)
+    else:
+        unmatched_weather_teams.add(raw_team)
+
 for team, entries in weather_grouped.items():
     weather_by_team[team] = sorted(entries, key=lambda x: x.get("time_local", ""))[0]
+
+if unmatched_weather_teams:
+    print(f"⚠️ Unmatched weather teams: {unmatched_weather_teams}")
 
 # ─── MATCHUPS + BETTING ───
 bet_by_team = defaultdict(lambda: {"over_under": None, "markets": []})
@@ -159,13 +166,18 @@ for r in rosters:
     raw_team = r.get("team", "")
     club = TEAM_NAME_MAP.get(normalize(raw_team), raw_team)
 
-    wc = weather_by_team.get(club, {})
+    wc = weather_by_team.get(club, {
+        "team": club,
+        "weather": {},
+        "precipitation_probability": None,
+        "cloud_cover_pct": None,
+        "weather_code": None
+    })
     matchup = matchup_by_team.get(normalize(club), {})
     bet = bet_by_team.get(club, {})
 
     is_starter = normalize(name) in starter_names
 
-    # Clean pitcher stats if not a pitcher
     box = box_by_name.get(normalize(name), {}).copy()
     if r.get("position") not in ["P", "SP", "RP"]:
         for stat in ["Innings Pitched", "Earned Runs", "Strikeouts (Pitching)", "Wins", "Quality Start"]:
