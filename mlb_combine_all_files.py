@@ -136,42 +136,32 @@ for o in odds:
     if o.get("bookmaker") != "FanDuel":
         continue
 
-    market = o.get("market")
     h_raw = o.get("home_team", "")
     a_raw = o.get("away_team", "")
     h_team = TEAM_NAME_MAP.get(normalize(h_raw))
     a_team = TEAM_NAME_MAP.get(normalize(a_raw))
-    point = o.get("point")
 
     if not (h_team and a_team):
         continue
 
-    # Ensure both teams are in bet_by_team
-    for team in [h_team, a_team]:
-        if team not in bet_by_team:
-            bet_by_team[team] = {
-                "over_under": None,
-                "spread": None,
-                "favorite": None,
-                "underdog": None,
-                "implied_totals": {}  # Placeholder; not in this file yet
-            }
+    over_under = o.get("over_under")
+    spread = o.get("spread")
+    favorite = o.get("favorite")
+    underdog = o.get("underdog")
+    implied_totals = o.get("implied_totals", {})
 
-    if market == "totals" and isinstance(point, (int, float)):
-        bet_by_team[h_team]["over_under"] = point
-        bet_by_team[a_team]["over_under"] = point
+    # Assign same betting info to both teams
+    betting_info = {
+        "over_under": over_under,
+        "spread": spread,
+        "favorite": favorite,
+        "underdog": underdog,
+        "implied_totals": implied_totals
+    }
 
-    elif market == "spreads" and isinstance(point, (int, float)):
-        # Use odds to determine favorite
-        favored_team = h_team if point < 0 else a_team
-        underdog_team = a_team if point < 0 else h_team
-        abs_spread = abs(point)
+    bet_by_team[h_team] = betting_info
+    bet_by_team[a_team] = betting_info
 
-        for team in [h_team, a_team]:
-            bet_by_team[team]["spread"] = abs_spread
-
-        bet_by_team[favored_team]["favorite"] = favored_team
-        bet_by_team[underdog_team]["underdog"] = underdog_team
 
 # ─── STRUCTURE OUTPUT ───
 players_out = {}
@@ -253,6 +243,7 @@ for r in rosters:
             "underdog": bet.get("underdog"),
             "implied_totals": bet.get("implied_totals", {})
         },
+
         "espn_mentions": espn_cnt.get(pid, 0),
         "espn_articles": espn_articles_by_pid.get(pid, []),
         "reddit_mentions": reddit_cnt.get(pid, 0),
