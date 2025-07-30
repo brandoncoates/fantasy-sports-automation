@@ -7,12 +7,12 @@ import boto3
 import re
 
 # === CONFIG ===
-API_KEY    = os.getenv("ODDS_API_KEY", "your_api_key_here")
-REGION     = os.getenv("AWS_REGION", "us-east-1")
+API_KEY    = os.getenv("ODDS_API_KEY")
+REGION     = os.getenv("AWS_REGION")
 BUCKET     = "fantasy-sports-csvs"  # ✅ Directly hardcoded like your box score script
 S3_FOLDER  = "baseball/betting"
 SPORT      = "baseball_mlb"
-MARKETS    = "totals,spreads,team_totals"
+MARKETS    = "totals,spreads"
 BOOKMAKERS = "fanduel"
 
 # === DATE + FILE SETUP ===
