@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from collections import defaultdict, Counter
 import pytz
 
-# ─── TIMEZONE‑SAFE DATE ───
+# ─── TIMEZONE-SAFE DATE ───
 pst = pytz.timezone("US/Pacific")
 DATE = os.getenv("FORCE_DATE", datetime.now(pst).strftime("%Y-%m-%d"))
 YDAY = (datetime.strptime(DATE, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
@@ -23,7 +23,6 @@ REDDIT_DIR   = "news-headlines-csvs/reddit_fantasy_baseball"
 BOX          = f"{BASE}/boxscores/mlb_boxscores_{YDAY}.json"
 OUT_FILE     = f"structured_players_{DATE}.json"
 
-# ─── S3 CONFIG (OPTIONAL) ───
 UPLOAD_TO_S3 = os.getenv("UPLOAD_TO_S3", "false").lower() == "true"
 BUCKET       = "fantasy-sports-csvs"
 S3_KEY       = f"{BASE}/combined/{OUT_FILE}"
@@ -47,7 +46,7 @@ def load_all_reddit_jsons(date):
 def normalize(text: str) -> str:
     return re.sub(r"[ .'-]", "", (text or "")).lower()
 
-# ─── TEAM NORMALIZATION ───
+# ─── TEAM NAME MAP ───
 TEAM_NAME_MAP = {}
 TEAM_FILE = "team_map.json"
 if os.path.exists(TEAM_FILE):
@@ -70,6 +69,7 @@ TEAM_NAME_MAP[normalize("As")] = "Oakland Athletics"
 TEAM_NAME_MAP[normalize("A's")] = "Oakland Athletics"
 TEAM_NAME_MAP[normalize("Sacramento Athletics")] = "Oakland Athletics"
 TEAM_NAME_MAP[normalize("Sutter Health Park")] = "Oakland Athletics"
+TEAM_NAME_MAP[normalize("Athletics")] = "Oakland Athletics"
 
 # ─── LOAD DATA FILES ───
 rosters   = load_json(ROSTER)
@@ -83,27 +83,41 @@ boxscores = load_json(BOX)
 # ─── WEATHER LOOKUP ───
 weather_by_team = {}
 weather_grouped = defaultdict(list)
+unmatched_weather_teams = set()
 for rec in weather:
     raw_team = rec.get("team") or rec.get("team_name") or ""
     canon = TEAM_NAME_MAP.get(normalize(raw_team))
     if canon:
         weather_grouped[canon].append(rec)
+    else:
+        unmatched_weather_teams.add(raw_team)
 
 for team, entries in weather_grouped.items():
     weather_by_team[team] = sorted(entries, key=lambda x: x.get("time_local", ""))[0]
 
-# ─── BETTING AND MATCHUPS ───
+if unmatched_weather_teams:
+    print("❌ Unmatched teams in weather data:", unmatched_weather_teams)
+
+# ─── MATCHUPS + BETTING ───
 bet_by_team = defaultdict(lambda: {"over_under": None, "markets": []})
 matchup_by_team = {}
-
+unmatched_starter_teams = set()
 for game in starters:
-    raw_home = game.get("home_team")
-    raw_away = game.get("away_team")
+    raw_home = game.get("home_team", "")
+    raw_away = game.get("away_team", "")
     h_team = TEAM_NAME_MAP.get(normalize(raw_home))
     a_team = TEAM_NAME_MAP.get(normalize(raw_away))
     if h_team and a_team:
         matchup_by_team[h_team] = {"opponent": a_team, "home_or_away": "home"}
         matchup_by_team[a_team] = {"opponent": h_team, "home_or_away": "away"}
+    else:
+        if not h_team:
+            unmatched_starter_teams.add(raw_home)
+        if not a_team:
+            unmatched_starter_teams.add(raw_away)
+
+if unmatched_starter_teams:
+    print("❌ Unmatched teams in probable starters:", unmatched_starter_teams)
 
 for o in odds:
     home_team = TEAM_NAME_MAP.get(normalize(o.get("home_team", "")))
