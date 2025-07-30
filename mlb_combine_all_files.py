@@ -91,24 +91,31 @@ weather_by_team = {}
 weather_grouped = defaultdict(list)
 unmatched_weather_teams = set()
 
+print("\n📊 Weather entries:")
 for rec in weather:
     raw_team = rec.get("team") or rec.get("team_name") or ""
-    canon = TEAM_NAME_MAP.get(normalize(raw_team))
+    norm_team = normalize(raw_team)
+    canon = TEAM_NAME_MAP.get(norm_team)
+
+    print(f"  team: '{raw_team}' → normalized: '{norm_team}' → canon: '{canon}'")
+
     if canon:
         weather_grouped[canon].append(rec)
     else:
-        unmatched_weather_teams.add(raw_team)
+        unmatched_weather_teams.add((raw_team, norm_team))
 
 for team, entries in weather_grouped.items():
     weather_by_team[team] = sorted(entries, key=lambda x: x.get("time_local", ""))[0]
 
-if unmatched_weather_teams:
-    print(f"⚠️ Unmatched weather teams: {sorted(unmatched_weather_teams)}")
-else:
-    print("✅ All weather teams matched.")
+print("\n🔄 TEAM_NAME_MAP keys include:")
+print(", ".join(sorted(TEAM_NAME_MAP.keys())))
 
 if unmatched_weather_teams:
-    print(f"⚠️ Unmatched weather teams: {unmatched_weather_teams}")
+    print("\n⚠️ Unmatched weather teams:")
+    for raw, norm in sorted(unmatched_weather_teams):
+        print(f"  raw: '{raw}', normalized: '{norm}'")
+else:
+    print("\n✅ All weather teams matched.")
 
 # ─── MATCHUPS + BETTING ───
 bet_by_team = defaultdict(lambda: {"over_under": None, "markets": []})
