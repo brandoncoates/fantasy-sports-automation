@@ -127,7 +127,12 @@ for o in odds:
 
 # ─── STRUCTURE OUTPUT ───
 players_out = {}
-box_by_name = {normalize(b.get("Player Name", "")): b for b in boxscores}
+# Get and clean box score
+box = box_by_name.get(normalize(name), {}).copy()
+if r.get("position") not in ["P", "SP", "RP"]:
+    for stat in ["Innings Pitched", "Earned Runs", "Strikeouts (Pitching)", "Wins", "Quality Start"]:
+        box.pop(stat, None)
+
 espn_cnt = Counter()
 espn_articles_by_pid = defaultdict(list)
 
@@ -187,7 +192,7 @@ for r in rosters:
         "espn_mentions": espn_cnt.get(pid, 0),
         "espn_articles": espn_articles_by_pid.get(pid, []),
         "reddit_mentions": reddit_cnt.get(pid, 0),
-        "box_score": box_by_name.get(normalize(name), {}),
+        "box_score": box,
     }
 
 with open(OUT_FILE, "w", encoding="utf-8") as f:
