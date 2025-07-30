@@ -31,7 +31,7 @@ REGION       = "us-east-2"
 # ─── HELPERS ───
 def load_json(path):
     if not os.path.exists(path):
-        print(f"\u26a0\ufe0f {path} not found — skipping.")
+        print(f"⚠️ {path} not found — skipping.")
         return []
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -127,11 +127,7 @@ for o in odds:
 
 # ─── STRUCTURE OUTPUT ───
 players_out = {}
-# Get and clean box score
-box = box_by_name.get(normalize(name), {}).copy()
-if r.get("position") not in ["P", "SP", "RP"]:
-    for stat in ["Innings Pitched", "Earned Runs", "Strikeouts (Pitching)", "Wins", "Quality Start"]:
-        box.pop(stat, None)
+box_by_name = {normalize(b.get("Player Name", "")): b for b in boxscores}
 
 espn_cnt = Counter()
 espn_articles_by_pid = defaultdict(list)
@@ -169,6 +165,11 @@ for r in rosters:
 
     is_starter = normalize(name) in starter_names
 
+    # Clean pitcher stats if not a pitcher
+    box = box_by_name.get(normalize(name), {}).copy()
+    if r.get("position") not in ["P", "SP", "RP"]:
+        for stat in ["Innings Pitched", "Earned Runs", "Strikeouts (Pitching)", "Wins", "Quality Start"]:
+            box.pop(stat, None)
 
     players_out[name] = {
         "player_id": pid,
