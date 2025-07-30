@@ -85,6 +85,8 @@ TEAM_NAME_MAP[normalize("A's")] = "Oakland Athletics"
 TEAM_NAME_MAP[normalize("Sacramento Athletics")] = "Oakland Athletics"
 TEAM_NAME_MAP[normalize("Sutter Health Park")] = "Oakland Athletics"
 TEAM_NAME_MAP[normalize("Athletics")] = "Oakland Athletics"
+TEAM_NAME_MAP[normalize("Oakland Athletics")] = "Oakland Athletics"  # 🔥 THE FIX
+
 
 # ─── WEATHER LOOKUP ───
 weather_by_team = {}
