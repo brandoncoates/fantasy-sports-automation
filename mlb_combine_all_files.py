@@ -248,7 +248,11 @@ for r in rosters:
         "weather_context": wc,
         "betting_context": {
             "over_under": bet.get("over_under"),
-            "markets": bet.get("markets", [])
+            "spread": bet.get("spread"),
+            "favorite": bet.get("favorite"),
+            "underdog": bet.get("underdog"),
+            "implied_totals": bet.get("implied_totals", {})
+        },
         },
         "espn_mentions": espn_cnt.get(pid, 0),
         "espn_articles": espn_articles_by_pid.get(pid, []),
