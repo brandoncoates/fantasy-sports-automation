@@ -87,7 +87,6 @@ TEAM_NAME_MAP[normalize("Sutter Health Park")] = "Oakland Athletics"
 TEAM_NAME_MAP[normalize("Athletics")] = "Oakland Athletics"
 TEAM_NAME_MAP[normalize("Oakland Athletics")] = "Oakland Athletics"  # 🔥 THE FIX
 
-
 # ─── WEATHER LOOKUP ───
 weather_by_team = {}
 weather_grouped = defaultdict(list)
@@ -122,16 +121,7 @@ else:
 bet_by_team = {}
 matchup_by_team = {}
 
-# Matchups from starters
-for game in starters:
-    h_raw, a_raw = game.get("home_team", ""), game.get("away_team", "")
-    h_key, a_key = normalize(h_raw), normalize(a_raw)
-    h_team, a_team = TEAM_NAME_MAP.get(h_key), TEAM_NAME_MAP.get(a_key)
-    if h_team and a_team:
-        matchup_by_team[normalize(h_team)] = {"opponent": a_team, "home_or_away": "home"}
-        matchup_by_team[normalize(a_team)] = {"opponent": h_team, "home_or_away": "away"}
-
-# FanDuel-only betting parsing
+# Matchups from FanDuel odds file (instead of starters only)
 for o in odds:
     if o.get("bookmaker") != "FanDuel":
         continue
@@ -141,27 +131,20 @@ for o in odds:
     h_team = TEAM_NAME_MAP.get(normalize(h_raw))
     a_team = TEAM_NAME_MAP.get(normalize(a_raw))
 
-    if not (h_team and a_team):
-        continue
+    if h_team and a_team:
+        matchup_by_team[normalize(h_team)] = {"opponent": a_team, "home_or_away": "home"}
+        matchup_by_team[normalize(a_team)] = {"opponent": h_team, "home_or_away": "away"}
 
-    over_under = o.get("over_under")
-    spread = o.get("spread")
-    favorite = o.get("favorite")
-    underdog = o.get("underdog")
-    implied_totals = o.get("implied_totals", {})
+        betting_info = {
+            "over_under": o.get("over_under"),
+            "spread": o.get("spread"),
+            "favorite": o.get("favorite"),
+            "underdog": o.get("underdog"),
+            "implied_totals": o.get("implied_totals", {})
+        }
 
-    # Assign same betting info to both teams
-    betting_info = {
-        "over_under": over_under,
-        "spread": spread,
-        "favorite": favorite,
-        "underdog": underdog,
-        "implied_totals": implied_totals
-    }
-
-    bet_by_team[h_team] = betting_info
-    bet_by_team[a_team] = betting_info
-
+        bet_by_team[h_team] = betting_info
+        bet_by_team[a_team] = betting_info
 
 # ─── STRUCTURE OUTPUT ───
 players_out = {}
@@ -209,7 +192,6 @@ for r in rosters:
             "weather_code": None
     })
 )
-    
 
     matchup = matchup_by_team.get(normalize(club), {})
     bet = bet_by_team.get(club, {})
@@ -221,7 +203,7 @@ for r in rosters:
         for stat in ["Innings Pitched", "Earned Runs", "Strikeouts (Pitching)", "Wins", "Quality Start"]:
             box.pop(stat, None)
 
-        players_out[name] = {
+    players_out[name] = {
         "player_id": pid,
         "name": name,
         "team": club,
@@ -243,13 +225,11 @@ for r in rosters:
             "underdog": bet.get("underdog"),
             "implied_totals": bet.get("implied_totals", {})
         },
-
         "espn_mentions": espn_cnt.get(pid, 0),
         "espn_articles": espn_articles_by_pid.get(pid, []),
         "reddit_mentions": reddit_cnt.get(pid, 0),
         "box_score": box,
     }
-
 
 with open(OUT_FILE, "w", encoding="utf-8") as f:
     json.dump(players_out, f, indent=2)
