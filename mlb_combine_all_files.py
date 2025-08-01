@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 import os
 import re
@@ -102,12 +103,10 @@ for rec in weather:
     else:
         unmatched_weather_teams.add(raw_team)
 
-# PATCH: If "Athletics" is present, ensure "Oakland Athletics" exists in the map
 if "Athletics" in [rec.get("team") for rec in weather]:
     if "Oakland Athletics" not in weather_grouped and "Athletics" in weather_grouped:
         weather_grouped["Oakland Athletics"] = weather_grouped["Athletics"]
 
-# Build final weather_by_team using canonical names
 for team, entries in weather_grouped.items():
     canon_team = TEAM_NAME_MAP.get(normalize(team), team)
     weather_by_team[canon_team] = sorted(entries, key=lambda x: x.get("time_local", ""))[0]
@@ -121,7 +120,7 @@ else:
 bet_by_team = {}
 matchup_by_team = {}
 
-# Matchups from FanDuel odds file (instead of starters only)
+# Matchups from FanDuel odds file
 for o in odds:
     if o.get("bookmaker") != "FanDuel":
         continue
@@ -145,6 +144,18 @@ for o in odds:
 
         bet_by_team[h_team] = betting_info
         bet_by_team[a_team] = betting_info
+
+# ─── PATCH: Add matchups from starters if missing ───
+for game in starters:
+    h_raw = game.get("home_team", "")
+    a_raw = game.get("away_team", "")
+    h_team = TEAM_NAME_MAP.get(normalize(h_raw))
+    a_team = TEAM_NAME_MAP.get(normalize(a_raw))
+
+    if h_team and normalize(h_team) not in matchup_by_team:
+        matchup_by_team[normalize(h_team)] = {"opponent": a_team, "home_or_away": "home"}
+    if a_team and normalize(a_team) not in matchup_by_team:
+        matchup_by_team[normalize(a_team)] = {"opponent": h_team, "home_or_away": "away"}
 
 # ─── STRUCTURE OUTPUT ───
 players_out = {}
