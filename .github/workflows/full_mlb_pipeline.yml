@@ -53,6 +53,7 @@ jobs:
         run: |
             echo "📝 Generating DFS article for today..."
             DATE=$(date -u +"%Y-%m-%d")
+            cp baseball/combined/enhanced_structured_players_${DATE}.json mlb_baseball_article_generator/
             python mlb_baseball_article_generator/generate_dfs_article.py --date $DATE
 
       - name: Upload all generated files to S3
