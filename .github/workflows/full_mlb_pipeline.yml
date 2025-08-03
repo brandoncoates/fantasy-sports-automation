@@ -40,22 +40,30 @@ jobs:
           aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/news/ ./news/ --recursive
           aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/boxscores/ ./boxscores/ --recursive
 
-      - name: Create output folders
+      - name: Create output folder
         run: mkdir -p baseball/combined
 
-      - name: Run mlb_combine_all_files.py to generate structured player file
-        run: python mlb_combine_all_files.py
-
-      - name: Debug: Show structured file contents before enhancement
+      - name: Run combine script to generate structured file
         run: |
-          echo "Structured file contents:"
-          cat baseball/combined/structured_players_2025-08-03.json || echo "Missing or empty structured file."
+          echo "🚀 Running combine script..."
+          python mlb_baseball_article_generator/mlb_combine_all_files.py
+          echo "✅ Combine script completed."
+
+      - name: Debug structured file contents
+        run: |
+          echo "📂 Listing files in baseball/combined:"
+          ls -lh baseball/combined/
+          echo "📄 Preview structured file:"
+          cat $(ls -t baseball/combined/structured_players_*.json | head -n 1) || echo "❌ Structured file not found or empty."
 
       - name: Upload structured file to S3
         run: aws s3 cp ./baseball/combined/ s3://$S3_BUCKET/$BASEBALL_DIR/combined/ --recursive
 
-      - name: Run player_stats_analyzer.py to enhance file
-        run: python player_stats_analyzer.py
+      - name: Run analyzer script to enhance structured file
+        run: |
+          echo "📊 Enhancing structured file..."
+          python mlb_baseball_article_generator/player_stats_analyzer.py
+          echo "✅ Enhancement complete."
 
       - name: Upload enhanced file to S3
         run: aws s3 cp ./baseball/combined/ s3://$S3_BUCKET/$BASEBALL_DIR/combined/ --recursive
