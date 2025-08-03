@@ -46,6 +46,12 @@ jobs:
       - name: Run combine script to generate structured file
         run: python mlb_combine_all_files.py
 
+      - name: Verify combined files
+        run: |
+          echo "Listing combined folder:"
+          ls -l baseball/combined
+
+
       - name: Run analyzer script to enhance structured file
         run: python player_stats_analyzer.py
 

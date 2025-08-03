@@ -11,7 +11,11 @@ ARCHIVE_DIR = "baseball/combined/archive"
 
 # Load latest file by date
 def load_latest_structured_file():
+    if not os.path.exists(STRUCTURED_DIR):
+        raise FileNotFoundError(f"Structured directory '{STRUCTURED_DIR}' does not exist.")
+
     files = [f for f in os.listdir(STRUCTURED_DIR) if f.startswith("structured_players_") and f.endswith(".json")]
+    print(f"🔍 Found {len(files)} structured files in {STRUCTURED_DIR}: {files}")
     files.sort(reverse=True)
     if not files:
         raise FileNotFoundError("No structured player files found.")
