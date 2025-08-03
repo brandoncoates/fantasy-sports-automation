@@ -50,7 +50,10 @@ jobs:
         run: python player_stats_analyzer.py
 
       - name: Run DFS article generator
-        run: python mlb_baseball_article_generator/generate_dfs_article.py
+        run: |
+            echo "📝 Generating DFS article for today..."
+            DATE=$(date -u +"%Y-%m-%d")
+            python mlb_baseball_article_generator/generate_dfs_article.py --date $DATE
 
       - name: Upload all generated files to S3
         run: |
