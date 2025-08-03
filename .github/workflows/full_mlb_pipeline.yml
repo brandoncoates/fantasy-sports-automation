@@ -44,7 +44,7 @@ jobs:
         run: mkdir -p baseball/combined
 
       - name: Run combine script to generate structured file
-        run: python mlb_baseball_article_generator/full_mlb_pipeline.py
+        run: python full_mlb_pipeline.py
 
       - name: Run analyzer script to enhance structured file
         run: python mlb_baseball_article_generator/player_stats_analyzer.py
