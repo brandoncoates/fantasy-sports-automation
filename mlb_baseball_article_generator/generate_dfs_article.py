@@ -7,6 +7,7 @@ import os
 
 # Constants
 STRUCTURED_DIR = "baseball/combined"
+ARTICLE_DIR = "mlb_baseball_article_generator"
 
 def load_json(path):
     with open(path, "r", encoding="utf-8") as f:
@@ -77,9 +78,9 @@ def main():
     date = args.date
     yday = (datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
 
-    # Point to correct directory
+    # File paths
     structured_fp = os.path.join(STRUCTURED_DIR, f"enhanced_structured_players_{date}.json")
-    recap_fp = os.path.join(STRUCTURED_DIR, f"mlb_dfs_article_{yday}.json")
+    recap_fp = os.path.join(ARTICLE_DIR, f"mlb_dfs_article_{yday}.json")
 
     print(f"📂 Loading: {structured_fp}, {recap_fp}")
 
