@@ -40,8 +40,8 @@ jobs:
           aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/news/ ./news/ --recursive
           aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/boxscores/ ./boxscores/ --recursive
 
-      - name: Run combine.py to generate structured player file
-        run: python combine.py
+      - name: Run mlb_combine_all_files.py to generate structured player file
+        run: python mlb_combine_all_files.py
 
       - name: Upload structured file to S3
         run: aws s3 cp ./baseball/combined/ s3://$S3_BUCKET/$BASEBALL_DIR/combined/ --recursive
