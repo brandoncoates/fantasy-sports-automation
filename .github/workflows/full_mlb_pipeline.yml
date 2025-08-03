@@ -51,6 +51,10 @@ jobs:
           echo "Listing combined folder:"
           ls -l baseball/combined
 
+      - name: Download latest structured player file from S3
+        run: |
+          DATE=$(date -u +"%Y-%m-%d")
+          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/combined/structured_players_${DATE}.json baseball/combined/structured_players_${DATE}.json
 
       - name: Run analyzer script to enhance structured file
         run: python player_stats_analyzer.py
