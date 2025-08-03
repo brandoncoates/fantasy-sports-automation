@@ -40,36 +40,19 @@ jobs:
           aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/news/ ./news/ --recursive
           aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/boxscores/ ./boxscores/ --recursive
 
-      - name: Create output folder
-        run: mkdir -p baseball/combined
+      - name: Create output folders
+        run: mkdir -p baseball/combined mlb_baseball_article_generator
 
       - name: Run combine script to generate structured file
-        run: |
-            echo "🚀 Running combine script..."
-            python mlb_combine_all_files.py
-            echo "✅ Combine script completed."
+        run: python mlb_combine_all_files.py
 
       - name: Run analyzer script to enhance structured file
+        run: python player_stats_analyzer.py
+
+      - name: Run DFS article generator
+        run: python mlb_baseball_article_generator/generate_dfs_article.py
+
+      - name: Upload all generated files to S3
         run: |
-            echo "📊 Enhancing structured file..."
-            python player_stats_analyzer.py
-            echo "✅ Enhancement complete."
-
-      - name: Debug structured file contents
-        run: |
-          echo "📂 Listing files in baseball/combined:"
-          ls -lh baseball/combined/
-          echo "📄 Preview structured file:"
-          cat $(ls -t baseball/combined/structured_players_*.json | head -n 1) || echo "❌ Structured file not found or empty."
-
-      - name: Upload structured file to S3
-        run: aws s3 cp ./baseball/combined/ s3://$S3_BUCKET/$BASEBALL_DIR/combined/ --recursive
-
-      - name: Run analyzer script to enhance structured file
-        run: |
-          echo "📊 Enhancing structured file..."
-          python mlb_baseball_article_generator/player_stats_analyzer.py
-          echo "✅ Enhancement complete."
-
-      - name: Upload enhanced file to S3
-        run: aws s3 cp ./baseball/combined/ s3://$S3_BUCKET/$BASEBALL_DIR/combined/ --recursive
+          aws s3 cp ./baseball/combined/ s3://$S3_BUCKET/$BASEBALL_DIR/combined/ --recursive
+          aws s3 cp ./mlb_baseball_article_generator/ s3://$S3_BUCKET/$BASEBALL_DIR/articles/ --recursive
