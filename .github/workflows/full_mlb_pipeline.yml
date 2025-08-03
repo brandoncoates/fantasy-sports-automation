@@ -45,9 +45,15 @@ jobs:
 
       - name: Run combine script to generate structured file
         run: |
-          echo "🚀 Running combine script..."
-          python mlb_baseball_article_generator/mlb_combine_all_files.py
-          echo "✅ Combine script completed."
+            echo "🚀 Running combine script..."
+            python mlb_combine_all_files.py
+            echo "✅ Combine script completed."
+
+      - name: Run analyzer script to enhance structured file
+        run: |
+            echo "📊 Enhancing structured file..."
+            python player_stats_analyzer.py
+            echo "✅ Enhancement complete."
 
       - name: Debug structured file contents
         run: |
