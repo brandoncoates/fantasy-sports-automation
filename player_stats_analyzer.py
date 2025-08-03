@@ -2,7 +2,7 @@
 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import defaultdict
 
 # Configuration
@@ -11,17 +11,13 @@ ARCHIVE_DIR = "baseball/combined/archive"
 
 # Load latest file by date
 def load_latest_structured_file():
-    if not os.path.exists(STRUCTURED_DIR):
-        raise FileNotFoundError(f"Structured directory '{STRUCTURED_DIR}' does not exist.")
-
     files = [f for f in os.listdir(STRUCTURED_DIR) if f.startswith("structured_players_") and f.endswith(".json")]
-    print(f"🔍 Found {len(files)} structured files in {STRUCTURED_DIR}: {files}")
+    print(f"📦 Found {len(files)} structured files in {STRUCTURED_DIR}: {files}")
     files.sort(reverse=True)
     if not files:
         raise FileNotFoundError("No structured player files found.")
     latest = files[0]
-    full_path = os.path.join(STRUCTURED_DIR, latest)
-    with open(full_path, "r", encoding="utf-8") as f:
+    with open(os.path.join(STRUCTURED_DIR, latest), "r", encoding="utf-8") as f:
         return json.load(f), latest
 
 # Load archive stats
@@ -108,7 +104,6 @@ def detect_trends(historical):
 # Main script
 if __name__ == "__main__":
     print("🔍 Analyzing player trends across archive...")
-
     archive = load_archive_stats()
     structured_today, filename = load_latest_structured_file()
 
@@ -121,12 +116,8 @@ if __name__ == "__main__":
         pdata["trend_labels"] = labels
         enhanced[name] = pdata
 
-    # Save to expected filename format
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
-    out_file = os.path.join(STRUCTURED_DIR, f"enhanced_structured_players_{today_str}.json")
-
-    os.makedirs(STRUCTURED_DIR, exist_ok=True)
+    out_file = os.path.join(STRUCTURED_DIR, f"enhanced_{filename}")
     with open(out_file, "w", encoding="utf-8") as f:
         json.dump(enhanced, f, indent=2)
 
-    print(f"✅ Saved enhanced player file to {out_file}")
+    print(f"✅ Saved enhanced player file with trends to {out_file}")
