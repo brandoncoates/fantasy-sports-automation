@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 import os
 import re
@@ -23,6 +22,7 @@ ESPN         = f"{BASE}/news/mlb_espn_articles_{DATE}.json"
 REDDIT_DIR   = "news-headlines-csvs/reddit_fantasy_baseball"
 BOX          = f"{BASE}/boxscores/mlb_boxscores_{YDAY}.json"
 OUT_FILE     = f"structured_players_{DATE}.json"
+ARCHIVE_FILE = "player_game_log.jsonl"
 
 UPLOAD_TO_S3 = os.getenv("UPLOAD_TO_S3", "false").lower() == "true"
 BUCKET       = "fantasy-sports-csvs"
@@ -76,7 +76,6 @@ if os.path.exists(TEAM_FILE):
             for key in variants:
                 TEAM_NAME_MAP[key] = canon
 
-# Manual overrides
 for game in starters:
     for k in ["home_team", "away_team"]:
         raw = game.get(k, "")
@@ -86,7 +85,7 @@ TEAM_NAME_MAP[normalize("A's")] = "Oakland Athletics"
 TEAM_NAME_MAP[normalize("Sacramento Athletics")] = "Oakland Athletics"
 TEAM_NAME_MAP[normalize("Sutter Health Park")] = "Oakland Athletics"
 TEAM_NAME_MAP[normalize("Athletics")] = "Oakland Athletics"
-TEAM_NAME_MAP[normalize("Oakland Athletics")] = "Oakland Athletics"  # 🔥 THE FIX
+TEAM_NAME_MAP[normalize("Oakland Athletics")] = "Oakland Athletics"
 
 # ─── WEATHER LOOKUP ───
 weather_by_team = {}
@@ -120,7 +119,6 @@ else:
 bet_by_team = {}
 matchup_by_team = {}
 
-# Matchups from FanDuel odds file
 for o in odds:
     if o.get("bookmaker") != "FanDuel":
         continue
@@ -145,7 +143,6 @@ for o in odds:
         bet_by_team[h_team] = betting_info
         bet_by_team[a_team] = betting_info
 
-# ─── PATCH: Add matchups from starters if missing ───
 for game in starters:
     h_raw = game.get("home_team", "")
     a_raw = game.get("away_team", "")
@@ -185,62 +182,78 @@ starter_names = {normalize(game.get("home_pitcher", "")) for game in starters} |
     normalize(game.get("away_pitcher", "")) for game in starters
 }
 
-for r in rosters:
-    pid = str(r["player_id"])
-    name = r["player"].strip()
-    raw_team = r.get("team", "")
-    club = TEAM_NAME_MAP.get(normalize(raw_team), raw_team)
+def extract_game_log_entry(player_name, player_id, team, opponent, box_score, weather, betting, date):
+    if not box_score:
+        return None
 
-    club_key = normalize(club)
-    canon_club = TEAM_NAME_MAP.get(club_key, club)
-    wc = weather_by_team.get(
-        canon_club,
-        weather_by_team.get(club, {
-            "team": club,
-            "weather": {},
-            "precipitation_probability": None,
-            "cloud_cover_pct": None,
-            "weather_code": None
-    })
-)
-
-    matchup = matchup_by_team.get(normalize(club), {})
-    bet = bet_by_team.get(club, {})
-
-    is_starter = normalize(name) in starter_names
-
-    box = box_by_name.get(normalize(name), {}).copy()
-    if r.get("position") not in ["P", "SP", "RP"]:
-        for stat in ["Innings Pitched", "Earned Runs", "Strikeouts (Pitching)", "Wins", "Quality Start"]:
-            box.pop(stat, None)
-
-    players_out[name] = {
-        "player_id": pid,
-        "name": name,
-        "team": club,
-        "opponent_team": matchup.get("opponent"),
-        "home_or_away": matchup.get("home_or_away"),
-        "position": r.get("position", ""),
-        "handedness": {"bats": r.get("bats"), "throws": r.get("throws")},
-        "roster_status": {
-            "status_code": r.get("status_code"),
-            "status_description": r.get("status_description"),
-        },
-        "is_probable_starter": is_starter,
-        "starter": is_starter,
-        "weather_context": wc,
-        "betting_context": {
-            "over_under": bet.get("over_under"),
-            "spread": bet.get("spread"),
-            "favorite": bet.get("favorite"),
-            "underdog": bet.get("underdog"),
-            "implied_totals": bet.get("implied_totals", {})
-        },
-        "espn_mentions": espn_cnt.get(pid, 0),
-        "espn_articles": espn_articles_by_pid.get(pid, []),
-        "reddit_mentions": reddit_cnt.get(pid, 0),
-        "box_score": box,
+    return {
+        "date": date,
+        "player_id": player_id,
+        "name": player_name,
+        "team": team,
+        "opponent": opponent,
+        "home_or_away": matchup_by_team.get(normalize(team), {}).get("home_or_away"),
+        "box_score": box_score,
+        "weather": weather.get("weather", {}),
+        "betting": betting,
     }
+
+with open(ARCHIVE_FILE, "a", encoding="utf-8") as archive:
+    for r in rosters:
+        pid = str(r["player_id"])
+        name = r["player"].strip()
+        raw_team = r.get("team", "")
+        club = TEAM_NAME_MAP.get(normalize(raw_team), raw_team)
+
+        club_key = normalize(club)
+        canon_club = TEAM_NAME_MAP.get(club_key, club)
+        wc = weather_by_team.get(
+            canon_club,
+            weather_by_team.get(club, {"team": club, "weather": {}, "precipitation_probability": None, "cloud_cover_pct": None, "weather_code": None})
+        )
+
+        matchup = matchup_by_team.get(normalize(club), {})
+        bet = bet_by_team.get(club, {})
+
+        is_starter = normalize(name) in starter_names
+
+        box = box_by_name.get(normalize(name), {}).copy()
+        if r.get("position") not in ["P", "SP", "RP"]:
+            for stat in ["Innings Pitched", "Earned Runs", "Strikeouts (Pitching)", "Wins", "Quality Start"]:
+                box.pop(stat, None)
+
+        players_out[name] = {
+            "player_id": pid,
+            "name": name,
+            "team": club,
+            "opponent_team": matchup.get("opponent"),
+            "home_or_away": matchup.get("home_or_away"),
+            "position": r.get("position", ""),
+            "handedness": {"bats": r.get("bats"), "throws": r.get("throws")},
+            "roster_status": {
+                "status_code": r.get("status_code"),
+                "status_description": r.get("status_description"),
+            },
+            "is_probable_starter": is_starter,
+            "starter": is_starter,
+            "weather_context": wc,
+            "betting_context": {
+                "over_under": bet.get("over_under"),
+                "spread": bet.get("spread"),
+                "favorite": bet.get("favorite"),
+                "underdog": bet.get("underdog"),
+                "implied_totals": bet.get("implied_totals", {})
+            },
+            "espn_mentions": espn_cnt.get(pid, 0),
+            "espn_articles": espn_articles_by_pid.get(pid, []),
+            "reddit_mentions": reddit_cnt.get(pid, 0),
+            "box_score": box,
+        }
+
+        # Append to archive if there's a box score
+        entry = extract_game_log_entry(name, pid, club, matchup.get("opponent"), box, wc, bet, YDAY)
+        if entry:
+            archive.write(json.dumps(entry) + "\n")
 
 with open(OUT_FILE, "w", encoding="utf-8") as f:
     json.dump(players_out, f, indent=2)

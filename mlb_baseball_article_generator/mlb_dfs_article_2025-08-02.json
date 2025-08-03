@@ -1,0 +1,112 @@
+{
+  "date": "2025-08-02",
+  "recap_summary": [
+    {
+      "player": "Joe Musgrove",
+      "team": "SD",
+      "position": "P",
+      "result": "\u2705 Hit \u2013 Solid outing against STL"
+    },
+    {
+      "player": "Max Fried",
+      "team": "ATL",
+      "position": "P",
+      "result": "\u2705 Hit \u2013 Got strong run support"
+    },
+    {
+      "player": "Zach Eflin",
+      "team": "TB",
+      "position": "P",
+      "result": "\u274c Miss \u2013 Underwhelming strikeouts"
+    },
+    {
+      "player": "Luis Castillo",
+      "team": "SEA",
+      "position": "P",
+      "result": "\u2705 Hit \u2013 Delivered top-end value"
+    },
+    {
+      "player": "Brayan Bello",
+      "team": "BOS",
+      "position": "P",
+      "result": "\u274c Miss \u2013 Struggled in tough matchup"
+    },
+    {
+      "player": "Adam Wainwright",
+      "team": "STL",
+      "position": "P",
+      "result": "\u274c Miss \u2013 Faded correctly"
+    }
+  ],
+  "pitchers_target": [
+    {
+      "name": "Kai-Wei Teng",
+      "team": "SF",
+      "opponent": "NYM",
+      "type": "Cash",
+      "notes": "Top trend score; Mets struggle vs RHP"
+    },
+    {
+      "name": "Kodai Senga",
+      "team": "NYM",
+      "opponent": "SF",
+      "type": "GPP",
+      "notes": "Strikeout upside, same trend score as Teng"
+    },
+    {
+      "name": "Eury P\u00e9rez",
+      "team": "MIA",
+      "opponent": "NYY",
+      "type": "GPP",
+      "notes": "Facing tough lineup but strong trend"
+    }
+  ],
+  "pitchers_fade": [],
+  "hitters_by_position": {
+    "C": [
+      "Agust\u00edn Ram\u00edrez (MIA)",
+      "William Contreras (MIL)"
+    ],
+    "1B": [
+      "Pete Alonso (NYM)",
+      "Andrew Vaughn (MIL)",
+      "Wilmer Flores (SF)"
+    ],
+    "2B": [
+      "Javier Sanoja (MIA)",
+      "Otto Lopez (MIA)",
+      "Jazz Chisholm Jr. (NYY)"
+    ],
+    "3B": [
+      "Casey Schmitt (SF)",
+      "Ryan McMahon (NYY)",
+      "Matt Chapman (SF)"
+    ],
+    "SS": [
+      "Anthony Volpe (NYY)",
+      "Ezequiel Tovar (COL)",
+      "Warming Bernabel (COL)"
+    ],
+    "OF": [
+      "Andrew McCutchen (PIT)",
+      "Trent Grisham (NYY)",
+      "Juan Soto (NYM)",
+      "Oneil Cruz (PIT)",
+      "Jasson Dom\u00ednguez (NYY)",
+      "Luis Matos (SF)"
+    ],
+    "DH": [
+      "Giancarlo Stanton (NYY)",
+      "Rafael Devers (SF)",
+      "Marcell Ozuna (ATL)"
+    ]
+  },
+  "notable_trends": [
+    "Troy Johnston (MIA) \u2013 top trend score, watch closely",
+    "Shohei Ohtani (LAD) \u2013 strong recent form, dual-threat"
+  ],
+  "stack_insights": [
+    "Yankees\u2013Marlins and Giants\u2013Mets games carry highest trend volume"
+  ],
+  "status": "complete"
+}
