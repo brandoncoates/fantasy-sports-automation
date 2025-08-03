@@ -1,0 +1,46 @@
+name: MLB Full Daily Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-full-mlb-pipeline:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: us-west-2
+      S3_BUCKET: fantasy-sports-csvs
+      BASEBALL_DIR: baseball
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install boto3 pytz
+
+      - name: Download raw files from S3
+        run: |
+          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/betting/ ./betting/ --recursive
+          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/weather/ ./weather/ --recursive
+          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/rosters/ ./rosters/ --recursive
+          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/probablestarters/ ./probablestarters/ --recursive
+          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/news/ ./news/ --recursive
+          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/boxscores/ ./boxscores/ --recursive
+
+      - name: Run combine.py to generate structured player file
+        run: python combine.py
+
+      - name: Upload structured file to S3
+        run: aws s3 cp ./baseball/combined/ s3://$S3_BUCKET/$BASEBALL_DIR/combined/ --recursive
+
+      - name: Run player_stats_analyzer.py to enhance file
+        run: python player_stats_analyzer.py
+
+      - name: Upload enhanced file to S3
+        run: aws s3 cp ./baseball/combined/ s3://$S3_BUCKET/$BASEBALL_DIR/combined/ --recursive
