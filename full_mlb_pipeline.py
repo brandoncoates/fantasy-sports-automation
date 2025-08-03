@@ -1,37 +1,88 @@
 # full_mlb_pipeline.py
 
 import os
-import datetime
-import shutil
+import json
+from datetime import datetime
 
-# Set today's date string
-today = datetime.date.today().strftime('%Y-%m-%d')
+# Paths
+ROSTERS_DIR = "rosters"
+STARTERS_DIR = "probablestarters"
+WEATHER_DIR = "weather"
+BETTING_DIR = "betting"
+NEWS_DIR = "news"
+BOXSCORE_DIR = "boxscores"
+OUTPUT_DIR = "baseball/combined"
 
-# Define paths
-combined_dir = "baseball/combined"
-article_dir = "mlb_baseball_article_generator"
+# Util: Load latest file from a directory
+def load_latest_json(directory):
+    files = sorted(
+        [f for f in os.listdir(directory) if f.endswith(".json")],
+        reverse=True
+    )
+    if not files:
+        return None
+    with open(os.path.join(directory, files[0]), "r", encoding="utf-8") as f:
+        return json.load(f)
 
-# Step 1: Run combine script to generate structured player JSON
-print("🔧 Running mlb_combine_all_files.py to generate structured player file...")
-os.system("python mlb_combine_all_files.py")
+# Util: Normalize team names if needed
+TEAM_NAME_MAP = {
+    "Athletics": "Athletics",
+    "A's": "Athletics",
+    "Braves": "Braves",
+    # add more if needed
+}
 
-# Step 2: Run analyzer to enhance structured file
-print("📊 Running player_stats_analyzer.py to enhance structured player file...")
-os.system("python player_stats_analyzer.py")
+def normalize_team(name):
+    return TEAM_NAME_MAP.get(name, name)
 
-# Step 3: Copy enhanced file into article generator folder
-enhanced_file_name = f"enhanced_structured_players_{today}.json"
-enhanced_file_path = os.path.join(combined_dir, enhanced_file_name)
-target_path = os.path.join(article_dir, enhanced_file_name)
+# Main combine logic
+def build_structured_players():
+    print("🔧 Building structured player file...")
 
-if os.path.exists(enhanced_file_path):
-    print(f"📁 Copying {enhanced_file_name} to article generator directory...")
-    shutil.copy(enhanced_file_path, target_path)
-else:
-    raise FileNotFoundError(f"❌ Enhanced structured file not found: {enhanced_file_path}")
+    rosters = load_latest_json(ROSTERS_DIR) or {}
+    starters = load_latest_json(STARTERS_DIR) or {}
+    weather = load_latest_json(WEATHER_DIR) or {}
+    betting = load_latest_json(BETTING_DIR) or {}
+    news = load_latest_json(NEWS_DIR) or {}
+    boxscores = load_latest_json(BOXSCORE_DIR) or {}
 
-# Step 4: Generate DFS article
-print("📝 Generating DFS article for today...")
-os.system(f"python {article_dir}/generate_dfs_article.py")
+    players = {}
 
-print("✅ Full MLB pipeline completed successfully.")
+    for player_id, pdata in rosters.items():
+        team = normalize_team(pdata.get("team"))
+        player = {
+            "player_id": player_id,
+            "name": pdata.get("name"),
+            "team": team,
+            "opponent_team": pdata.get("opponent_team"),
+            "home_or_away": pdata.get("home_or_away"),
+            "position": pdata.get("position"),
+            "handedness": pdata.get("handedness"),
+            "roster_status": pdata.get("status"),
+            "is_probable_starter": pdata.get("is_probable_starter", False),
+            "starter": pdata.get("starter", False),
+            "weather_context": weather.get(team, {}),
+            "betting_context": betting.get(team, {}),
+            "espn_mentions": news.get(player_id, {}).get("mentions", 0),
+            "espn_articles": news.get(player_id, {}).get("articles", []),
+            "reddit_mentions": news.get(player_id, {}).get("reddit_mentions", 0),
+            "box_score": boxscores.get(player_id, {})
+        }
+        players[player_id] = player
+
+    print(f"✅ Combined {len(players)} players.")
+    return players
+
+# Output
+def save_to_file(players):
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    date_str = datetime.utcnow().strftime("%Y-%m-%d")
+    path = os.path.join(OUTPUT_DIR, f"structured_players_{date_str}.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(players, f, indent=2)
+    print(f"💾 Saved structured player file to: {path}")
+
+# Run script
+if __name__ == "__main__":
+    players = build_structured_players()
+    save_to_file(players)
