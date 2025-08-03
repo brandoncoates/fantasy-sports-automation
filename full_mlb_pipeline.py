@@ -20,16 +20,17 @@ def load_latest_json(directory):
         reverse=True
     )
     if not files:
-        return None
+        print(f"⚠️ No JSON files found in {directory}")
+        return {}
     with open(os.path.join(directory, files[0]), "r", encoding="utf-8") as f:
         return json.load(f)
 
-# Util: Normalize team names if needed
+# Util: Normalize team names
 TEAM_NAME_MAP = {
     "Athletics": "Athletics",
     "A's": "Athletics",
     "Braves": "Braves",
-    # add more if needed
+    # Extend this as needed for matching inconsistencies
 }
 
 def normalize_team(name):
@@ -39,22 +40,24 @@ def normalize_team(name):
 def build_structured_players():
     print("🔧 Building structured player file...")
 
-    rosters = load_latest_json(ROSTERS_DIR) or {}
-    starters = load_latest_json(STARTERS_DIR) or {}
-    weather = load_latest_json(WEATHER_DIR) or {}
-    betting = load_latest_json(BETTING_DIR) or {}
-    news = load_latest_json(NEWS_DIR) or {}
-    boxscores = load_latest_json(BOXSCORE_DIR) or {}
+    rosters = load_latest_json(ROSTERS_DIR)
+    starters = load_latest_json(STARTERS_DIR)
+    weather = load_latest_json(WEATHER_DIR)
+    betting = load_latest_json(BETTING_DIR)
+    news = load_latest_json(NEWS_DIR)
+    boxscores = load_latest_json(BOXSCORE_DIR)
 
     players = {}
 
     for player_id, pdata in rosters.items():
         team = normalize_team(pdata.get("team"))
+        opponent = normalize_team(pdata.get("opponent_team"))
+
         player = {
             "player_id": player_id,
             "name": pdata.get("name"),
             "team": team,
-            "opponent_team": pdata.get("opponent_team"),
+            "opponent_team": opponent,
             "home_or_away": pdata.get("home_or_away"),
             "position": pdata.get("position"),
             "handedness": pdata.get("handedness"),

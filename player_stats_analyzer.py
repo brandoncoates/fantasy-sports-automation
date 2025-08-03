@@ -2,7 +2,7 @@
 
 import json
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import defaultdict
 
 # Configuration
@@ -11,18 +11,33 @@ ARCHIVE_DIR = "baseball/combined/archive"
 
 # Load latest file by date
 def load_latest_structured_file():
-    files = [f for f in os.listdir(STRUCTURED_DIR) if f.startswith("structured_players_") and f.endswith(".json")]
-    print(f"📦 Found {len(files)} structured files in {STRUCTURED_DIR}: {files}")
-    files.sort(reverse=True)
-    if not files:
-        raise FileNotFoundError("No structured player files found.")
-    latest = files[0]
-    with open(os.path.join(STRUCTURED_DIR, latest), "r", encoding="utf-8") as f:
-        return json.load(f), latest
+    search_dirs = [STRUCTURED_DIR, "."]  # Check both combined/ and root
+    candidates = []
+
+    for d in search_dirs:
+        if not os.path.exists(d):
+            continue
+        files = [f for f in os.listdir(d) if f.startswith("structured_players_") and f.endswith(".json")]
+        for f in files:
+            candidates.append((f, os.path.join(d, f)))
+
+    if not candidates:
+        raise FileNotFoundError("❌ No structured player files found in combined/ or root directory.")
+
+    # Sort by filename (dates are embedded)
+    candidates.sort(reverse=True)
+    latest_filename, latest_path = candidates[0]
+    print(f"📄 Found latest structured file: {latest_filename} at {latest_path}")
+    with open(latest_path, "r", encoding="utf-8") as f:
+        return json.load(f), latest_filename
 
 # Load archive stats
 def load_archive_stats():
     archive_stats = defaultdict(list)
+    if not os.path.exists(ARCHIVE_DIR):
+        print(f"⚠️ Archive directory {ARCHIVE_DIR} does not exist. Skipping archive load.")
+        return archive_stats
+
     for fname in os.listdir(ARCHIVE_DIR):
         if fname.startswith("structured_players_") and fname.endswith(".json"):
             with open(os.path.join(ARCHIVE_DIR, fname), "r", encoding="utf-8") as f:
@@ -116,8 +131,9 @@ if __name__ == "__main__":
         pdata["trend_labels"] = labels
         enhanced[name] = pdata
 
-    out_file = os.path.join(STRUCTURED_DIR, f"enhanced_{filename}")
-    with open(out_file, "w", encoding="utf-8") as f:
+    enhanced_filename = f"enhanced_{filename}"
+    enhanced_path = os.path.join(STRUCTURED_DIR, enhanced_filename)
+    with open(enhanced_path, "w", encoding="utf-8") as f:
         json.dump(enhanced, f, indent=2)
 
-    print(f"✅ Saved enhanced player file with trends to {out_file}")
+    print(f"✅ Saved enhanced player file with trends to {enhanced_path}")

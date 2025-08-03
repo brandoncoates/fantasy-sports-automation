@@ -3,6 +3,10 @@ import json
 import argparse
 from datetime import datetime, timedelta
 from collections import defaultdict
+import os
+
+# Constants
+STRUCTURED_DIR = "baseball/combined"
 
 def load_json(path):
     with open(path, "r", encoding="utf-8") as f:
@@ -72,10 +76,18 @@ def main():
 
     date = args.date
     yday = (datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
-    structured_fp = f"enhanced_structured_players_{date}.json"
-    recap_fp = f"mlb_dfs_article_{yday}.json"
+
+    # Point to correct directory
+    structured_fp = os.path.join(STRUCTURED_DIR, f"enhanced_structured_players_{date}.json")
+    recap_fp = os.path.join(STRUCTURED_DIR, f"mlb_dfs_article_{yday}.json")
 
     print(f"📂 Loading: {structured_fp}, {recap_fp}")
+
+    if not os.path.exists(structured_fp):
+        raise FileNotFoundError(f"Missing file: {structured_fp}")
+    if not os.path.exists(recap_fp):
+        raise FileNotFoundError(f"Missing file: {recap_fp}")
+
     players = load_json(structured_fp)
     recap = load_json(recap_fp)
 
@@ -88,14 +100,10 @@ def main():
     player_recommendations = []
 
     for name, player in filtered_players.items():
-        # Must have valid team and opponent
         if not player.get("team") or not player.get("opponent_team"):
             continue
-
-        # For pitchers: must be probable starters
         if player.get("position") == "P" and not player.get("is_probable_starter"):
             continue
-
         trends = player.get("weighted_trends") or player.get("recent_trends") or {}
         if not trends:
             continue
@@ -113,7 +121,6 @@ def main():
 
     print(f"🎯 Total candidates before validation: {len(player_recommendations)}")
 
-    # Validate pitchers — only one per team
     validated_recs = validate_pitcher_recommendations(player_recommendations)
     print(f"✅ Final validated recommendations: {len(validated_recs)}")
 
@@ -132,7 +139,7 @@ def main():
         "status": "assembled with validated logic"
     }
 
-    out_fp = f"mlb_dfs_article_{date}.json"
+    out_fp = os.path.join(STRUCTURED_DIR, f"mlb_dfs_article_{date}.json")
     with open(out_fp, "w", encoding="utf-8") as f:
         json.dump(article, f, indent=2)
     print(f"✅ DFS article saved to {out_fp}")
