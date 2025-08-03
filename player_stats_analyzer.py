@@ -2,7 +2,7 @@
 
 import json
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import defaultdict
 
 # Configuration
@@ -11,12 +11,13 @@ ARCHIVE_DIR = "baseball/combined/archive"
 
 # Load latest file by date
 def load_latest_structured_file():
-    files = [f for f in os.listdir(".") if f.startswith("structured_players_") and f.endswith(".json")]
+    files = [f for f in os.listdir(STRUCTURED_DIR) if f.startswith("structured_players_") and f.endswith(".json")]
     files.sort(reverse=True)
     if not files:
         raise FileNotFoundError("No structured player files found.")
     latest = files[0]
-    with open(latest, "r", encoding="utf-8") as f:
+    full_path = os.path.join(STRUCTURED_DIR, latest)
+    with open(full_path, "r", encoding="utf-8") as f:
         return json.load(f), latest
 
 # Load archive stats
@@ -54,12 +55,11 @@ def detect_trends(historical):
     labels = []
     recent = historical[-5:]
 
-    # Basic stat extraction
     hits = 0
     homers = 0
     rb_is = 0
     runs = 0
-    xbh = 0  # extra-base hits
+    xbh = 0
     games_with_hit = 0
     total_fd = 0.0
     fd_games = 0
@@ -103,7 +103,8 @@ def detect_trends(historical):
 
 # Main script
 if __name__ == "__main__":
-    print("\U0001F50D Analyzing player trends across archive...")
+    print("🔍 Analyzing player trends across archive...")
+
     archive = load_archive_stats()
     structured_today, filename = load_latest_structured_file()
 
@@ -116,8 +117,12 @@ if __name__ == "__main__":
         pdata["trend_labels"] = labels
         enhanced[name] = pdata
 
-    out_file = os.path.join(STRUCTURED_DIR, f"enhanced_{filename}")
+    # Save to expected filename format
+    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    out_file = os.path.join(STRUCTURED_DIR, f"enhanced_structured_players_{today_str}.json")
+
+    os.makedirs(STRUCTURED_DIR, exist_ok=True)
     with open(out_file, "w", encoding="utf-8") as f:
         json.dump(enhanced, f, indent=2)
 
-    print(f"✅ Saved enhanced player file with trends to {out_file}")
+    print(f"✅ Saved enhanced player file to {out_file}")
