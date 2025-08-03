@@ -41,22 +41,23 @@ jobs:
           aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/boxscores/ ./boxscores/ --recursive
 
       - name: Create output folders
-        run: mkdir -p baseball/combined mlb_baseball_article_generator
+        run: mkdir -p baseball/combined
 
       - name: Run combine script to generate structured file
-        run: python mlb_combine_all_files.py
+        run: python full_mlb_pipeline.py
 
       - name: Run analyzer script to enhance structured file
-        run: python player_stats_analyzer.py
+        run: python mlb_baseball_article_generator/player_stats_analyzer.py
+
+      - name: Copy enhanced file to article generator directory
+        run: |
+          DATE=$(date -u +"%Y-%m-%d")
+          cp baseball/combined/enhanced_structured_players_${DATE}.json mlb_baseball_article_generator/
 
       - name: Run DFS article generator
         run: |
-            echo "📝 Generating DFS article for today..."
-            DATE=$(date -u +"%Y-%m-%d")
-            cp baseball/combined/enhanced_structured_players_${DATE}.json mlb_baseball_article_generator/
-            python mlb_baseball_article_generator/generate_dfs_article.py --date $DATE
+          DATE=$(date -u +"%Y-%m-%d")
+          python mlb_baseball_article_generator/generate_dfs_article.py --date $DATE
 
       - name: Upload all generated files to S3
-        run: |
-          aws s3 cp ./baseball/combined/ s3://$S3_BUCKET/$BASEBALL_DIR/combined/ --recursive
-          aws s3 cp ./mlb_baseball_article_generator/ s3://$S3_BUCKET/$BASEBALL_DIR/articles/ --recursive
+        run: aws s3 cp ./baseball/combined/ s3://$S3_BUCKET/$BASEBALL_DIR/combined/ --recursive
