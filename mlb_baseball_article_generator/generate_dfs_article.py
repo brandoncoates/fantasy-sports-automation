@@ -83,7 +83,8 @@ def main():
     recap_dir = os.getenv("RECAP_DIR", DEFAULT_RECAP_DIR)
     recap_fp = os.path.join(recap_dir, f"mlb_dfs_article_{yday}.json")
 
-    print(f"📂 Loading: {structured_fp}, {recap_fp}")
+    print(f"📂 Loading structured file: {structured_fp}")
+    print(f"📂 Loading recap file: {recap_fp}")
 
     if not os.path.exists(structured_fp):
         raise FileNotFoundError(f"Missing file: {structured_fp}")
@@ -141,10 +142,12 @@ def main():
         "status": "assembled with validated logic"
     }
 
-    out_fp = os.path.join(STRUCTURED_DIR, f"mlb_dfs_article_{date}.json")
+    out_fp = os.path.join(STRUCTURED_DIR, f"mlb_dfs_full_article_{date}.json")
     with open(out_fp, "w", encoding="utf-8") as f:
         json.dump(article, f, indent=2)
+
     print(f"✅ DFS article saved to {out_fp}")
 
 if __name__ == "__main__":
     main()
+

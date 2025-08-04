@@ -69,7 +69,7 @@ jobs:
       - name: Download prior DFS article for recap
         run: |
           YDAY=$(date -u -d "yesterday" +"%Y-%m-%d")
-          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/articles/mlb_dfs_article_${YDAY}.json mlb_baseball_article_generator/mlb_dfs_article_${YDAY}.json || echo "⚠️ No recap file found for ${YDAY}"
+          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/combined/mlb_dfs_article_${YDAY}.json baseball/combined/mlb_dfs_article_${YDAY}.json || echo "⚠️ No recap file found for ${YDAY}"
 
       - name: Run DFS article generator
         run: |
