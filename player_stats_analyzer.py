@@ -5,13 +5,11 @@ import os
 from datetime import datetime
 from collections import defaultdict
 
-# Configuration
 STRUCTURED_DIR = "baseball/combined"
 ARCHIVE_DIR = "baseball/combined/archive"
 
-# Load latest file by date
 def load_latest_structured_file():
-    search_dirs = [STRUCTURED_DIR, "."]  # Check both combined/ and root
+    search_dirs = [STRUCTURED_DIR, "."]
     candidates = []
 
     for d in search_dirs:
@@ -24,21 +22,19 @@ def load_latest_structured_file():
     if not candidates:
         raise FileNotFoundError("❌ No structured player files found in combined/ or root directory.")
 
-    # Sort by filename (dates are embedded)
     candidates.sort(reverse=True)
     latest_filename, latest_path = candidates[0]
     print(f"📄 Found latest structured file: {latest_filename} at {latest_path}")
     with open(latest_path, "r", encoding="utf-8") as f:
         return json.load(f), latest_filename
 
-# Load archive stats
 def load_archive_stats():
     archive_stats = defaultdict(list)
     if not os.path.exists(ARCHIVE_DIR):
         print(f"⚠️ Archive directory {ARCHIVE_DIR} does not exist. Skipping archive load.")
         return archive_stats
 
-    for fname in os.listdir(ARCHIVE_DIR):
+    for fname in sorted(os.listdir(ARCHIVE_DIR)):
         if fname.startswith("structured_players_") and fname.endswith(".json"):
             with open(os.path.join(ARCHIVE_DIR, fname), "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -47,9 +43,8 @@ def load_archive_stats():
                         archive_stats[player].append(stats)
     return archive_stats
 
-# Compute recent average stats
-def compute_recent_averages(historical):
-    recent = historical[-3:]
+def compute_recent_averages(historical, num_games=3):
+    recent = historical[-num_games:]
     totals = defaultdict(float)
     counts = defaultdict(int)
 
@@ -62,22 +57,51 @@ def compute_recent_averages(historical):
             except (ValueError, TypeError):
                 continue
 
-    averages = {k: round(totals[k] / counts[k], 2) for k in totals if counts[k] > 0}
-    return averages
+    return {k: round(totals[k] / counts[k], 2) for k in totals if counts[k] > 0}
 
-# Detect trends and streaks
-def detect_trends(historical):
+def streak_lengths(historical, kind):
+    streaks = []
+    current = 0
+
+    for game in historical:
+        fd = float(game.get("box_score", {}).get("FanDuel Points", 0))
+        if kind == "hot" and fd >= 25:
+            current += 1
+        elif kind == "cold" and fd < 8:
+            current += 1
+        else:
+            if current:
+                streaks.append(current)
+            current = 0
+
+    if current:
+        streaks.append(current)
+    return streaks
+
+def detect_trends_and_streaks(historical):
     labels = []
     recent = historical[-5:]
+    hits, homers, rb_is, runs, xbh = 0, 0, 0, 0, 0
+    games_with_hit, total_fd, fd_games = 0, 0.0, 0
 
-    hits = 0
-    homers = 0
-    rb_is = 0
-    runs = 0
-    xbh = 0
-    games_with_hit = 0
-    total_fd = 0.0
-    fd_games = 0
+    current_streak_type = None
+    current_streak_length = 0
+
+    if historical:
+        latest_fd = float(historical[-1].get("box_score", {}).get("FanDuel Points", 0))
+        if latest_fd >= 25:
+            current_streak_type = "hot"
+        elif latest_fd < 8:
+            current_streak_type = "cold"
+
+        for game in reversed(historical):
+            fd = float(game.get("box_score", {}).get("FanDuel Points", 0))
+            if current_streak_type == "hot" and fd >= 25:
+                current_streak_length += 1
+            elif current_streak_type == "cold" and fd < 8:
+                current_streak_length += 1
+            else:
+                break
 
     for game in recent:
         box = game.get("box_score", {})
@@ -114,9 +138,14 @@ def detect_trends(historical):
     if rb_is == 0 and runs == 0 and xbh == 0:
         labels.append("slump")
 
-    return labels
+    return {
+        "trend_labels": labels,
+        "current_streak_type": current_streak_type,
+        "current_streak_length": current_streak_length,
+        "hot_streak_lengths": streak_lengths(historical, "hot"),
+        "cold_streak_lengths": streak_lengths(historical, "cold")
+    }
 
-# Main script
 if __name__ == "__main__":
     print("🔍 Analyzing player trends across archive...")
     archive = load_archive_stats()
@@ -126,9 +155,15 @@ if __name__ == "__main__":
     for name, pdata in structured_today.items():
         historical = archive.get(name, [])
         trends = compute_recent_averages(historical) if historical else {}
-        labels = detect_trends(historical) if historical else []
+        streak_info = detect_trends_and_streaks(historical) if historical else {}
+
         pdata["recent_trends"] = trends
-        pdata["trend_labels"] = labels
+        pdata["trend_labels"] = streak_info.get("trend_labels", [])
+        pdata["current_streak_type"] = streak_info.get("current_streak_type")
+        pdata["current_streak_length"] = streak_info.get("current_streak_length")
+        pdata["hot_streak_lengths"] = streak_info.get("hot_streak_lengths", [])
+        pdata["cold_streak_lengths"] = streak_info.get("cold_streak_lengths", [])
+
         enhanced[name] = pdata
 
     enhanced_filename = f"enhanced_{filename}"
