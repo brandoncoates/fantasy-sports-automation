@@ -142,7 +142,7 @@ def main():
         "status": "assembled with validated logic"
     }
 
-    out_fp = os.path.join(STRUCTURED_DIR, f"mlb_dfs_full_article_{date}.json")
+    out_fp = os.path.join(STRUCTURED_DIR, f"mlb_dfs_article_{date}.json")
     with open(out_fp, "w", encoding="utf-8") as f:
         json.dump(article, f, indent=2)
 
