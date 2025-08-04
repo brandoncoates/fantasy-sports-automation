@@ -81,7 +81,7 @@ def main():
     # File paths
     structured_fp = os.path.join(STRUCTURED_DIR, f"enhanced_structured_players_{date}.json")
     recap_dir = os.getenv("RECAP_DIR", DEFAULT_RECAP_DIR)
-    recap_fp = os.path.join(recap_dir, f"mlb_dfs_article_{yday}.json")
+    recap_fp = os.path.join(recap_dir, f"mlb_dfs_full_article_{yday}.json")
 
     print(f"📂 Loading structured file: {structured_fp}")
     print(f"📂 Loading recap file: {recap_fp}")
