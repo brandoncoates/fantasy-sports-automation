@@ -7,7 +7,7 @@ import os
 
 # Constants
 STRUCTURED_DIR = "baseball/combined"
-ARTICLE_DIR = "mlb_baseball_article_generator"
+DEFAULT_RECAP_DIR = "baseball/combined"  # Matches your S3 layout
 
 def load_json(path):
     with open(path, "r", encoding="utf-8") as f:
@@ -80,7 +80,8 @@ def main():
 
     # File paths
     structured_fp = os.path.join(STRUCTURED_DIR, f"enhanced_structured_players_{date}.json")
-    recap_fp = os.path.join(ARTICLE_DIR, f"mlb_dfs_article_{yday}.json")
+    recap_dir = os.getenv("RECAP_DIR", DEFAULT_RECAP_DIR)
+    recap_fp = os.path.join(recap_dir, f"mlb_dfs_article_{yday}.json")
 
     print(f"📂 Loading: {structured_fp}, {recap_fp}")
 
