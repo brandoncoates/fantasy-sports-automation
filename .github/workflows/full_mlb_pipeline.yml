@@ -69,7 +69,7 @@ jobs:
       - name: Download prior DFS article for recap
         run: |
           YDAY=$(date -u -d "yesterday" +"%Y-%m-%d")
-          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/combined/mlb_dfs_article_${YDAY}.json baseball/combined/mlb_dfs_article_${YDAY}.json || echo "⚠️ No recap file found for ${YDAY}"
+          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/combined/mlb_dfs_full_article_${YDAY}.json baseball/combined/mlb_dfs_full_article_${YDAY}.json || echo "⚠️ No recap file found for ${YDAY}"
 
       - name: Run DFS article generator
         run: |
@@ -80,7 +80,7 @@ jobs:
       - name: Upload DFS article to S3
         run: |
           DATE=$(date -u +"%Y-%m-%d")
-          aws s3 cp baseball/combined/mlb_dfs_article_${DATE}.json s3://$S3_BUCKET/$BASEBALL_DIR/combined/
+          aws s3 cp baseball/combined/mlb_dfs_full_article_${DATE}.json s3://$S3_BUCKET/$BASEBALL_DIR/combined/
 
       - name: Upload all generated files to S3
         run: aws s3 cp ./baseball/combined/ s3://$S3_BUCKET/$BASEBALL_DIR/combined/ --recursive
