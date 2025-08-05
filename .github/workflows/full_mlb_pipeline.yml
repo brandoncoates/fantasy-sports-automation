@@ -37,30 +37,35 @@ jobs:
           echo "YDAY=$(TZ='${{ env.TIMEZONE }}' date -d 'yesterday' +'%Y-%m-%d')" >> $GITHUB_ENV
           echo "Using DATE=$DATE and YDAY=$YDAY"
 
-      - name: 🔐 Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: 📥 Download structured player file from S3
+      - name: 📥 Download structured file from S3
         run: |
-          aws s3 cp "s3://${{ env.S3_BUCKET }}/${{ env.BASEBALL_DIR }}/combined/structured_players_${{ env.DATE }}.json" "${{ env.STRUCTURED_DIR }}/"
+          aws s3 cp "s3://${{ env.S3_BUCKET }}/${{ env.BASEBALL_DIR }}/combined/structured_players_${{ env.DATE }}.json" \
+                   "${{ env.STRUCTURED_DIR }}/"
+        env:
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION:            ${{ env.AWS_REGION }}
 
       - name: 📊 Enhance with streak trends
         run: |
-          python mlb_data_analyzer/player_stats_analyzer.py
+          python player_stats_analyzer.py
         env:
           STRUCTURED_DIR: ${{ env.STRUCTURED_DIR }}
           ARCHIVE_DIR: ${{ env.ARCHIVE_DIR }}
 
       - name: 📝 Generate initial DFS article
         run: |
-          python mlb_baseball_article_generator/generate_dfs_article.py --date "${{ env.DATE }}"
+          python generate_dfs_article.py --date "${{ env.DATE }}"
         env:
           STRUCTURED_DIR: ${{ env.STRUCTURED_DIR }}
           RECAP_DIR: ${{ env.RECAP_DIR }}
+
+      - name: 🔐 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: ☁️ Upload JSON outputs to S3
         run: |
@@ -73,5 +78,3 @@ jobs:
           echo " - structured_players_${{ env.DATE }}.json"
           echo " - enhanced_structured_players_${{ env.DATE }}.json"
           echo " - mlb_dfs_article_${{ env.DATE }}.json"
-
-          
