@@ -79,3 +79,16 @@ jobs:
           echo " - structured_players_${{ env.DATE }}.json"
           echo " - enhanced_structured_players_${{ env.DATE }}.json"
           echo " - mlb_dfs_article_${{ env.DATE }}.json"
+
+      - name: 🧠 Generate FULL DFS Article & Upload to S3
+        run: |
+          python generate_dfs_full_article.py \
+            "${{ env.STRUCTURED_DIR }}/enhanced_structured_players_${{ env.DATE }}.json" \
+            "${{ env.STRUCTURED_DIR }}/mlb_dfs_article_${{ env.DATE }}.json" \
+            "${{ env.STRUCTURED_DIR }}/mlb_dfs_full_article_${{ env.YDAY }}.json" \
+            "${{ env.S3_BUCKET }}"
+        env:
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION:            ${{ env.AWS_REGION }}
+      
