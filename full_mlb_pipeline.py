@@ -25,12 +25,67 @@ def load_latest_json(directory):
     with open(os.path.join(directory, files[0]), "r", encoding="utf-8") as f:
         return json.load(f)
 
-# Util: Normalize team names
 TEAM_NAME_MAP = {
-    "Athletics": "Athletics",
     "A's": "Athletics",
+    "Athletics": "Athletics",
     "Braves": "Braves",
-    # Extend this as needed for matching inconsistencies
+    "Orioles": "Orioles",
+    "Red Sox": "Red Sox",
+    "White Sox": "White Sox",
+    "Cubs": "Cubs",
+    "Reds": "Reds",
+    "Guardians": "Guardians",
+    "Indians": "Guardians",
+    "Rockies": "Rockies",
+    "Tigers": "Tigers",
+    "Astros": "Astros",
+    "Royals": "Royals",
+    "Angels": "Angels",
+    "Dodgers": "Dodgers",
+    "Marlins": "Marlins",
+    "Brewers": "Brewers",
+    "Twins": "Twins",
+    "Yankees": "Yankees",
+    "Mets": "Mets",
+    "Phillies": "Phillies",
+    "Pirates": "Pirates",
+    "Cardinals": "Cardinals",
+    "Padres": "Padres",
+    "Giants": "Giants",
+    "Mariners": "Mariners",
+    "Rays": "Rays",
+    "Blue Jays": "Blue Jays",
+    "Nationals": "Nationals",
+    "D-backs": "Diamondbacks",
+    "Diamondbacks": "Diamondbacks",
+    "AZ": "Diamondbacks",
+    "WSH": "Nationals",
+    "NYM": "Mets",
+    "NYY": "Yankees",
+    "BOS": "Red Sox",
+    "CHC": "Cubs",
+    "CWS": "White Sox",
+    "LAD": "Dodgers",
+    "LAA": "Angels",
+    "OAK": "Athletics",
+    "SEA": "Mariners",
+    "SF": "Giants",
+    "SD": "Padres",
+    "COL": "Rockies",
+    "KC": "Royals",
+    "MIL": "Brewers",
+    "MIN": "Twins",
+    "DET": "Tigers",
+    "CLE": "Guardians",
+    "HOU": "Astros",
+    "ATL": "Braves",
+    "PHI": "Phillies",
+    "PIT": "Pirates",
+    "STL": "Cardinals",
+    "CIN": "Reds",
+    "TB": "Rays",
+    "TOR": "Blue Jays",
+    "MIA": "Marlins"
 }
 
 def normalize_team(name):
@@ -85,7 +140,14 @@ def save_to_file(players):
         json.dump(players, f, indent=2)
     print(f"💾 Saved structured player file to: {path}")
 
+    # 🧠 Generate and upload full DFS article
+    from mlb_baseball_article_generator.generate_dfs_full_article import generate_full_article
+    print("🧠 Generating full DFS article...")
+    generate_full_article(date_str)
+    print("✅ Full DFS article generated and uploaded.")
+
 # Run script
 if __name__ == "__main__":
     players = build_structured_players()
     save_to_file(players)
+

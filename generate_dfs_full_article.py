@@ -198,11 +198,25 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
 
     upload_to_s3(output_file, bucket_name, s3_key)
 
+def generate_full_article(date_str):
+    import os
 
-# Example run (comment out if using GitHub Actions)
-# generate_full_dfs_article(
-#     "enhanced_structured_players_2025-08-05.json",
-#     "mlb_dfs_article_2025-08-05.json",
-#     "mlb_dfs_full_article_2025-08-04.json",
-#     "fantasy-sports-csvs"
-# )
+    enhanced_file = f"baseball/combined/enhanced_structured_players_{date_str}.json"
+    dfs_article_file = f"baseball/combined/mlb_dfs_article_{date_str}.json"
+
+    # Attempt to use the previous day's full article as input (used for recap section or fallback)
+    from datetime import datetime, timedelta
+    yday = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+    full_article_file = f"baseball/combined/mlb_dfs_full_article_{yday}.json"
+    if not os.path.exists(full_article_file):
+        print(f"⚠️ No full article file found for {yday}, proceeding without previous data.")
+        full_article_file = dfs_article_file  # fallback to required format
+
+    bucket_name = "fantasy-sports-csvs"
+
+    generate_full_dfs_article(
+        enhanced_file=enhanced_file,
+        dfs_article_file=dfs_article_file,
+        full_article_file=full_article_file,
+        bucket_name=bucket_name
+    )
