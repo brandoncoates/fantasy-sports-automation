@@ -55,7 +55,7 @@ jobs:
 
       - name: 📝 Generate initial DFS article
         run: |
-          python generate_dfs_article.py --date "${{ env.DATE }}"
+          python mlb_baseball_article_generator/generate_dfs_article.py --date "${{ env.DATE }}"
         env:
           STRUCTURED_DIR: ${{ env.STRUCTURED_DIR }}
           RECAP_DIR: ${{ env.RECAP_DIR }}
