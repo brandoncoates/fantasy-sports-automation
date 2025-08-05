@@ -1,86 +1,49 @@
-name: MLB Full Daily Pipeline
+name: Run Full MLB DFS Pipeline
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '15 12 * * *'  # Runs daily at 12:15 UTC (~6:15 AM Central)
+
+env:
+  STRUCTURED_DIR: baseball/combined
+  ARCHIVE_DIR: baseball/combined/archive
+  RECAP_DIR: baseball/combined
 
 jobs:
-  run-full-mlb-pipeline:
+  run-pipeline:
     runs-on: ubuntu-latest
-
-    env:
-      AWS_REGION: us-west-2
-      S3_BUCKET: fantasy-sports-csvs
-      BASEBALL_DIR: baseball
-
     steps:
-      - name: Checkout repo
+
+      - name: 📥 Checkout repo
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: 🐍 Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
-      - name: Install dependencies
-        run: pip install boto3 pytz
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+      - name: 🕒 Set current date
+        id: date
+        run: echo "today=$(date -u +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
-      - name: Download raw files from S3
+      - name: 🧩 Combine data sources
+        run: python mlb_data_combiner/combine_data.py --date ${{ steps.date.outputs.today }}
+
+      - name: 📊 Enhance with streak trends
+        run: python mlb_data_analyzer/player_stats_analyzer.py
+
+      - name: 📝 Generate initial DFS article
+        run: python mlb_baseball_article_generator/generate_dfs_article.py --date ${{ steps.date.outputs.today }}
+
+      - name: ☁️ Upload to S3
         run: |
-          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/betting/ ./betting/ --recursive
-          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/weather/ ./weather/ --recursive
-          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/rosters/ ./rosters/ --recursive
-          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/probablestarters/ ./probablestarters/ --recursive
-          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/news/ ./news/ --recursive
-          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/boxscores/ ./boxscores/ --recursive
-
-      - name: Create output folders
-        run: mkdir -p baseball/combined
-
-      - name: Run combine script to generate structured file
-        run: python mlb_combine_all_files.py
-
-      - name: Verify combined files
-        run: |
-          echo "Listing combined folder:"
-          ls -l baseball/combined
-
-      - name: Download latest structured player file from S3
-        run: |
-          DATE=$(date -u +"%Y-%m-%d")
-          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/combined/structured_players_${DATE}.json baseball/combined/structured_players_${DATE}.json
-
-      - name: Run analyzer script to enhance structured file
-        run: python player_stats_analyzer.py
-
-      - name: Copy enhanced file to article generator directory
-        run: |
-          DATE=$(date -u +"%Y-%m-%d")
-          echo "Copying enhanced_structured_players_${DATE}.json"
-          ls -la baseball/combined/
-          cp baseball/combined/enhanced_structured_players_${DATE}.json mlb_baseball_article_generator/
-
-      - name: Download prior DFS article for recap
-        run: |
-          YDAY=$(date -u -d "yesterday" +"%Y-%m-%d")
-          aws s3 cp s3://$S3_BUCKET/$BASEBALL_DIR/combined/mlb_dfs_full_article_${YDAY}.json baseball/combined/mlb_dfs_full_article_${YDAY}.json || echo "⚠️ No recap file found for ${YDAY}"
-
-      - name: Run DFS article generator
-        run: |
-          DATE=$(date -u +"%Y-%m-%d")
-          echo "Generating DFS article for ${DATE}"
-          python mlb_baseball_article_generator/generate_dfs_article.py --date $DATE
-
-      - name: Upload DFS article to S3
-        run: |
-          DATE=$(date -u +"%Y-%m-%d")
-          aws s3 cp baseball/combined/mlb_dfs_article_${DATE}.json s3://$S3_BUCKET/$BASEBALL_DIR/combined/
-
-      - name: Upload all generated files to S3
-        run: aws s3 cp ./baseball/combined/ s3://$S3_BUCKET/$BASEBALL_DIR/combined/ --recursive
+          pip install awscli
+          aws s3 cp baseball/combined s3://your-bucket-name/baseball/combined/ --recursive --exclude "*" --include "*.json"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
