@@ -242,13 +242,23 @@ def main():
 
     print(f"🎯 Total candidates: {len(candidates)}")
 
-    validated = candidates  # <- INCLUDE ALL probable SPs
+    # Prevent multiple SPs per team (guardrail)
+    seen_sp_teams = set()
+    validated = []
+    for rec in sorted(candidates, key=lambda x: x["trend_score"], reverse=True):
+        if rec["position"] != "P":
+            validated.append(rec)
+            continue
+        team = rec.get("team")
+        if team and team not in seen_sp_teams:
+            seen_sp_teams.add(team)
+            validated.append(rec)
 
+    # Group all validated players by position (no cap)
     top_by_pos = defaultdict(list)
     for rec in validated:
         pos = rec["position"]
-        if len(top_by_pos[pos]) < 3:
-            top_by_pos[pos].append(rec)
+        top_by_pos[pos].append(rec)
 
     recap_summary = summarize_recap(recap)
 
