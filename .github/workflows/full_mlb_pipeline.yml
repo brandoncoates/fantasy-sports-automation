@@ -37,23 +37,20 @@ jobs:
           echo "YDAY=$(TZ='${{ env.TIMEZONE }}' date -d 'yesterday' +'%Y-%m-%d')" >> $GITHUB_ENV
           echo "Using DATE=$DATE and YDAY=$YDAY"
 
-      - name: 🧩 Combine data sources
-        run: |
-          python mlb_data_combiner/combine_data.py --date "${{ env.DATE }}"
+      - name: 📄 Combine raw data into structured player file
+        run: python mlb_combine_all_files.py
         env:
-          STRUCTURED_DIR: ${{ env.STRUCTURED_DIR }}
-          ARCHIVE_DIR: ${{ env.ARCHIVE_DIR }}
+          COMBINE_BASE_DIR: ${{ env.BASEBALL_DIR }}
+          UPLOAD_TO_S3: "false"  # We'll upload all outputs at the end
 
       - name: 📊 Enhance with streak trends
-        run: |
-          python mlb_data_analyzer/player_stats_analyzer.py
+        run: python mlb_data_analyzer/player_stats_analyzer.py
         env:
           STRUCTURED_DIR: ${{ env.STRUCTURED_DIR }}
           ARCHIVE_DIR: ${{ env.ARCHIVE_DIR }}
 
       - name: 📝 Generate initial DFS article
-        run: |
-          python mlb_baseball_article_generator/generate_dfs_article.py --date "${{ env.DATE }}"
+        run: python mlb_baseball_article_generator/generate_dfs_article.py --date "${{ env.DATE }}"
         env:
           STRUCTURED_DIR: ${{ env.STRUCTURED_DIR }}
           RECAP_DIR: ${{ env.RECAP_DIR }}
