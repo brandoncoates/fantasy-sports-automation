@@ -3,9 +3,14 @@ name: Run Full MLB DFS Pipeline
 on:
   workflow_dispatch:
   schedule:
-    - cron: '15 12 * * *'  # Runs daily at 12:15 UTC (~6:15 AM Central)
+    # Daily at 06:15 America/Denver (12:15 UTC in winter; cron is UTC)
+    - cron: '15 12 * * *'
 
 env:
+  TIMEZONE: America/Denver
+  AWS_REGION: us-east-2
+  S3_BUCKET: your-bucket-name
+  BASEBALL_DIR: baseball
   STRUCTURED_DIR: baseball/combined
   ARCHIVE_DIR: baseball/combined/archive
   RECAP_DIR: baseball/combined
@@ -13,8 +18,8 @@ env:
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
-    steps:
 
+    steps:
       - name: 📥 Checkout repo
         uses: actions/checkout@v3
 
@@ -26,24 +31,48 @@ jobs:
       - name: 📦 Install dependencies
         run: pip install -r requirements.txt
 
-      - name: 🕒 Set current date
-        id: date
-        run: echo "today=$(date -u +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+      - name: 🕒 Set local DATE and YDAY (America/Denver)
+        run: |
+          echo "DATE=$(TZ='${{ env.TIMEZONE }}' date +'%Y-%m-%d')" >> $GITHUB_ENV
+          echo "YDAY=$(TZ='${{ env.TIMEZONE }}' date -d 'yesterday' +'%Y-%m-%d')" >> $GITHUB_ENV
+          echo "Using DATE=$DATE and YDAY=$YDAY"
 
       - name: 🧩 Combine data sources
-        run: python mlb_data_combiner/combine_data.py --date ${{ steps.date.outputs.today }}
+        run: |
+          python mlb_data_combiner/combine_data.py --date "${{ env.DATE }}"
+        env:
+          STRUCTURED_DIR: ${{ env.STRUCTURED_DIR }}
+          ARCHIVE_DIR: ${{ env.ARCHIVE_DIR }}
 
       - name: 📊 Enhance with streak trends
-        run: python mlb_data_analyzer/player_stats_analyzer.py
+        run: |
+          python mlb_data_analyzer/player_stats_analyzer.py
+        env:
+          STRUCTURED_DIR: ${{ env.STRUCTURED_DIR }}
+          ARCHIVE_DIR: ${{ env.ARCHIVE_DIR }}
 
       - name: 📝 Generate initial DFS article
-        run: python mlb_baseball_article_generator/generate_dfs_article.py --date ${{ steps.date.outputs.today }}
-
-      - name: ☁️ Upload to S3
         run: |
-          pip install awscli
-          aws s3 cp baseball/combined s3://your-bucket-name/baseball/combined/ --recursive --exclude "*" --include "*.json"
+          python mlb_baseball_article_generator/generate_dfs_article.py --date "${{ env.DATE }}"
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-1
+          STRUCTURED_DIR: ${{ env.STRUCTURED_DIR }}
+          RECAP_DIR: ${{ env.RECAP_DIR }}
+
+      - name: 🔐 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: ☁️ Upload JSON outputs to S3
+        run: |
+          aws s3 cp "${{ env.STRUCTURED_DIR }}/" "s3://${{ env.S3_BUCKET }}/${{ env.BASEBALL_DIR }}/combined/" \
+            --recursive --exclude "*" --include "*.json"
+
+      - name: 📋 Log key files pushed
+        run: |
+          echo "Expected keys:"
+          echo " - structured_players_${{ env.DATE }}.json"
+          echo " - enhanced_structured_players_${{ env.DATE }}.json"
+          echo " - mlb_dfs_article_${{ env.DATE }}.json"
