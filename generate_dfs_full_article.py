@@ -72,7 +72,7 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
 
     date_str = dfs_article_data["date"]
     output_file = f"mlb_dfs_full_article_{date_str}.json"
-    s3_key = f"baseball/full mlb articles/{output_file}"
+    s3_key = f"baseball/full_mlb_articles/{output_file}"
 
     # Build player lookup
     player_pool = {
