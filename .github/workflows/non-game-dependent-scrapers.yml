@@ -2,7 +2,8 @@ name: Run Non-Game-Dependent MLB Scrapers
 
 on:
   schedule:
-    - cron: "0 13 * * *"  # 6:00 AM MST
+    # 07:00 AM MST
+    - cron: '0 14 * * *'
   workflow_dispatch:
 
 jobs:

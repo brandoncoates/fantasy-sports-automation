@@ -2,7 +2,9 @@ name: Run MLB Box Scores Scraper
 
 on:
   schedule:
-    - cron: "0 12 * * *"  # 5:00 AM MST
+    # 07:00 AM MST
+    - cron: '0 14 * * *'
+
   workflow_dispatch:
 
 jobs:

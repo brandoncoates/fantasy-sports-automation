@@ -2,7 +2,8 @@ name: Run Game-Dependent MLB Scrapers
 
 on:
   schedule:
-    - cron: "0 14 * * *"  # 7:00 AM MST
+    # 07:00 AM MST
+    - cron: '0 14 * * *'
   workflow_dispatch:
 
 jobs:

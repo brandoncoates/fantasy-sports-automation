@@ -3,8 +3,8 @@ name: Combine and Upload MLB JSON
 on:
   workflow_dispatch:
   schedule:
-    # every day at 15:00 UTC  (≈ 08:00 PT / 11:00 ET)
-    - cron: '0 15 * * *'
+    # 07:15 AM MST
+    - cron: '15 14 * * *'
 
 jobs:
   build-and-upload:
