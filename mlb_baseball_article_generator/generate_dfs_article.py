@@ -148,14 +148,11 @@ def summarize_recap(recap_full):
     Convert yesterday's full article recap into compact icon+text entries if present.
     We expect recap to be either a list of dicts or a structure under keys like 'recap'/'recap_summary'.
     """
-    # Try common locations
     if isinstance(recap_full, dict):
         if "recap_summary" in recap_full:
             items = recap_full["recap_summary"]
         elif "recap" in recap_full and isinstance(recap_full["recap"], dict) and "previous" in recap_full["recap"]:
-            # Older format
             items = recap_full["recap"]["previous"]
-            # normalize to list if needed
             if isinstance(items, dict):
                 items = [items]
         else:
@@ -167,7 +164,6 @@ def summarize_recap(recap_full):
 
     out = []
     for it in items:
-        # try to map any 'result' text to icons
         result = (it.get("result") or "").lower()
         if "hit" in result:
             icon = ICON_HIT
@@ -192,7 +188,6 @@ def main():
     date = args.date
     yday = (datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
 
-    # Inputs
     structured_fp = os.path.join(STRUCTURED_DIR, f"enhanced_structured_players_{date}.json")
     recap_dir = os.getenv("RECAP_DIR", DEFAULT_RECAP_DIR)
     recap_fp = os.path.join(recap_dir, f"mlb_dfs_full_article_{yday}.json")
@@ -212,31 +207,24 @@ def main():
         print(f"⚠️ No recap file found for {yday}; continuing without recap.")
 
     players = load_json(structured_fp)
-
-    # Determine valid matchups & restrict pool
     matchups, filtered_players = matchup_gate(players)
     print(f"✅ Found {len(matchups)} valid matchups.")
     print(f"✅ Filtered to {len(filtered_players)} players in valid matchups.")
 
-    # Build candidate list
     candidates = []
     for name, p in filtered_players.items():
-        # sanity: team/opponent and probable starter for P
         if not p.get("team") or not p.get("opponent_team"):
             continue
         if p.get("position") == "P" and not p.get("is_probable_starter"):
             continue
 
-        # scoring
         base_score = get_base_trend_score(p)
         fd = get_fd_avgs(p)
-        # modest weighting: base trend + small boost for recent FD avg
         trend_score = base_score + (fd["last3"] or 0.0) * 1.0 + (fd["last6"] or 0.0) * 0.5 + (fd["last9"] or 0.0) * 0.25
 
         tag_info = infer_tag(p)
         notes = generate_notes(p)
 
-        # If absolutely no trend/avg data, skip to avoid garbage picks
         if trend_score == 0.0 and tag_info["tag"] == "neutral" and "insufficient" in tag_info["reason"]:
             continue
 
@@ -252,39 +240,25 @@ def main():
             "trend_averages": get_fd_avgs(p),
         })
 
-    print(f"🎯 Total candidates before P-validation: {len(candidates)}")
+    print(f"🎯 Total candidates: {len(candidates)}")
 
-    # Ensure we don't double up multiple SPs from same team
-    seen_sp_teams = set()
-    validated = []
-    for rec in sorted(candidates, key=lambda x: x["trend_score"], reverse=True):
-        if rec["position"] != "P":
-            validated.append(rec)
-            continue
-        team = rec.get("team")
-        if team and team not in seen_sp_teams:
-            seen_sp_teams.add(team)
-            validated.append(rec)
-    print(f"✅ Final validated recommendations: {len(validated)}")
+    validated = candidates  # <- INCLUDE ALL probable SPs
 
-    # Top-3 per position
     top_by_pos = defaultdict(list)
     for rec in validated:
         pos = rec["position"]
         if len(top_by_pos[pos]) < 3:
             top_by_pos[pos].append(rec)
 
-    # Recap summary (yesterday)
     recap_summary = summarize_recap(recap)
 
-    # Assemble output (INITIAL daily article)
     out = {
         "date": date,
         "matchups": sorted(list(matchups)),
         "num_valid_players": len(filtered_players),
         "recap_summary": recap_summary,
         "recommendations": top_by_pos,
-        "status": "assembled with validated logic"
+        "status": "assembled with all probable SPs"
     }
 
     out_fp = os.path.join(STRUCTURED_DIR, f"mlb_dfs_article_{date}.json")
