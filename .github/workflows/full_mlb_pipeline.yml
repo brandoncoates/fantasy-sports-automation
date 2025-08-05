@@ -3,7 +3,6 @@ name: Run Full MLB DFS Pipeline
 on:
   workflow_dispatch:
   schedule:
-    # Daily at 06:15 America/Denver (12:15 UTC in winter; cron is UTC)
     - cron: '15 12 * * *'
 
 env:
@@ -35,22 +34,21 @@ jobs:
         run: |
           echo "DATE=$(TZ='${{ env.TIMEZONE }}' date +'%Y-%m-%d')" >> $GITHUB_ENV
           echo "YDAY=$(TZ='${{ env.TIMEZONE }}' date -d 'yesterday' +'%Y-%m-%d')" >> $GITHUB_ENV
-          echo "Using DATE=$DATE and YDAY=$YDAY"
 
-      - name: 📄 Combine raw data into structured player file
-        run: python mlb_combine_all_files.py
-        env:
-          COMBINE_BASE_DIR: ${{ env.BASEBALL_DIR }}
-          UPLOAD_TO_S3: "false"  # We'll upload all outputs at the end
+      - name: 📥 Download structured player file from S3
+        run: |
+          aws s3 cp "s3://${{ env.S3_BUCKET }}/${{ env.BASEBALL_DIR }}/combined/structured_players_${{ env.DATE }}.json" "${{ env.STRUCTURED_DIR }}/"
 
       - name: 📊 Enhance with streak trends
-        run: python mlb_data_analyzer/player_stats_analyzer.py
+        run: |
+          python mlb_data_analyzer/player_stats_analyzer.py
         env:
           STRUCTURED_DIR: ${{ env.STRUCTURED_DIR }}
           ARCHIVE_DIR: ${{ env.ARCHIVE_DIR }}
 
       - name: 📝 Generate initial DFS article
-        run: python mlb_baseball_article_generator/generate_dfs_article.py --date "${{ env.DATE }}"
+        run: |
+          python mlb_baseball_article_generator/generate_dfs_article.py --date "${{ env.DATE }}"
         env:
           STRUCTURED_DIR: ${{ env.STRUCTURED_DIR }}
           RECAP_DIR: ${{ env.RECAP_DIR }}
@@ -70,6 +68,5 @@ jobs:
       - name: 📋 Log key files pushed
         run: |
           echo "Expected keys:"
-          echo " - structured_players_${{ env.DATE }}.json"
           echo " - enhanced_structured_players_${{ env.DATE }}.json"
           echo " - mlb_dfs_article_${{ env.DATE }}.json"
