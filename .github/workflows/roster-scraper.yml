@@ -1,6 +1,7 @@
 name: Run MLB Roster Scraper
 
 on:
+  workflow_dispatch:
   schedule:
     # 07:00 AM MST
     - cron: '0 14 * * *'
