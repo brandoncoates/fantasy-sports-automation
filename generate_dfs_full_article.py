@@ -59,13 +59,13 @@ def pick_players_by_position(players, position, num_targets=3, num_fades=1):
 
 
 def upload_to_s3(local_path, bucket_name, s3_key):
+    print(f"☁️ Uploading {local_path} to s3://{bucket_name}/{s3_key}...")
     s3 = boto3.client("s3")
     s3.upload_file(local_path, bucket_name, s3_key)
     print(f"✅ Uploaded to s3://{bucket_name}/{s3_key}")
 
 
 def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file, bucket_name):
-    # Load input files
     enhanced_data = load_json(enhanced_file)
     dfs_article_data = load_json(dfs_article_file)
     full_article_data = load_json(full_article_file)
@@ -74,13 +74,11 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
     output_file = f"mlb_dfs_full_article_{date_str}.json"
     s3_key = f"baseball/full_mlb_articles/{output_file}"
 
-    # Build player lookup
     player_pool = {
         name: data for name, data in enhanced_data.items()
         if data.get("roster_status", {}).get("status_code") == "A"
     }
 
-    # Pitcher targets (only probable starters, one per team)
     probable_pitchers = [
         (name, get_weighted_trend_score(data))
         for name, data in player_pool.items()
@@ -102,7 +100,6 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
         name for name, _ in sorted(probable_pitchers, key=lambda x: x[1])[:2]
     ]
 
-    # Infielders
     infield_positions = ["C", "1B", "2B", "3B", "SS"]
     infield_targets = defaultdict(list)
     infield_fades = {}
@@ -114,7 +111,6 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
         infield_targets[pos] = targets
         infield_fades[pos] = fades
 
-    # Outfielders
     outfield_positions = ["LF", "CF", "RF", "OF"]
     outfield_players = [
         p for p in player_pool.values() if p.get("position") in outfield_positions
@@ -123,7 +119,6 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
     outfield_targets = sorted_outfield[:5]
     outfield_fades = sorted_outfield[-2:]
 
-    # Build output
     output = {
         "date": date_str,
         "pitchers": {"targets": [], "fades": []},
@@ -196,16 +191,18 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
             "notes": build_note(p, "fade", score)
         })
 
+    print(f"💾 Writing DFS full article to {output_file}")
     with open(output_file, "w") as f:
         json.dump(output, f, indent=2)
+    print(f"✅ File written: {output_file}")
 
     upload_to_s3(output_file, bucket_name, s3_key)
 
 
-# Example run (you will set these paths correctly in your GitHub Actions)
+# Example run (comment out if using GitHub Actions)
 # generate_full_dfs_article(
 #     "enhanced_structured_players_2025-08-05.json",
 #     "mlb_dfs_article_2025-08-05.json",
 #     "mlb_dfs_full_article_2025-08-04.json",
-#     bucket_name="your-s3-bucket-name"
+#     "fantasy-sports-csvs"
 # )
