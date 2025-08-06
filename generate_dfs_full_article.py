@@ -53,9 +53,7 @@ def build_note(player, role, score):
 def pick_players_by_position(players, position, num_targets=3, num_fades=1):
     filtered = [p for p in players if p.get("position") == position]
     sorted_players = sorted(filtered, key=get_weighted_trend_score, reverse=True)
-    targets = sorted_players[:num_targets]
-    fades = sorted_players[-num_fades:]
-    return targets, fades
+    return sorted_players[:num_targets], sorted_players[-num_fades:]
 
 
 def upload_to_s3(local_path, bucket_name, s3_key):
@@ -88,6 +86,7 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
         if data.get("roster_status", {}).get("status_code") == "A"
     }
 
+    # Pitchers
     probable_pitchers = [
         (name, get_weighted_trend_score(data))
         for name, data in player_pool.items()
@@ -105,29 +104,25 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
         if len(filtered_pitchers) >= 5:
             break
 
-    pitcher_fades = [
-        name for name, _ in sorted(probable_pitchers, key=lambda x: x[1])[:2]
-    ]
+    pitcher_fades = [name for name, _ in sorted(probable_pitchers, key=lambda x: x[1])[:2]]
 
+    # Infield
     infield_positions = ["C", "1B", "2B", "3B", "SS"]
     infield_targets = defaultdict(list)
     infield_fades = {}
-
     for pos in infield_positions:
-        targets, fades = pick_players_by_position(
-            player_pool.values(), pos, num_targets=4, num_fades=1
-        )
+        targets, fades = pick_players_by_position(player_pool.values(), pos, 4, 1)
         infield_targets[pos] = targets
         infield_fades[pos] = fades
 
+    # Outfield
     outfield_positions = ["LF", "CF", "RF", "OF"]
-    outfield_players = [
-        p for p in player_pool.values() if p.get("position") in outfield_positions
-    ]
+    outfield_players = [p for p in player_pool.values() if p.get("position") in outfield_positions]
     sorted_outfield = sorted(outfield_players, key=get_weighted_trend_score, reverse=True)
     outfield_targets = sorted_outfield[:5]
     outfield_fades = sorted_outfield[-2:]
 
+    # Build output
     output = {
         "date": date_str,
         "pitchers": {"targets": [], "fades": []},
@@ -136,68 +131,61 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
     }
 
     for name in filtered_pitchers:
-        player = player_pool[name]
-        score = get_weighted_trend_score(player)
+        p = player_pool[name]
         output["pitchers"]["targets"].append({
             "name": name,
-            "team": player["team"],
-            "opponent": player.get("opponent_team", ""),
-            "type": "Cash" if get_streak_status(player) != "cold" else "GPP",
-            "notes": build_note(player, "target", score)
+            "team": p["team"],
+            "opponent": p.get("opponent_team", ""),
+            "type": "Cash" if get_streak_status(p) != "cold" else "GPP",
+            "notes": build_note(p, "target", get_weighted_trend_score(p))
         })
 
     for name in pitcher_fades:
-        player = player_pool[name]
-        score = get_weighted_trend_score(player)
+        p = player_pool[name]
         output["pitchers"]["fades"].append({
             "name": name,
-            "team": player["team"],
-            "opponent": player.get("opponent_team", ""),
+            "team": p["team"],
+            "opponent": p.get("opponent_team", ""),
             "type": "GPP",
-            "notes": build_note(player, "fade", score)
+            "notes": build_note(p, "fade", get_weighted_trend_score(p))
         })
 
     for pos in infield_positions:
         output["infielders"]["targets"][pos] = []
         for p in infield_targets[pos]:
-            score = get_weighted_trend_score(p)
             output["infielders"]["targets"][pos].append({
                 "name": p["name"],
                 "team": p["team"],
                 "opponent": p.get("opponent_team", ""),
                 "type": "Cash" if get_streak_status(p) != "cold" else "GPP",
-                "notes": build_note(p, "target", score)
+                "notes": build_note(p, "target", get_weighted_trend_score(p))
             })
-
         output["infielders"]["fades"][pos] = []
         for p in infield_fades[pos]:
-            score = get_weighted_trend_score(p)
             output["infielders"]["fades"][pos].append({
                 "name": p["name"],
                 "team": p["team"],
                 "opponent": p.get("opponent_team", ""),
                 "type": "GPP",
-                "notes": build_note(p, "fade", score)
+                "notes": build_note(p, "fade", get_weighted_trend_score(p))
             })
 
     for p in outfield_targets:
-        score = get_weighted_trend_score(p)
         output["outfielders"]["targets"].append({
             "name": p["name"],
             "team": p["team"],
             "opponent": p.get("opponent_team", ""),
             "type": "Cash" if get_streak_status(p) != "cold" else "GPP",
-            "notes": build_note(p, "target", score)
+            "notes": build_note(p, "target", get_weighted_trend_score(p))
         })
 
     for p in outfield_fades:
-        score = get_weighted_trend_score(p)
         output["outfielders"]["fades"].append({
             "name": p["name"],
             "team": p["team"],
             "opponent": p.get("opponent_team", ""),
             "type": "GPP",
-            "notes": build_note(p, "fade", score)
+            "notes": build_note(p, "fade", get_weighted_trend_score(p))
         })
 
     print(f"💾 Writing DFS full article to {local_path}")
@@ -211,6 +199,16 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
 
 def generate_full_article(date_str):
     enhanced_file = f"baseball/combined/enhanced_structured_players_{date_str}.json"
+    if not os.path.exists(enhanced_file):
+        yday = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+        fallback = f"baseball/combined/enhanced_structured_players_{yday}.json"
+        if os.path.exists(fallback):
+            print(f"⚠️ Falling back to yesterday's enhanced file: {fallback}")
+            enhanced_file = fallback
+        else:
+            print(f"❌ No enhanced file found for {date_str} or {yday}")
+            exit(1)
+
     dfs_article_file = f"baseball/combined/mlb_dfs_article_{date_str}.json"
     yday = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
     full_article_file = f"baseball/combined/mlb_dfs_full_article_{yday}.json"
@@ -218,17 +216,11 @@ def generate_full_article(date_str):
         print(f"⚠️ No full article file found for {yday}, proceeding without previous data.")
         full_article_file = dfs_article_file
 
-    bucket_name = "fantasy-sports-csvs"
-
-    generate_full_dfs_article(
-        enhanced_file=enhanced_file,
-        dfs_article_file=dfs_article_file,
-        full_article_file=full_article_file,
-        bucket_name=bucket_name
-    )
+    generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file, "fantasy-sports-csvs")
 
 
 if __name__ == "__main__":
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    from datetime import UTC
+    today_str = datetime.now(UTC).strftime("%Y-%m-%d")
     print(f"🚀 Running full article generation for {today_str}")
     generate_full_article(today_str)
