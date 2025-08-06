@@ -1,6 +1,6 @@
 import json
 import boto3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from collections import defaultdict
 import os
 
@@ -69,10 +69,67 @@ def upload_to_s3(local_path, bucket_name, s3_key):
         print(f"❌ Upload failed: {e}")
 
 
+def score_player(box):
+    if not box:
+        return "DNP"
+    ab = box.get("AB", 0)
+    h = box.get("H", 0)
+    hr = box.get("HR", 0)
+    rbi = box.get("RBI", 0)
+    bb = box.get("BB", 0)
+    if ab == 0 and h == 0:
+        return "DNP"
+    if h >= 2 or hr >= 1 or rbi >= 3:
+        return "Hit"
+    if h == 1 or bb >= 2:
+        return "Neutral"
+    return "Miss"
+
+
+def evaluate_previous_article(full_article_path, previous_player_data):
+    if not os.path.exists(full_article_path):
+        return
+
+    with open(full_article_path, "r") as f:
+        article = json.load(f)
+
+    def evaluate_players(section):
+        for group in section:
+            if isinstance(section[group], list):
+                for player in section[group]:
+                    name = player["name"]
+                    pdata = previous_player_data.get(name, {})
+                    box = pdata.get("box_score", {})
+                    player["result"] = score_player(box)
+                    player["box_score"] = box
+            elif isinstance(section[group], dict):
+                for pos in section[group]:
+                    for player in section[group][pos]:
+                        name = player["name"]
+                        pdata = previous_player_data.get(name, {})
+                        box = pdata.get("box_score", {})
+                        player["result"] = score_player(box)
+                        player["box_score"] = box
+
+    evaluate_players(article)
+
+    with open(full_article_path, "w") as f:
+        json.dump(article, f, indent=2)
+
+    print(f"✅ Evaluated previous article and saved results to {full_article_path}")
+
+
 def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file, bucket_name):
     enhanced_data = load_json(enhanced_file)
     dfs_article_data = load_json(dfs_article_file)
-    full_article_data = load_json(full_article_file)
+
+    # Evaluate previous day's article
+    yday = (datetime.strptime(dfs_article_data["date"], "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+    yday_article_path = f"mlb_dfs_full_articles/mlb_dfs_full_article_{yday}.json"
+    yday_enhanced_path = f"baseball/combined/enhanced_structured_players_{yday}.json"
+    if os.path.exists(yday_article_path) and os.path.exists(yday_enhanced_path):
+        previous_player_data = load_json(yday_enhanced_path)
+        evaluate_previous_article(yday_article_path, previous_player_data)
 
     date_str = dfs_article_data["date"]
     output_filename = f"mlb_dfs_full_article_{date_str}.json"
@@ -86,7 +143,6 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
         if data.get("roster_status", {}).get("status_code") == "A"
     }
 
-    # Pitchers
     probable_pitchers = [
         (name, get_weighted_trend_score(data))
         for name, data in player_pool.items()
@@ -106,7 +162,6 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
 
     pitcher_fades = [name for name, _ in sorted(probable_pitchers, key=lambda x: x[1])[:2]]
 
-    # Infield
     infield_positions = ["C", "1B", "2B", "3B", "SS"]
     infield_targets = defaultdict(list)
     infield_fades = {}
@@ -115,14 +170,12 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
         infield_targets[pos] = targets
         infield_fades[pos] = fades
 
-    # Outfield
     outfield_positions = ["LF", "CF", "RF", "OF"]
     outfield_players = [p for p in player_pool.values() if p.get("position") in outfield_positions]
     sorted_outfield = sorted(outfield_players, key=get_weighted_trend_score, reverse=True)
     outfield_targets = sorted_outfield[:5]
     outfield_fades = sorted_outfield[-2:]
 
-    # Build output
     output = {
         "date": date_str,
         "pitchers": {"targets": [], "fades": []},
@@ -198,20 +251,9 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
 
 
 def generate_full_article(date_str):
-    # Start with today
     dfs_article_file = f"baseball/combined/mlb_dfs_article_{date_str}.json"
     enhanced_file = f"baseball/combined/enhanced_structured_players_{date_str}.json"
-
-    if not os.path.exists(dfs_article_file):
-        print(f"⚠️ DFS article file not found for {date_str}. Falling back to yesterday.")
-        date_str = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
-        dfs_article_file = f"baseball/combined/mlb_dfs_article_{date_str}.json"
-        enhanced_file = f"baseball/combined/enhanced_structured_players_{date_str}.json"
-
     full_article_file = f"baseball/combined/mlb_dfs_full_article_{date_str}.json"
-    if not os.path.exists(full_article_file):
-        print(f"⚠️ No full article file found for {date_str}, proceeding without previous data.")
-        full_article_file = dfs_article_file
 
     bucket_name = "fantasy-sports-csvs"
 
@@ -224,14 +266,6 @@ def generate_full_article(date_str):
 
 
 if __name__ == "__main__":
-    from datetime import UTC
-    today_str = datetime.now(UTC).strftime("%Y-%m-%d")
-    print(f"🚀 Running full article generation for {today_str}")
-    generate_full_article(today_str)
-
-
-if __name__ == "__main__":
-    from datetime import UTC
     today_str = datetime.now(UTC).strftime("%Y-%m-%d")
     print(f"🚀 Running full article generation for {today_str}")
     generate_full_article(today_str)
