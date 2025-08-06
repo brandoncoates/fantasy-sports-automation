@@ -255,6 +255,19 @@ def generate_full_article(date_str):
     enhanced_file = f"baseball/combined/enhanced_structured_players_{date_str}.json"
     full_article_file = f"baseball/combined/mlb_dfs_full_article_{date_str}.json"
 
+    # Fallback if any file is missing
+    if not (os.path.exists(dfs_article_file) and os.path.exists(enhanced_file)):
+        print(f"⚠️ One or more required files not found for {date_str}. Falling back to yesterday.")
+        date_str = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+        dfs_article_file = f"baseball/combined/mlb_dfs_article_{date_str}.json"
+        enhanced_file = f"baseball/combined/enhanced_structured_players_{date_str}.json"
+        full_article_file = f"baseball/combined/mlb_dfs_full_article_{date_str}.json"
+
+    # If full article file still doesn't exist, fallback to dfs_article_file
+    if not os.path.exists(full_article_file):
+        print(f"⚠️ No full article file found for {date_str}, proceeding without previous data.")
+        full_article_file = dfs_article_file
+
     bucket_name = "fantasy-sports-csvs"
 
     generate_full_dfs_article(
@@ -263,7 +276,6 @@ def generate_full_article(date_str):
         full_article_file=full_article_file,
         bucket_name=bucket_name
     )
-
 
 if __name__ == "__main__":
     today_str = datetime.now(UTC).strftime("%Y-%m-%d")
