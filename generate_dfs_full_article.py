@@ -198,25 +198,36 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
 
 
 def generate_full_article(date_str):
-    enhanced_file = f"baseball/combined/enhanced_structured_players_{date_str}.json"
-    if not os.path.exists(enhanced_file):
-        yday = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
-        fallback = f"baseball/combined/enhanced_structured_players_{yday}.json"
-        if os.path.exists(fallback):
-            print(f"⚠️ Falling back to yesterday's enhanced file: {fallback}")
-            enhanced_file = fallback
-        else:
-            print(f"❌ No enhanced file found for {date_str} or {yday}")
-            exit(1)
-
+    # Start with today
     dfs_article_file = f"baseball/combined/mlb_dfs_article_{date_str}.json"
-    yday = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
-    full_article_file = f"baseball/combined/mlb_dfs_full_article_{yday}.json"
+    enhanced_file = f"baseball/combined/enhanced_structured_players_{date_str}.json"
+
+    if not os.path.exists(dfs_article_file):
+        print(f"⚠️ DFS article file not found for {date_str}. Falling back to yesterday.")
+        date_str = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+        dfs_article_file = f"baseball/combined/mlb_dfs_article_{date_str}.json"
+        enhanced_file = f"baseball/combined/enhanced_structured_players_{date_str}.json"
+
+    full_article_file = f"baseball/combined/mlb_dfs_full_article_{date_str}.json"
     if not os.path.exists(full_article_file):
-        print(f"⚠️ No full article file found for {yday}, proceeding without previous data.")
+        print(f"⚠️ No full article file found for {date_str}, proceeding without previous data.")
         full_article_file = dfs_article_file
 
-    generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file, "fantasy-sports-csvs")
+    bucket_name = "fantasy-sports-csvs"
+
+    generate_full_dfs_article(
+        enhanced_file=enhanced_file,
+        dfs_article_file=dfs_article_file,
+        full_article_file=full_article_file,
+        bucket_name=bucket_name
+    )
+
+
+if __name__ == "__main__":
+    from datetime import UTC
+    today_str = datetime.now(UTC).strftime("%Y-%m-%d")
+    print(f"🚀 Running full article generation for {today_str}")
+    generate_full_article(today_str)
 
 
 if __name__ == "__main__":
