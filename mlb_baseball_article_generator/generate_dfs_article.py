@@ -20,7 +20,6 @@ def upload_to_s3(local_path, bucket_name, s3_key):
     if not os.path.exists(local_path):
         print(f"❌ File not found: {local_path}")
         return
-
     try:
         s3 = boto3.client("s3", region_name=os.getenv("AWS_REGION", "us-east-2"))
         s3.upload_file(local_path, bucket_name, s3_key)
@@ -44,167 +43,106 @@ def score_player(box):
         return "Neutral"
     return "Miss"
 
-def evaluate_previous_article(article, previous_player_data):
-    recap_summary = []
+def evaluate_previous_article(prev_article_file, prev_enhanced_file):
+    if not os.path.exists(prev_article_file) or not os.path.exists(prev_enhanced_file):
+        print("⚠️ Previous article or enhanced file not found, skipping evaluation.")
+        return []
 
-    def evaluate_players(section):
-        for group in section:
-            if isinstance(section[group], list):
-                for player in section[group]:
-                    name = player.get("name")
-                    pdata = previous_player_data.get(name, {})
-                    box = pdata.get("box_score", {})
-                    result = score_player(box)
-                    player["result"] = result
-                    player["result_icon"] = ICON_HIT if result == "Hit" else ICON_MISS if result == "Miss" else ICON_NEUTRAL
-                    player["box_score"] = box
-                    recap_summary.append({"name": name, "team": player.get("team"), "position": player.get("position"), "result": result})
-            elif isinstance(section[group], dict):
-                for pos in section[group]:
-                    for player in section[group][pos]:
-                        name = player.get("name")
-                        pdata = previous_player_data.get(name, {})
-                        box = pdata.get("box_score", {})
-                        result = score_player(box)
-                        player["result"] = result
-                        player["result_icon"] = ICON_HIT if result == "Hit" else ICON_MISS if result == "Miss" else ICON_NEUTRAL
-                        player["box_score"] = box
-                        recap_summary.append({"name": name, "team": player.get("team"), "position": pos, "result": result})
+    article = load_json(prev_article_file)
+    player_data = load_json(prev_enhanced_file)
+    recap = []
 
-    evaluate_players(article)
-    return article, recap_summary
+    def eval_section(section):
+        for pos in section:
+            for player in section[pos]:
+                name = player.get("name")
+                pdata = player_data.get(name, {})
+                box = pdata.get("box_score", {})
+                result = score_player(box)
+                icon = ICON_HIT if result == "Hit" else ICON_MISS if result == "Miss" else ICON_NEUTRAL
+                recap.append({
+                    "player": name,
+                    "team": player.get("team"),
+                    "position": pos,
+                    "result": f"{icon} {result}"
+                })
+    eval_section(article.get("recommendations", {}))
+    return recap
 
-def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file, bucket_name):
+def summarize_trends(enhanced_data):
+    streaks = defaultdict(list)
+    for name, p in enhanced_data.items():
+        pos = p.get("position")
+        if pos is None:
+            continue
+        if pos == "P" and not p.get("is_probable_starter"):
+            continue
+
+        labels = p.get("trend_labels", []) or []
+        avgs = p.get("trend_averages", {})
+        score = sum([float(v) for v in avgs.values() if isinstance(v, (int, float, str)) and str(v).replace('.','',1).isdigit()])
+
+        tag = "neutral"
+        if "cold_streak" in labels and avgs.get("last3", 0) > avgs.get("last9", 0):
+            tag = "target"
+        elif "hot_streak" in labels and avgs.get("last3", 0) < avgs.get("last9", 0):
+            tag = "fade"
+
+        streaks[pos].append({
+            "name": name,
+            "team": p.get("team"),
+            "opponent": p.get("opponent_team"),
+            "position": pos,
+            "trend_score": round(score, 2),
+            "tag": tag,
+            "icon": ICON_TARGET if tag == "target" else ICON_FADE if tag == "fade" else ICON_NEUTRAL,
+            "notes": "; ".join(labels),
+            "trend_averages": avgs,
+        })
+
+    grouped = defaultdict(list)
+    seen_sp_teams = set()
+    for pos, items in streaks.items():
+        for p in sorted(items, key=lambda x: x["trend_score"], reverse=True):
+            if p["position"] == "P":
+                team = p.get("team")
+                if team in seen_sp_teams:
+                    continue
+                seen_sp_teams.add(team)
+            grouped[pos].append(p)
+    return grouped
+
+def build_article(date_str, enhanced_file, dfs_article_file, output_file):
     enhanced_data = load_json(enhanced_file)
-    dfs_article_data = load_json(dfs_article_file)
+    article_data = load_json(dfs_article_file)
+    yesterday = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+    prev_article_file = f"baseball/full_mlb_articles/mlb_dfs_full_article_{yesterday}.json"
+    prev_enhanced_file = f"baseball/combined/enhanced_structured_players_{yesterday}.json"
 
-    # Evaluate previous day's article
-    yday = (datetime.strptime(dfs_article_data["date"], "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
-    yday_article_path = f"mlb_dfs_full_articles/mlb_dfs_full_article_{yday}.json"
-    yday_enhanced_path = f"baseball/combined/enhanced_structured_players_{yday}.json"
-    recap_summary = []
-    if os.path.exists(yday_article_path) and os.path.exists(yday_enhanced_path):
-        previous_player_data = load_json(yday_enhanced_path)
-        with open(yday_article_path, "r") as f:
-            yday_article = json.load(f)
-        yday_article, recap_summary = evaluate_previous_article(yday_article, previous_player_data)
-        with open(yday_article_path, "w") as f:
-            json.dump(yday_article, f, indent=2)
-        print(f"✅ Evaluated and saved results to {yday_article_path}")
+    recap_summary = evaluate_previous_article(prev_article_file, prev_enhanced_file)
+    recommendations = summarize_trends(enhanced_data)
 
-    # Pick logic
-    def get_trend_score(player):
-        trend = player.get("trend_averages", {})
-        return (
-            1.0 * trend.get("last_3", 0.0)
-            + 0.6 * trend.get("last_6", 0.0)
-            + 0.3 * trend.get("last_9", 0.0)
-        )
+    article_data["recap_summary"] = recap_summary
+    article_data["recommendations"] = recommendations
+    article_data["status"] = "Full article generated with evaluation and trend analysis."
 
-    def get_streak_label(player):
-        sd = player.get("streak_data", {})
-        if sd.get("current_hot_streak", 0) >= 3:
-            return "hot"
-        elif sd.get("current_cold_streak", 0) >= 3:
-            return "cold"
-        return "neutral"
-
-    def build_note(player):
-        trend = player.get("trend_averages", {})
-        opponent = player.get("opponent_team", "?")
-        streak = get_streak_label(player)
-        note = f"3/6/9 game FD avg: {trend.get('last_3', 0.0):.1f}/{trend.get('last_6', 0.0):.1f}/{trend.get('last_9', 0.0):.1f}. "
-        note += f"Streak: {streak}. Opponent: {opponent}."
-        return note
-
-    player_pool = {
-        name: data for name, data in enhanced_data.items()
-        if data.get("roster_status", {}).get("status_code") == "A"
-    }
-
-    probable_pitchers = [
-        (name, get_trend_score(data))
-        for name, data in player_pool.items()
-        if data.get("position") == "P" and data.get("is_probable_starter")
-    ]
-    probable_pitchers = sorted(probable_pitchers, key=lambda x: x[1], reverse=True)
-
-    used_teams = set()
-    pitcher_targets = []
-    for name, _ in probable_pitchers:
-        team = player_pool[name]["team"]
-        if team not in used_teams:
-            used_teams.add(team)
-            pitcher_targets.append(name)
-        if len(pitcher_targets) >= 5:
-            break
-
-    pitcher_fades = [name for name, _ in sorted(probable_pitchers, key=lambda x: x[1])[:2]]
-
-    output = {
-        "date": dfs_article_data["date"],
-        "recap_summary": recap_summary,
-        "pitchers": {"targets": [], "fades": []}
-    }
-
-    for name in pitcher_targets:
-        p = player_pool[name]
-        output["pitchers"]["targets"].append({
-            "name": name,
-            "team": p.get("team"),
-            "opponent": p.get("opponent_team"),
-            "type": "Cash" if get_streak_label(p) != "cold" else "GPP",
-            "notes": build_note(p)
-        })
-
-    for name in pitcher_fades:
-        p = player_pool[name]
-        output["pitchers"]["fades"].append({
-            "name": name,
-            "team": p.get("team"),
-            "opponent": p.get("opponent_team"),
-            "type": "GPP",
-            "notes": build_note(p)
-        })
-
-    output_filename = f"mlb_dfs_full_article_{dfs_article_data['date']}.json"
-    output_dir = "mlb_dfs_full_articles"
-    os.makedirs(output_dir, exist_ok=True)
-    local_path = os.path.join(output_dir, output_filename)
-    s3_key = f"baseball/full_mlb_articles/{output_filename}"
-
-    print(f"💾 Writing DFS full article to {local_path}")
-    with open(local_path, "w", encoding="utf-8") as f:
-        json.dump(output, f, indent=2)
-    print(f"✅ File written: {local_path}")
-
-    print(f"☁️ Uploading to s3://{bucket_name}/{s3_key}")
-    upload_to_s3(local_path, bucket_name, s3_key)
+    with open(output_file, "w") as f:
+        json.dump(article_data, f, indent=2)
+    print(f"✅ DFS full article written to {output_file}")
 
 def generate_full_article(date_str):
     dfs_article_file = f"baseball/combined/mlb_dfs_article_{date_str}.json"
     enhanced_file = f"baseball/combined/enhanced_structured_players_{date_str}.json"
-    full_article_file = f"baseball/combined/mlb_dfs_full_article_{date_str}.json"
-
-    if not (os.path.exists(dfs_article_file) and os.path.exists(enhanced_file)):
-        print(f"⚠️ One or more required files not found for {date_str}. Falling back to yesterday.")
-        date_str = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
-        dfs_article_file = f"baseball/combined/mlb_dfs_article_{date_str}.json"
-        enhanced_file = f"baseball/combined/enhanced_structured_players_{date_str}.json"
-        full_article_file = f"baseball/combined/mlb_dfs_full_article_{date_str}.json"
-
-    if not os.path.exists(full_article_file):
-        print(f"⚠️ No full article file found for {date_str}, proceeding without previous data.")
-        full_article_file = dfs_article_file
-
+    full_article_file = f"mlb_dfs_full_articles/mlb_dfs_full_article_{date_str}.json"
     bucket_name = "fantasy-sports-csvs"
+    s3_key = f"baseball/full_mlb_articles/mlb_dfs_full_article_{date_str}.json"
 
-    generate_full_dfs_article(
-        enhanced_file=enhanced_file,
-        dfs_article_file=dfs_article_file,
-        full_article_file=full_article_file,
-        bucket_name=bucket_name
-    )
+    if not os.path.exists(dfs_article_file) or not os.path.exists(enhanced_file):
+        raise FileNotFoundError("Required files missing for today's article generation.")
+
+    os.makedirs("mlb_dfs_full_articles", exist_ok=True)
+    build_article(date_str, enhanced_file, dfs_article_file, full_article_file)
+    upload_to_s3(full_article_file, bucket_name, s3_key)
 
 if __name__ == "__main__":
     today_str = datetime.now(UTC).strftime("%Y-%m-%d")
