@@ -1,13 +1,8 @@
-#!/usr/bin/env python3
 import json
-import argparse
-from datetime import datetime, timedelta
+import boto3
+from datetime import datetime, timedelta, UTC
 from collections import defaultdict
 import os
-
-# === Paths & Conventions ===
-STRUCTURED_DIR = "baseball/combined"
-DEFAULT_RECAP_DIR = "baseball/combined"  # where yesterday's FULL article lives
 
 # === Icons ===
 ICON_TARGET = "✅"
@@ -17,265 +12,201 @@ ICON_HIT = "🔥"
 ICON_MISS = "❌"
 
 # ---------- Utilities ----------
-def load_json(path):
-    with open(path, "r", encoding="utf-8") as f:
+def load_json(filename):
+    with open(filename, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def safe_float(x, default=0.0):
+def upload_to_s3(local_path, bucket_name, s3_key):
+    if not os.path.exists(local_path):
+        print(f"❌ File not found: {local_path}")
+        return
+
     try:
-        return float(x)
-    except Exception:
-        return default
+        s3 = boto3.client("s3", region_name=os.getenv("AWS_REGION", "us-east-2"))
+        s3.upload_file(local_path, bucket_name, s3_key)
+        print(f"✅ Uploaded to s3://{bucket_name}/{s3_key}")
+    except Exception as e:
+        print(f"❌ Upload failed: {e}")
 
-def get_fd_avgs(player):
-    """
-    Pull last 3/6/9 FanDuel average if present from analyzer output.
-    Supports multiple possible keys so we don't break if upstream evolves.
-    """
-    avgs = player.get("trend_averages") or player.get("trend_avgs") or {}
-    return {
-        "last3": safe_float(avgs.get("last_3") or avgs.get("last3")),
-        "last6": safe_float(avgs.get("last_6") or avgs.get("last6")),
-        "last9": safe_float(avgs.get("last_9") or avgs.get("last9")),
+def score_player(box):
+    if not box:
+        return "DNP"
+    ab = box.get("AB", 0)
+    h = box.get("H", 0)
+    hr = box.get("HR", 0)
+    rbi = box.get("RBI", 0)
+    bb = box.get("BB", 0)
+    if ab == 0 and h == 0:
+        return "DNP"
+    if h >= 2 or hr >= 1 or rbi >= 3:
+        return "Hit"
+    if h == 1 or bb >= 2:
+        return "Neutral"
+    return "Miss"
+
+def evaluate_previous_article(article, previous_player_data):
+    recap_summary = []
+
+    def evaluate_players(section):
+        for group in section:
+            if isinstance(section[group], list):
+                for player in section[group]:
+                    name = player.get("name")
+                    pdata = previous_player_data.get(name, {})
+                    box = pdata.get("box_score", {})
+                    result = score_player(box)
+                    player["result"] = result
+                    player["result_icon"] = ICON_HIT if result == "Hit" else ICON_MISS if result == "Miss" else ICON_NEUTRAL
+                    player["box_score"] = box
+                    recap_summary.append({"name": name, "team": player.get("team"), "position": player.get("position"), "result": result})
+            elif isinstance(section[group], dict):
+                for pos in section[group]:
+                    for player in section[group][pos]:
+                        name = player.get("name")
+                        pdata = previous_player_data.get(name, {})
+                        box = pdata.get("box_score", {})
+                        result = score_player(box)
+                        player["result"] = result
+                        player["result_icon"] = ICON_HIT if result == "Hit" else ICON_MISS if result == "Miss" else ICON_NEUTRAL
+                        player["box_score"] = box
+                        recap_summary.append({"name": name, "team": player.get("team"), "position": pos, "result": result})
+
+    evaluate_players(article)
+    return article, recap_summary
+
+def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file, bucket_name):
+    enhanced_data = load_json(enhanced_file)
+    dfs_article_data = load_json(dfs_article_file)
+
+    # Evaluate previous day's article
+    yday = (datetime.strptime(dfs_article_data["date"], "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+    yday_article_path = f"mlb_dfs_full_articles/mlb_dfs_full_article_{yday}.json"
+    yday_enhanced_path = f"baseball/combined/enhanced_structured_players_{yday}.json"
+    recap_summary = []
+    if os.path.exists(yday_article_path) and os.path.exists(yday_enhanced_path):
+        previous_player_data = load_json(yday_enhanced_path)
+        with open(yday_article_path, "r") as f:
+            yday_article = json.load(f)
+        yday_article, recap_summary = evaluate_previous_article(yday_article, previous_player_data)
+        with open(yday_article_path, "w") as f:
+            json.dump(yday_article, f, indent=2)
+        print(f"✅ Evaluated and saved results to {yday_article_path}")
+
+    # Pick logic
+    def get_trend_score(player):
+        trend = player.get("trend_averages", {})
+        return (
+            1.0 * trend.get("last_3", 0.0)
+            + 0.6 * trend.get("last_6", 0.0)
+            + 0.3 * trend.get("last_9", 0.0)
+        )
+
+    def get_streak_label(player):
+        sd = player.get("streak_data", {})
+        if sd.get("current_hot_streak", 0) >= 3:
+            return "hot"
+        elif sd.get("current_cold_streak", 0) >= 3:
+            return "cold"
+        return "neutral"
+
+    def build_note(player):
+        trend = player.get("trend_averages", {})
+        opponent = player.get("opponent_team", "?")
+        streak = get_streak_label(player)
+        note = f"3/6/9 game FD avg: {trend.get('last_3', 0.0):.1f}/{trend.get('last_6', 0.0):.1f}/{trend.get('last_9', 0.0):.1f}. "
+        note += f"Streak: {streak}. Opponent: {opponent}."
+        return note
+
+    player_pool = {
+        name: data for name, data in enhanced_data.items()
+        if data.get("roster_status", {}).get("status_code") == "A"
     }
 
-def get_base_trend_score(player):
-    """
-    Combine recent/weighted trends into one score.
-    Fallback order: weighted_trends -> recent_trends -> 0
-    """
-    trends = player.get("weighted_trends") or player.get("recent_trends") or {}
-    # Sum numeric values only
-    score = 0.0
-    for v in trends.values():
-        try:
-            score += float(v)
-        except Exception:
-            continue
-    return score
+    probable_pitchers = [
+        (name, get_trend_score(data))
+        for name, data in player_pool.items()
+        if data.get("position") == "P" and data.get("is_probable_starter")
+    ]
+    probable_pitchers = sorted(probable_pitchers, key=lambda x: x[1], reverse=True)
 
-def matchup_gate(players):
-    """
-    Build valid matchups from probable starters and restrict player pool to teams playing today.
-    """
-    matchups = set()
-    for p in players.values():
-        if p.get("position") == "P" and p.get("is_probable_starter") and p.get("team") and p.get("opponent_team"):
-            teams = tuple(sorted([p["team"], p["opponent_team"]]))
-            matchups.add(teams)
+    used_teams = set()
+    pitcher_targets = []
+    for name, _ in probable_pitchers:
+        team = player_pool[name]["team"]
+        if team not in used_teams:
+            used_teams.add(team)
+            pitcher_targets.append(name)
+        if len(pitcher_targets) >= 5:
+            break
 
-    valid_teams = {t for m in matchups for t in m}
-    filtered = {
-        k: v for k, v in players.items()
-        if v.get("team") in valid_teams and v.get("opponent_team") in valid_teams
+    pitcher_fades = [name for name, _ in sorted(probable_pitchers, key=lambda x: x[1])[:2]]
+
+    output = {
+        "date": dfs_article_data["date"],
+        "recap_summary": recap_summary,
+        "pitchers": {"targets": [], "fades": []}
     }
-    return matchups, filtered
 
-def infer_tag(player):
-    """
-    Heuristic to assign Target/Fade/Neutral based on streak labels & momentum:
-
-    - If on a cold_streak but last3 > last9 by a threshold -> TARGET (breakout signal)
-    - If on a hot_streak but last3 < last9 by a threshold -> FADE (cooling signal)
-    - Else NEUTRAL
-
-    Thresholds can be tuned; keep modest to avoid overfitting on small samples.
-    """
-    labels = player.get("trend_labels", []) or []
-    fd = get_fd_avgs(player)
-    d3_vs_9 = fd["last3"] - (fd["last9"] if fd["last9"] else fd["last6"] or 0.0)
-
-    # Small n guard: if no avgs, stay neutral
-    has_any_avg = any([fd["last3"], fd["last6"], fd["last9"]])
-    if not has_any_avg:
-        return {"tag": "neutral", "icon": ICON_NEUTRAL, "reason": "insufficient data"}
-
-    # Thresholds (points of FanDuel)
-    IMPROVE_THRESH = 3.0   # trending up meaningfully
-    DECLINE_THRESH = -3.0  # trending down meaningfully
-
-    if "cold_streak" in labels and d3_vs_9 >= IMPROVE_THRESH:
-        return {"tag": "target", "icon": ICON_TARGET, "reason": "cold streak but improving (last3 > last9)"}
-
-    if "hot_streak" in labels and d3_vs_9 <= DECLINE_THRESH:
-        return {"tag": "fade", "icon": ICON_FADE, "reason": "hot streak but cooling (last3 < last9)"}
-
-    # Otherwise neutral
-    return {"tag": "neutral", "icon": ICON_NEUTRAL, "reason": "no strong signal"}
-
-def generate_notes(player):
-    """
-    Compose concise notes from labels and mentions.
-    """
-    labels = player.get("trend_labels", []) or []
-    notes = []
-
-    # Label snippets
-    if "hot_streak" in labels:
-        notes.append("Hot streak")
-    if "cold_streak" in labels:
-        notes.append("Cold streak")
-    if "hit_streak" in labels:
-        notes.append("Active hit streak")
-    if "power_surge" in labels:
-        notes.append("Power surge")
-    if "slump" in labels:
-        notes.append("Run production down")
-    if "insufficient_data" in labels:
-        notes.append("Limited data")
-
-    # Mentions
-    espn_mentions = int(player.get("espn_mentions") or 0)
-    reddit_mentions = int(player.get("reddit_mentions") or 0)
-    if espn_mentions > 0:
-        notes.append(f"{espn_mentions} ESPN mention(s)")
-    if reddit_mentions > 0:
-        notes.append("Discussed on Reddit")
-
-    # Streak details if present
-    sd = player.get("streak_data") or {}
-    ch = sd.get("current_hot_streak", 0)
-    cc = sd.get("current_cold_streak", 0)
-    if ch:
-        notes.append(f"Current hot streak: {ch}")
-    if cc:
-        notes.append(f"Current cold streak: {cc}")
-
-    return "; ".join(notes)
-
-def summarize_recap(recap_full):
-    """
-    Convert yesterday's full article recap into compact icon+text entries if present.
-    We expect recap to be either a list of dicts or a structure under keys like 'recap'/'recap_summary'.
-    """
-    if isinstance(recap_full, dict):
-        if "recap_summary" in recap_full:
-            items = recap_full["recap_summary"]
-        elif "recap" in recap_full and isinstance(recap_full["recap"], dict) and "previous" in recap_full["recap"]:
-            items = recap_full["recap"]["previous"]
-            if isinstance(items, dict):
-                items = [items]
-        else:
-            items = []
-    elif isinstance(recap_full, list):
-        items = recap_full
-    else:
-        items = []
-
-    out = []
-    for it in items:
-        result = (it.get("result") or "").lower()
-        if "hit" in result:
-            icon = ICON_HIT
-        elif "miss" in result:
-            icon = ICON_MISS
-        else:
-            icon = ICON_NEUTRAL
-        out.append({
-            "player": it.get("player") or it.get("name"),
-            "team": it.get("team"),
-            "position": it.get("position"),
-            "result": f"{icon} {it.get('result', '').strip() or 'Result N/A'}"
-        })
-    return out
-
-# ---------- Main ----------
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--date", required=True, help="Date in YYYY-MM-DD format")
-    args = parser.parse_args()
-
-    date = args.date
-    yday = (datetime.strptime(date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
-
-    structured_fp = os.path.join(STRUCTURED_DIR, f"enhanced_structured_players_{date}.json")
-    recap_dir = os.getenv("RECAP_DIR", DEFAULT_RECAP_DIR)
-    recap_fp = os.path.join(recap_dir, f"mlb_dfs_full_article_{yday}.json")
-
-    print(f"📂 Loading structured file: {structured_fp}")
-    if not os.path.exists(structured_fp):
-        raise FileNotFoundError(f"Missing file: {structured_fp}")
-
-    print(f"📂 Loading recap file: {recap_fp}")
-    recap = {}
-    if os.path.exists(recap_fp):
-        try:
-            recap = load_json(recap_fp)
-        except Exception as e:
-            print(f"⚠️ Could not parse recap file: {e}")
-    else:
-        print(f"⚠️ No recap file found for {yday}; continuing without recap.")
-
-    players = load_json(structured_fp)
-    matchups, filtered_players = matchup_gate(players)
-    print(f"✅ Found {len(matchups)} valid matchups.")
-    print(f"✅ Filtered to {len(filtered_players)} players in valid matchups.")
-
-    candidates = []
-    for name, p in filtered_players.items():
-        if not p.get("team") or not p.get("opponent_team"):
-            continue
-        if p.get("position") == "P" and not p.get("is_probable_starter"):
-            continue
-
-        base_score = get_base_trend_score(p)
-        fd = get_fd_avgs(p)
-        trend_score = base_score + (fd["last3"] or 0.0) * 1.0 + (fd["last6"] or 0.0) * 0.5 + (fd["last9"] or 0.0) * 0.25
-
-        tag_info = infer_tag(p)
-        notes = generate_notes(p)
-
-        if trend_score == 0.0 and tag_info["tag"] == "neutral" and "insufficient" in tag_info["reason"]:
-            continue
-
-        candidates.append({
+    for name in pitcher_targets:
+        p = player_pool[name]
+        output["pitchers"]["targets"].append({
             "name": name,
             "team": p.get("team"),
             "opponent": p.get("opponent_team"),
-            "position": p.get("position"),
-            "trend_score": round(trend_score, 2),
-            "tag": tag_info["tag"],
-            "icon": tag_info["icon"],
-            "notes": notes,
-            "trend_averages": get_fd_avgs(p),
+            "type": "Cash" if get_streak_label(p) != "cold" else "GPP",
+            "notes": build_note(p)
         })
 
-    print(f"🎯 Total candidates: {len(candidates)}")
+    for name in pitcher_fades:
+        p = player_pool[name]
+        output["pitchers"]["fades"].append({
+            "name": name,
+            "team": p.get("team"),
+            "opponent": p.get("opponent_team"),
+            "type": "GPP",
+            "notes": build_note(p)
+        })
 
-    # Prevent multiple SPs per team (guardrail)
-    seen_sp_teams = set()
-    validated = []
-    for rec in sorted(candidates, key=lambda x: x["trend_score"], reverse=True):
-        if rec["position"] != "P":
-            validated.append(rec)
-            continue
-        team = rec.get("team")
-        if team and team not in seen_sp_teams:
-            seen_sp_teams.add(team)
-            validated.append(rec)
+    output_filename = f"mlb_dfs_full_article_{dfs_article_data['date']}.json"
+    output_dir = "mlb_dfs_full_articles"
+    os.makedirs(output_dir, exist_ok=True)
+    local_path = os.path.join(output_dir, output_filename)
+    s3_key = f"baseball/full_mlb_articles/{output_filename}"
 
-    # Group all validated players by position (no cap)
-    top_by_pos = defaultdict(list)
-    for rec in validated:
-        pos = rec["position"]
-        top_by_pos[pos].append(rec)
+    print(f"💾 Writing DFS full article to {local_path}")
+    with open(local_path, "w", encoding="utf-8") as f:
+        json.dump(output, f, indent=2)
+    print(f"✅ File written: {local_path}")
 
-    recap_summary = summarize_recap(recap)
+    print(f"☁️ Uploading to s3://{bucket_name}/{s3_key}")
+    upload_to_s3(local_path, bucket_name, s3_key)
 
-    out = {
-        "date": date,
-        "matchups": sorted(list(matchups)),
-        "num_valid_players": len(filtered_players),
-        "recap_summary": recap_summary,
-        "recommendations": top_by_pos,
-        "status": "assembled with all probable SPs"
-    }
+def generate_full_article(date_str):
+    dfs_article_file = f"baseball/combined/mlb_dfs_article_{date_str}.json"
+    enhanced_file = f"baseball/combined/enhanced_structured_players_{date_str}.json"
+    full_article_file = f"baseball/combined/mlb_dfs_full_article_{date_str}.json"
 
-    out_fp = os.path.join(STRUCTURED_DIR, f"mlb_dfs_article_{date}.json")
-    with open(out_fp, "w", encoding="utf-8") as f:
-        json.dump(out, f, indent=2)
+    if not (os.path.exists(dfs_article_file) and os.path.exists(enhanced_file)):
+        print(f"⚠️ One or more required files not found for {date_str}. Falling back to yesterday.")
+        date_str = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+        dfs_article_file = f"baseball/combined/mlb_dfs_article_{date_str}.json"
+        enhanced_file = f"baseball/combined/enhanced_structured_players_{date_str}.json"
+        full_article_file = f"baseball/combined/mlb_dfs_full_article_{date_str}.json"
 
-    print(f"✅ DFS article saved to {out_fp}")
+    if not os.path.exists(full_article_file):
+        print(f"⚠️ No full article file found for {date_str}, proceeding without previous data.")
+        full_article_file = dfs_article_file
+
+    bucket_name = "fantasy-sports-csvs"
+
+    generate_full_dfs_article(
+        enhanced_file=enhanced_file,
+        dfs_article_file=dfs_article_file,
+        full_article_file=full_article_file,
+        bucket_name=bucket_name
+    )
 
 if __name__ == "__main__":
-    main()
+    today_str = datetime.now(UTC).strftime("%Y-%m-%d")
+    print(f"🚀 Running full article generation for {today_str}")
+    generate_full_article(today_str)
