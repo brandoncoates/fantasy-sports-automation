@@ -1,6 +1,6 @@
 import json
 import boto3
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import defaultdict
 import os
 
@@ -57,11 +57,8 @@ def pick_players_by_position(players, position, num_targets=3, num_fades=1):
     fades = sorted_players[-num_fades:]
     return targets, fades
 
-print(f"📤 Preparing to upload: {output_file} → s3://{bucket_name}/{s3_key}")
 
 def upload_to_s3(local_path, bucket_name, s3_key):
-    import os
-
     if not os.path.exists(local_path):
         print(f"❌ File not found: {local_path}")
         return
@@ -213,7 +210,6 @@ def generate_full_article(date_str):
     enhanced_file = f"baseball/combined/enhanced_structured_players_{date_str}.json"
     dfs_article_file = f"baseball/combined/mlb_dfs_article_{date_str}.json"
 
-    from datetime import timedelta
     yday = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
     full_article_file = f"baseball/combined/mlb_dfs_full_article_{yday}.json"
     if not os.path.exists(full_article_file):
