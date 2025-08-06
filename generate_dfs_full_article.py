@@ -4,11 +4,9 @@ from datetime import datetime, timedelta, UTC
 from collections import defaultdict
 import os
 
-
 def load_json(filename):
     with open(filename, "r") as f:
         return json.load(f)
-
 
 def get_weighted_trend_score(player):
     trend = player.get("trend_averages", {})
@@ -17,7 +15,6 @@ def get_weighted_trend_score(player):
     last9 = trend.get("last_9", {}).get("Hits", 0)
     return (last3 * 0.5) + (last6 * 0.3) + (last9 * 0.2)
 
-
 def get_streak_status(player):
     streak = player.get("streak_data", {})
     if streak.get("current_hot_streak", 0) >= 3:
@@ -25,7 +22,6 @@ def get_streak_status(player):
     elif streak.get("current_cold_streak", 0) >= 3:
         return "cold"
     return "neutral"
-
 
 def build_note(player, role, score):
     streak = get_streak_status(player)
@@ -49,12 +45,10 @@ def build_note(player, role, score):
 
     return note
 
-
 def pick_players_by_position(players, position, num_targets=3, num_fades=1):
     filtered = [p for p in players if p.get("position") == position]
     sorted_players = sorted(filtered, key=get_weighted_trend_score, reverse=True)
     return sorted_players[:num_targets], sorted_players[-num_fades:]
-
 
 def upload_to_s3(local_path, bucket_name, s3_key):
     if not os.path.exists(local_path):
@@ -67,7 +61,6 @@ def upload_to_s3(local_path, bucket_name, s3_key):
         print(f"✅ Uploaded to s3://{bucket_name}/{s3_key}")
     except Exception as e:
         print(f"❌ Upload failed: {e}")
-
 
 def score_player(box):
     if not box:
@@ -85,14 +78,7 @@ def score_player(box):
         return "Neutral"
     return "Miss"
 
-
-def evaluate_previous_article(full_article_path, previous_player_data):
-    if not os.path.exists(full_article_path):
-        return
-
-    with open(full_article_path, "r") as f:
-        article = json.load(f)
-
+def evaluate_previous_article(article, previous_player_data):
     def evaluate_players(section):
         for group in section:
             if isinstance(section[group], list):
@@ -110,14 +96,7 @@ def evaluate_previous_article(full_article_path, previous_player_data):
                         box = pdata.get("box_score", {})
                         player["result"] = score_player(box)
                         player["box_score"] = box
-
     evaluate_players(article)
-
-    with open(full_article_path, "w") as f:
-        json.dump(article, f, indent=2)
-
-    print(f"✅ Evaluated previous article and saved results to {full_article_path}")
-
 
 def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file, bucket_name):
     enhanced_data = load_json(enhanced_file)
@@ -129,7 +108,12 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
     yday_enhanced_path = f"baseball/combined/enhanced_structured_players_{yday}.json"
     if os.path.exists(yday_article_path) and os.path.exists(yday_enhanced_path):
         previous_player_data = load_json(yday_enhanced_path)
-        evaluate_previous_article(yday_article_path, previous_player_data)
+        with open(yday_article_path, "r") as f:
+            yday_article = json.load(f)
+        evaluate_previous_article(yday_article, previous_player_data)
+        with open(yday_article_path, "w") as f:
+            json.dump(yday_article, f, indent=2)
+        print(f"✅ Evaluated and saved results to {yday_article_path}")
 
     date_str = dfs_article_data["date"]
     output_filename = f"mlb_dfs_full_article_{date_str}.json"
@@ -249,13 +233,11 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
     print(f"☁️ Uploading to s3://{bucket_name}/{s3_key}")
     upload_to_s3(local_path, bucket_name, s3_key)
 
-
 def generate_full_article(date_str):
     dfs_article_file = f"baseball/combined/mlb_dfs_article_{date_str}.json"
     enhanced_file = f"baseball/combined/enhanced_structured_players_{date_str}.json"
     full_article_file = f"baseball/combined/mlb_dfs_full_article_{date_str}.json"
 
-    # Fallback if any file is missing
     if not (os.path.exists(dfs_article_file) and os.path.exists(enhanced_file)):
         print(f"⚠️ One or more required files not found for {date_str}. Falling back to yesterday.")
         date_str = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
@@ -263,7 +245,6 @@ def generate_full_article(date_str):
         enhanced_file = f"baseball/combined/enhanced_structured_players_{date_str}.json"
         full_article_file = f"baseball/combined/mlb_dfs_full_article_{date_str}.json"
 
-    # If full article file still doesn't exist, fallback to dfs_article_file
     if not os.path.exists(full_article_file):
         print(f"⚠️ No full article file found for {date_str}, proceeding without previous data.")
         full_article_file = dfs_article_file
