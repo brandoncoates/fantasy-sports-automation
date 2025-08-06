@@ -57,14 +57,18 @@ def pick_players_by_position(players, position, num_targets=3, num_fades=1):
     fades = sorted_players[-num_fades:]
     return targets, fades
 
+print(f"📤 Preparing to upload: {output_file} → s3://{bucket_name}/{s3_key}")
 
 def upload_to_s3(local_path, bucket_name, s3_key):
-    region = os.getenv("AWS_REGION", "us-east-2")
-    s3 = boto3.client("s3", region_name=region)
-    abs_path = os.path.abspath(local_path)
-    print(f"☁️ Uploading {abs_path} to s3://{bucket_name}/{s3_key}...")
+    import os
+
+    if not os.path.exists(local_path):
+        print(f"❌ File not found: {local_path}")
+        return
+
     try:
-        s3.upload_file(abs_path, bucket_name, s3_key)
+        s3 = boto3.client("s3", region_name=os.getenv("AWS_REGION", "us-east-2"))
+        s3.upload_file(local_path, bucket_name, s3_key)
         print(f"✅ Uploaded to s3://{bucket_name}/{s3_key}")
     except Exception as e:
         print(f"❌ Upload failed: {e}")
@@ -201,6 +205,7 @@ def generate_full_dfs_article(enhanced_file, dfs_article_file, full_article_file
         json.dump(output, f, indent=2)
     print(f"✅ File written: {output_file}")
 
+    print(f"📤 Preparing to upload: {output_file} → s3://{bucket_name}/{s3_key}")
     upload_to_s3(output_file, bucket_name, s3_key)
 
 
