@@ -1,144 +1,184 @@
 #!/usr/bin/env python3
+"""
+Fetch MLB betting odds from FanDuel for a given date and save locally.
+"""
 import os
+import argparse
 import requests
 import json
 from datetime import datetime
-import boto3
 import re
+from pathlib import Path
 
-# === CONFIG ===
-API_KEY    = os.getenv("ODDS_API_KEY")
-REGION     = os.getenv("AWS_REGION")
-BUCKET     = "fantasy-sports-csvs"  # ✅ Directly hardcoded like your box score script
-S3_FOLDER  = "baseball/betting"
-SPORT      = "baseball_mlb"
-MARKETS    = "totals,spreads"
-BOOKMAKERS = "fanduel"
-
-# === DATE + FILE SETUP ===
-target_date = datetime.now().strftime("%Y-%m-%d")
-output_dir  = "mlb_daily_odds"
-os.makedirs(output_dir, exist_ok=True)
-filename    = f"mlb_betting_odds_{target_date}.json"
-local_path  = os.path.join(output_dir, filename)
-s3_key      = f"{S3_FOLDER}/{filename}"
-
+# === TEAM NAME NORMALIZATION MAP ===
 TEAM_NAME_MAP = {
     "dbacks": "Arizona Diamondbacks", "diamondbacks": "Arizona Diamondbacks", "arizona": "Arizona Diamondbacks",
     "braves": "Atlanta Braves", "atlanta": "Atlanta Braves",
     "orioles": "Baltimore Orioles", "baltimore": "Baltimore Orioles",
-    "redsox": "Boston Red Sox", "redsox": "Boston Red Sox", "boston": "Boston Red Sox",
+    "redsox": "Boston Red Sox", "boston": "Boston Red Sox",
     "whitesox": "Chicago White Sox", "chicagowhitesox": "Chicago White Sox",
-    "cubs": "Chicago Cubs", "chicagocubs": "Chicago Cubs",
+    "cubs": "Chicago Cubs",
     "reds": "Cincinnati Reds", "cincinnati": "Cincinnati Reds",
     "guardians": "Cleveland Guardians", "cleveland": "Cleveland Guardians",
     "rockies": "Colorado Rockies", "colorado": "Colorado Rockies",
-    "tigers": "Detroit Tigers", "detroit": "Detroit Tigers",
-    "astros": "Houston Astros", "houston": "Houston Astros",
-    "royals": "Kansas City Royals", "kansascity": "Kansas City Royals",
-    "angels": "Los Angeles Angels", "losangelesangels": "Los Angeles Angels",
-    "dodgers": "Los Angeles Dodgers", "losangelesdodgers": "Los Angeles Dodgers",
-    "marlins": "Miami Marlins", "miami": "Miami Marlins",
-    "brewers": "Milwaukee Brewers", "milwaukee": "Milwaukee Brewers",
-    "twins": "Minnesota Twins", "minnesota": "Minnesota Twins",
-    "mets": "New York Mets", "newyorkmets": "New York Mets",
-    "yankees": "New York Yankees", "newyorkyankees": "New York Yankees",
-    "athletics": "Oakland Athletics", "oakland": "Oakland Athletics",
-    "phillies": "Philadelphia Phillies", "philadelphia": "Philadelphia Phillies",
-    "pirates": "Pittsburgh Pirates", "pittsburgh": "Pittsburgh Pirates",
-    "padres": "San Diego Padres", "sandiego": "San Diego Padres",
-    "giants": "San Francisco Giants", "sanfrancisco": "San Francisco Giants",
-    "mariners": "Seattle Mariners", "seattle": "Seattle Mariners",
-    "cardinals": "St. Louis Cardinals", "stlouis": "St. Louis Cardinals",
-    "rays": "Tampa Bay Rays", "tampabay": "Tampa Bay Rays",
-    "rangers": "Texas Rangers", "texas": "Texas Rangers",
-    "bluejays": "Toronto Blue Jays", "toronto": "Toronto Blue Jays",
-    "nationals": "Washington Nationals", "washington": "Washington Nationals"
+    "tigers": "Detroit Tigers",
+    "astros": "Houston Astros",
+    "royals": "Kansas City Royals",
+    "angels": "Los Angeles Angels",
+    "dodgers": "Los Angeles Dodgers",
+    "marlins": "Miami Marlins",
+    "brewers": "Milwaukee Brewers",
+    "twins": "Minnesota Twins",
+    "mets": "New York Mets",
+    "yankees": "New York Yankees",
+    "athletics": "Oakland Athletics",
+    "phillies": "Philadelphia Phillies",
+    "pirates": "Pittsburgh Pirates",
+    "padres": "San Diego Padres",
+    "giants": "San Francisco Giants",
+    "mariners": "Seattle Mariners",
+    "cardinals": "St. Louis Cardinals",
+    "rays": "Tampa Bay Rays",
+    "rangers": "Texas Rangers",
+    "bluejays": "Toronto Blue Jays",
+    "nationals": "Washington Nationals"
 }
-def normalize(name): return re.sub(r"[ .'-]", "", name.lower())
 
-# === FETCH ODDS ===
-print(f"📡 Requesting MLB betting odds from FanDuel for {target_date}...")
-resp = requests.get(
-    f"https://api.the-odds-api.com/v4/sports/{SPORT}/odds",
-    params={
-        "apiKey":     API_KEY,
-        "regions":    "us",
-        "markets":    MARKETS,
-        "bookmakers": BOOKMAKERS,
-        "oddsFormat": "decimal",
-        "dateFormat": "iso",
-    },
-    timeout=10
-)
-resp.raise_for_status()
-games = resp.json()
-if not games:
-    print("⚠️ No odds returned — exiting.")
-    exit(0)
 
-# === PARSE RESULTS ===
-results = []
-for game in games:
-    home = TEAM_NAME_MAP.get(normalize(game.get("home_team", "")), game.get("home_team", ""))
-    away = TEAM_NAME_MAP.get(normalize(game.get("away_team", "")), game.get("away_team", ""))
-    time_str = game.get("commence_time", "")[:19].replace("T", " ")
+def normalize(name: str) -> str:
+    """Normalize team name by removing punctuation and lowercasing."""
+    return re.sub(r"[ .'\-]", "", name.lower())
 
-    for book in game.get("bookmakers", []):
-        if book.get("title") != "FanDuel":
-            continue
 
-        over_under = None
-        spread = None
-        favorite = None
-        underdog = None
-        implied_totals = {}
+def main():
+    # Determine project root (two levels up from this file)
+    project_root = Path(__file__).resolve().parent.parent
+    default_outdir = project_root / "data" / "raw" / "betting"
 
-        for market in book.get("markets", []):
-            m_type = market.get("key")
-            for outcome in market.get("outcomes", []):
-                name = outcome.get("name", "")
-                point = outcome.get("point")
+    parser = argparse.ArgumentParser(
+        description="Fetch MLB betting odds from FanDuel for a given date and save locally."
+    )
+    parser.add_argument(
+        "--date", type=str, default=datetime.now().strftime("%Y-%m-%d"),
+        help="Date in YYYY-MM-DD format (default: today)"
+    )
+    parser.add_argument(
+        "--outdir", type=Path, default=default_outdir,
+        help=f"Output directory for JSON files (default: {default_outdir})"
+    )
+    parser.add_argument(
+        "--api-key", type=str,
+        help="Odds API key (overrides env var)"
+    )
+    parser.add_argument(
+        "--api-key-env", type=str, default="ODDS_API_KEY",
+        help="Name of the environment variable containing the Odds API key"
+    )
+    parser.add_argument(
+        "--bookmakers", type=str, default="fanduel",
+        help="Comma-separated list of bookmakers (default: fanduel)"
+    )
+    parser.add_argument(
+        "--markets", type=str, default="totals,spreads",
+        help="Comma-separated list of markets (default: totals,spreads)"
+    )
+    args = parser.parse_args()
 
-                if m_type == "totals" and name.lower() == "over" and point:
-                    over_under = point
+    # Determine API key
+    api_key = args.api_key or os.getenv(args.api_key_env)
+    if not api_key:
+        parser.error(
+            f"You must provide an API key via --api-key or set the environment variable '{args.api_key_env}'."
+        )
 
-                elif m_type == "spreads" and point is not None:
-                    if name == home and point < 0:
-                        favorite, underdog = home, away
-                        spread = abs(point)
-                    elif name == away and point < 0:
-                        favorite, underdog = away, home
-                        spread = abs(point)
+    target_date = args.date
+    outdir: Path = args.outdir
+    outdir.mkdir(parents=True, exist_ok=True)
+    filename = f"mlb_betting_odds_{target_date}.json"
+    local_path = outdir / filename
 
-                elif m_type == "team_totals" and point is not None:
-                    canon = TEAM_NAME_MAP.get(normalize(name), name)
-                    implied_totals[canon] = point
+    # === FETCH ODDS ===
+    print(f"📡 Requesting MLB betting odds for {target_date}...")
+    try:
+        resp = requests.get(
+            "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds",
+            params={
+                "apiKey": api_key,
+                "regions": "us",
+                "markets": args.markets,
+                "bookmakers": args.bookmakers,
+                "oddsFormat": "decimal",
+                "dateFormat": "iso",
+            },
+            timeout=10
+        )
+        resp.raise_for_status()
+    except requests.exceptions.HTTPError as http_err:
+        print(f"❌ HTTP error occurred: {http_err}")
+        return
+    except requests.exceptions.RequestException as err:
+        print(f"❌ Request error: {err}")
+        return
 
-        results.append({
-            "date": target_date,
-            "time": time_str,
-            "bookmaker": "FanDuel",
-            "home_team": home,
-            "away_team": away,
-            "over_under": over_under,
-            "spread": spread,
-            "favorite": favorite,
-            "underdog": underdog,
-            "implied_totals": implied_totals
-        })
+    games = resp.json()
+    if not games:
+        print("⚠️ No odds returned — exiting.")
+        return
 
-# === SAVE LOCALLY ===
-with open(local_path, "w", encoding="utf-8") as f:
-    json.dump(results, f, indent=2)
-print(f"💾 Saved betting odds to {local_path} ({len(results)} games)")
+    # === PARSE RESULTS ===
+    results = []
+    for game in games:
+        home = TEAM_NAME_MAP.get(normalize(game.get("home_team", "")), game.get("home_team", ""))
+        away = TEAM_NAME_MAP.get(normalize(game.get("away_team", "")), game.get("away_team", ""))
+        time_str = game.get("commence_time", "")[:19].replace("T", " ")
 
-# === UPLOAD TO S3 ===
-print(f"☁️ Uploading to s3://{BUCKET}/{s3_key}")
-s3 = boto3.client("s3", region_name=REGION)
-try:
-    s3.upload_file(local_path, BUCKET, s3_key)
-    print("✅ Upload successful.")
-except Exception as e:
-    print(f"❌ Upload failed: {e}")
-    exit(1)
+        for book in game.get("bookmakers", []):
+            if book.get("title", "").lower() != "fanduel":
+                continue
+
+            over_under = None
+            spread = None
+            favorite = None
+            underdog = None
+            implied_totals = {}
+
+            for market in book.get("markets", []):
+                m_type = market.get("key")
+                for outcome in market.get("outcomes", []):
+                    name = outcome.get("name", "")
+                    point = outcome.get("point")
+
+                    if m_type == "totals" and name.lower() == "over" and point is not None:
+                        over_under = point
+                    elif m_type == "spreads" and point is not None:
+                        if name == home and point < 0:
+                            favorite, underdog = home, away
+                            spread = abs(point)
+                        elif name == away and point < 0:
+                            favorite, underdog = away, home
+                            spread = abs(point)
+                    elif m_type == "team_totals" and point is not None:
+                        canon = TEAM_NAME_MAP.get(normalize(name), name)
+                        implied_totals[canon] = point
+
+            results.append({
+                "date": target_date,
+                "time": time_str,
+                "bookmaker": book.get("title", ""),
+                "home_team": home,
+                "away_team": away,
+                "over_under": over_under,
+                "spread": spread,
+                "favorite": favorite,
+                "underdog": underdog,
+                "implied_totals": implied_totals
+            })
+
+    # === SAVE LOCALLY ===
+    with open(local_path, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2)
+    print(f"💾 Saved betting odds to {local_path} ({len(results)} games)")
+
+
+if __name__ == "__main__":
+    main()

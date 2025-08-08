@@ -1,135 +1,146 @@
-import os
+#!/usr/bin/env python3
+"""
+Fetch MLB active rosters for a given date and save locally, injecting any missing probable starters.
+"""
+import argparse
 import json
 import requests
 from datetime import datetime
-import boto3
+from zoneinfo import ZoneInfo
+from pathlib import Path
 
-# import the normalization function
 from shared.normalize_name import normalize_name
 
-# === CONFIG ===
-REGION     = "us-east-1"
-BUCKET     = "fantasy-sports-csvs"
-S3_FOLDER  = "baseball/rosters"
-DATE       = datetime.now().strftime("%Y-%m-%d")
-filename   = f"mlb_rosters_{DATE}.json"
-S3_KEY     = f"{S3_FOLDER}/{filename}"
-TEAMS_URL  = "https://statsapi.mlb.com/api/v1/teams?sportId=1"
-PROBABLES  = f"baseball/probablestarters/mlb_probable_starters_{DATE}.json"
 
-# === INIT S3 CLIENT ===
-s3 = boto3.client("s3", region_name=REGION)
+def default_date_et():
+    """Return today's date string in Eastern Time."""
+    eastern_now = datetime.now(ZoneInfo("America/New_York"))
+    return eastern_now.strftime("%Y-%m-%d")
 
-# === GET MLB TEAMS ===
-print("📡 Getting MLB teams...")
-teams_response = requests.get(TEAMS_URL)
-teams = teams_response.json().get("teams", [])
 
-records = []
-
-for team in teams:
-    team_id = team.get("id")
-    team_name = team.get("name")
-
-    print(f"🔍 Getting active roster for {team_name}...")
-    roster_url = f"https://statsapi.mlb.com/api/v1/teams/{team_id}/roster?rosterType=active"
-    roster_response = requests.get(roster_url)
-
-    if roster_response.status_code != 200:
-        print(f"❌ Failed to get roster for {team_name}: {roster_response.text}")
-        continue
-
-    for player in roster_response.json().get("roster", []):
-        person = player.get("person", {})
-        raw_name = person.get("fullName", "")
-        full_name = normalize_name(raw_name)
-        player_id = person.get("id", "")
-        position = player.get("position", {}).get("abbreviation", "")
-        status = player.get("status", {})
-        status_code = status.get("code", "")
-        status_desc = status.get("description", "")
-
-        # Fetch player details for hand info
-        details_url = f"https://statsapi.mlb.com/api/v1/people/{player_id}"
-        details_response = requests.get(details_url)
-
-        bats = throws = None
-        if details_response.status_code == 200:
-            details = details_response.json().get("people", [{}])[0]
-            bats = details.get("batSide", {}).get("code", "")
-            throws = details.get("pitchHand", {}).get("code", "")
-
-        records.append({
-            "date": DATE,
-            "team": team_name,
-            "player": full_name,
-            "player_id": player_id,
-            "position": position,
-            "status_code": status_code,
-            "status_description": status_desc,
-            "bats": bats,
-            "throws": throws
-        })
-
-# === FALLBACK: ADD MISSING PROBABLE STARTERS ===
-LOCAL_PROBABLES = f"mlb_probable_starters_{DATE}.json"
-try:
-    print(f"☁️ Downloading {PROBABLES} from S3...")
-    s3.download_file(BUCKET, PROBABLES, LOCAL_PROBABLES)
-except Exception as e:
-    print(f"⚠️ Failed to download probable starters from S3: {e}")
-    LOCAL_PROBABLES = None
-
-starters = []
-if LOCAL_PROBABLES:
+def load_probable_starters(date_str: str):
+    """Load probable starters from local JSON, if available."""
+    path = Path(__file__).resolve().parent / "data" / "raw" / "probable_starters" / f"mlb_probable_starters_{date_str}.json"
+    if not path.exists():
+        print(f"⚠️  Probable starters file not found: {path}")
+        return []
     try:
-        with open(LOCAL_PROBABLES, "r", encoding="utf-8") as f:
-            starters = json.load(f)
+        return json.loads(path.read_text(encoding="utf-8"))
     except Exception as e:
-        print(f"⚠️ Could not load probable starters from {LOCAL_PROBABLES}: {e}")
+        print(f"⚠️  Error loading probable starters: {e}")
+        return []
 
-# Build set of names already included
-roster_names = {rec["player"].strip().lower() for rec in records}
 
-for game in starters:
-    for role in ["home_pitcher", "away_pitcher"]:
-        name = game.get(role, "").strip()
-        if not name or name.lower() in roster_names:
-            continue  # already in list
+def main():
+    project_root = Path(__file__).resolve().parent
+    default_outdir = project_root / "data" / "raw" / "rosters"
 
-        # Guess team name from game context
-        team = game.get("home_team") if role == "home_pitcher" else game.get("away_team")
+    parser = argparse.ArgumentParser(
+        description="Fetch MLB active rosters for a given date and save locally."
+    )
+    parser.add_argument(
+        "--date", type=str, default=default_date_et(),
+        help="Date in YYYY-MM-DD format (default: today ET)"
+    )
+    parser.add_argument(
+        "--outdir", type=Path, default=default_outdir,
+        help="Output directory for JSON files"
+    )
+    args = parser.parse_args()
 
-        print(f"➕ Injecting missing probable starter: {name}")
-        records.append({
-            "date": DATE,
-            "team": team,
-            "player": name,
-            "player_id": f"manual-{normalize_name(name)}",
-            "position": "P",
-            "status_code": "A",
-            "status_description": "Probable Starter (Injected)",
-            "bats": "R",
-            "throws": "R"
-        })
+    target_date = args.date
+    outdir: Path = args.outdir
+    outdir.mkdir(parents=True, exist_ok=True)
+    filename = f"mlb_rosters_{target_date}.json"
+    local_path = outdir / filename
 
-print(f"✅ Final roster count: {len(records)} players.")
+    # === STEP 1: Fetch teams list ===
+    teams_url = "https://statsapi.mlb.com/api/v1/teams?sportId=1"
+    try:
+        resp = requests.get(teams_url, timeout=10)
+        resp.raise_for_status()
+        teams = resp.json().get("teams", [])
+    except requests.RequestException as e:
+        print(f"❌ Error fetching teams: {e}")
+        return
 
-# === SAVE TO JSON ===
-output_dir = "mlb_rosters"
-os.makedirs(output_dir, exist_ok=True)
-local_path = os.path.join(output_dir, filename)
+    # === STEP 2: Fetch active rosters ===
+    records = []
+    for team in teams:
+        team_id = team.get("id")
+        team_name = team.get("name")
+        roster_url = f"https://statsapi.mlb.com/api/v1/teams/{team_id}/roster?rosterType=active"
+        try:
+            r = requests.get(roster_url, timeout=10)
+            r.raise_for_status()
+            roster = r.json().get("roster", [])
+        except requests.RequestException as e:
+            print(f"❌ Failed to fetch roster for {team_name}: {e}")
+            continue
 
-with open(local_path, mode="w", encoding="utf-8") as f:
-    json.dump(records, f, ensure_ascii=False, indent=2)
+        for player in roster:
+            person = player.get("person", {})
+            raw_name = person.get("fullName", "")
+            name = normalize_name(raw_name)
+            player_id = person.get("id", "")
+            position = player.get("position", {}).get("abbreviation", "")
+            status = player.get("status", {})
+            status_code = status.get("code", "")
+            status_desc = status.get("description", "")
 
-print(f"💾 JSON written locally: {local_path}")
+            # Fetch hand info
+            bats = throws = None
+            details_url = f"https://statsapi.mlb.com/api/v1/people/{player_id}"
+            try:
+                d = requests.get(details_url, timeout=5)
+                d.raise_for_status()
+                info = d.json().get("people", [{}])[0]
+                bats = info.get("batSide", {}).get("code", "")
+                throws = info.get("pitchHand", {}).get("code", "")
+            except requests.RequestException:
+                pass
 
-# === UPLOAD TO S3 ===
-print(f"☁️ Uploading to s3://{BUCKET}/{S3_KEY}")
-try:
-    s3.upload_file(local_path, BUCKET, S3_KEY)
-    print(f"✅ Upload complete: s3://{BUCKET}/{S3_KEY}")
-except Exception as e:
-    print(f"❌ Upload failed: {e}")
-    exit(1)
+            records.append({
+                "date": target_date,
+                "team": team_name,
+                "player": name,
+                "player_id": player_id,
+                "position": position,
+                "status_code": status_code,
+                "status_description": status_desc,
+                "bats": bats,
+                "throws": throws
+            })
+
+    # === STEP 3: Inject missing probable starters ===
+    starters = load_probable_starters(target_date)
+    roster_names = {rec["player"].lower() for rec in records}
+    for game in starters:
+        for role in ("home_pitcher", "away_pitcher"):  # both keys exist
+            name = game.get(role, "").strip()
+            if not name or name.lower() in roster_names:
+                continue
+            team = game.get("home_team") if role == "home_pitcher" else game.get("away_team")
+            print(f"➕ Injecting probable starter: {name}")
+            records.append({
+                "date": target_date,
+                "team": team,
+                "player": name,
+                "player_id": f"manual-{normalize_name(name)}",
+                "position": "P",
+                "status_code": "A",
+                "status_description": "Probable Starter (Injected)",
+                "bats": None,
+                "throws": None
+            })
+
+    print(f"✅ Final roster count: {len(records)} players.")
+
+    # === STEP 4: Save locally ===
+    with open(local_path, "w", encoding="utf-8") as f:
+        json.dump(records, f, indent=2)
+    print(f"💾 Saved rosters to {local_path}")
+
+
+if __name__ == "__main__":
+    main()
