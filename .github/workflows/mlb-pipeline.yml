@@ -1,5 +1,5 @@
 # .github/workflows/mlb-pipeline.yml
-name: MLB Pipeline — Starters then Rosters
+name: MLB Pipeline — Starters, Rosters, Weather
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
         required: true
 
 jobs:
-  starters-then-rosters:
+  srw:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -38,7 +38,7 @@ jobs:
           name: starters-${{ github.event.inputs.date }}
           path: data/raw/probable_starters/mlb_probable_starters_${{ github.event.inputs.date }}.json
 
-      # 2) ROSTERS (will inject starters using the file above)
+      # 2) ROSTERS (injects starters if needed)
       - name: Run roster scraper
         run: python mlb_rosters_scraper.py --date "${{ github.event.inputs.date }}"
 
@@ -52,3 +52,23 @@ jobs:
         with:
           name: rosters-${{ github.event.inputs.date }}
           path: data/raw/rosters/mlb_rosters_${{ github.event.inputs.date }}.json
+
+      # 3) WEATHER
+      - name: Verify stadium CSV exists
+        run: |
+          ls -l "mlb_stadium_coordinates.csv"
+          head -n 3 "mlb_stadium_coordinates.csv" || true
+
+      - name: Run weather scraper
+        run: python mlb_weather_scraper.py --date "${{ github.event.inputs.date }}"
+
+      - name: Verify weather JSON
+        run: |
+          ls -l "data/raw/weather/mlb_weather_${{ github.event.inputs.date }}.json"
+          head -n 5 "data/raw/weather/mlb_weather_${{ github.event.inputs.date }}.json" || true
+
+      - name: Upload weather artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: weather-${{ github.event.inputs.date }}
+          path: data/raw/weather/mlb_weather_${{ github.event.inputs.date }}.json
