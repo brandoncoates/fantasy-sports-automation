@@ -10,32 +10,22 @@ on:
         default: ''
 
 jobs:
-  roster-check:
+  roster-only:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Run roster scraper
-        run: |
-          python mlb_rosters_scraper.py --date "${{ github.event.inputs.date }}"
+        run: python mlb_rosters_scraper.py --date "${{ github.event.inputs.date }}"
 
-      - name: Verify roster file exists
+      - name: Verify roster JSON
         run: |
-          ls -l "data/raw/rosters/mlb_rosters_${{ github.event.inputs.date }}.json"
-
-      - name: Upload rosters artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: rosters-${{ github.event.inputs.date }}
-          path: data/raw/rosters/mlb_rosters_${{ github.event.inputs.date }}.json
+          echo "Looking for roster file…"
+          ls -l data/raw/rosters/mlb_rosters_${{ github.event.inputs.date }}.json
