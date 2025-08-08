@@ -59,7 +59,7 @@ jobs:
         run: python mlb_box_scraper.py --date ${{ env.DATE }}
 
       - name: Run betting odds scraper
-        run: python mlb_betting_odds.py --date ${{ env.DATE }} --api-key ${{ env.ODDS_API_KEY }}
+        run: python mlb_betting_odds_scraper.py --date ${{ env.DATE }} --api-key ${{ env.ODDS_API_KEY }}
 
       - name: Combine all data
         run: python mlb_combine_all_files.py --date ${{ env.DATE }}
