@@ -96,9 +96,9 @@ jobs:
 
       - name: Run trend analysis CLI
         run: |
-          python -m analyzer.cli             
-            --date ${{ env.DATE }}\       
-            --archive ${{ github.workspace }}/player_game_log.jsonl\
+          python -m analyzer.cli \  
+            --date ${{ env.DATE }} \  
+            --archive ${{ github.workspace }}/player_game_log.jsonl \  
             --structured ${{ github.workspace }}/structured_players_${{ env.DATE }}.json
 
       - name: Archive analysis outputs
