@@ -20,7 +20,13 @@ def default_date_et():
 
 def load_probable_starters(date_str: str):
     """Load probable starters from local JSON, if available."""
-    path = Path(__file__).resolve().parent / "data" / "raw" / "probable_starters" / f"mlb_probable_starters_{date_str}.json"
+    path = (
+        Path.cwd()
+        / "data"
+        / "raw"
+        / "probable_starters"
+        / f"mlb_probable_starters_{date_str}.json"
+    )
     if not path.exists():
         print(f"⚠️  Probable starters file not found: {path}")
         return []
@@ -32,8 +38,8 @@ def load_probable_starters(date_str: str):
 
 
 def main():
-    project_root = Path(__file__).resolve().parent
-    default_outdir = project_root / "data" / "raw" / "rosters"
+    # default to repo-root/data/raw/rosters
+    default_outdir = Path.cwd() / "data" / "raw" / "rosters"
 
     parser = argparse.ArgumentParser(
         description="Fetch MLB active rosters for a given date and save locally."
@@ -116,17 +122,17 @@ def main():
     starters = load_probable_starters(target_date)
     roster_names = {rec["player"].lower() for rec in records}
     for game in starters:
-        for role in ("home_pitcher", "away_pitcher"):  # both keys exist
-            name = game.get(role, "").strip()
-            if not name or name.lower() in roster_names:
+        for role in ("home_pitcher", "away_pitcher"):
+            nm = game.get(role, "").strip()
+            if not nm or nm.lower() in roster_names:
                 continue
             team = game.get("home_team") if role == "home_pitcher" else game.get("away_team")
-            print(f"➕ Injecting probable starter: {name}")
+            print(f"➕ Injecting probable starter: {nm}")
             records.append({
                 "date": target_date,
                 "team": team,
-                "player": name,
-                "player_id": f"manual-{normalize_name(name)}",
+                "player": nm,
+                "player_id": f"manual-{normalize_name(nm)}",
                 "position": "P",
                 "status_code": "A",
                 "status_description": "Probable Starter (Injected)",
@@ -139,7 +145,7 @@ def main():
     # === STEP 4: Save locally ===
     with open(local_path, "w", encoding="utf-8") as f:
         json.dump(records, f, indent=2)
-    print(f"💾 Saved rosters to {local_path}")
+    print(f"💾 Saved rosters to {local_path} ({len(records)} records)")
 
 
 if __name__ == "__main__":

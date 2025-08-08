@@ -18,12 +18,10 @@ def normalize_key(text: str) -> str:
     """Normalize text to match team keys (lowercase, no punctuation)."""
     return re.sub(r"[ .'\-]", "", (text or "")).lower()
 
-
 def default_date_et():
     """Return today's date string adjusted to Eastern Time."""
     eastern_now = datetime.now(ZoneInfo("America/New_York"))
     return eastern_now.strftime("%Y-%m-%d")
-
 
 def load_starters(date_str: str, starters_dir: Path):
     """Load probable starters JSON from local file."""
@@ -37,13 +35,11 @@ def load_starters(date_str: str, starters_dir: Path):
         print(f"⚠️ Error loading starters: {e}")
         return []
 
-
 def main():
-    # Determine project and default paths
-    project_root = Path(__file__).resolve().parent.parent
-    default_outdir = project_root / "data" / "raw" / "weather"
-    default_starters = project_root / "data" / "raw" / "probable_starters"
-    stadium_csv = project_root / "mlb_stadium_coordinates.csv"
+    # default to repo-root/data/raw/weather and repo-root data for starters & CSV
+    default_outdir    = Path.cwd() / "data" / "raw" / "weather"
+    default_starters  = Path.cwd() / "data" / "raw" / "probable_starters"
+    default_stadiums  = Path.cwd() / "mlb_stadium_coordinates.csv"
 
     parser = argparse.ArgumentParser(
         description="Fetch gametime weather for MLB probable starters and save locally."
@@ -61,7 +57,7 @@ def main():
         help="Directory where probable starter JSON files are located"
     )
     parser.add_argument(
-        "--stadium-csv", type=Path, default=stadium_csv,
+        "--stadium-csv", type=Path, default=default_stadiums,
         help="Path to the mlb_stadium_coordinates.csv file"
     )
     args = parser.parse_args()

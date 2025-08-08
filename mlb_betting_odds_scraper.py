@@ -44,16 +44,13 @@ TEAM_NAME_MAP = {
     "nationals": "Washington Nationals"
 }
 
-
 def normalize(name: str) -> str:
     """Normalize team name by removing punctuation and lowercasing."""
     return re.sub(r"[ .'\-]", "", name.lower())
 
-
 def main():
-    # Determine project root (two levels up from this file)
-    project_root = Path(__file__).resolve().parent.parent
-    default_outdir = project_root / "data" / "raw" / "betting"
+    # Default to writing into repo-root/data/raw/betting
+    default_outdir = Path.cwd() / "data" / "raw" / "betting"
 
     parser = argparse.ArgumentParser(
         description="Fetch MLB betting odds from FanDuel for a given date and save locally."
@@ -64,7 +61,7 @@ def main():
     )
     parser.add_argument(
         "--outdir", type=Path, default=default_outdir,
-        help=f"Output directory for JSON files (default: {default_outdir})"
+        help="Output directory for JSON files"
     )
     parser.add_argument(
         "--api-key", type=str,
@@ -178,7 +175,6 @@ def main():
     with open(local_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
     print(f"💾 Saved betting odds to {local_path} ({len(results)} games)")
-
 
 if __name__ == "__main__":
     main()

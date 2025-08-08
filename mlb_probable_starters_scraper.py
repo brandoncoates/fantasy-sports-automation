@@ -11,12 +11,10 @@ from pathlib import Path
 
 from shared.normalize_name import normalize_name
 
-
 def default_date_et():
     """Return today's date string in Eastern Time."""
     eastern_now = datetime.now(ZoneInfo("America/New_York"))
     return eastern_now.strftime("%Y-%m-%d")
-
 
 def get_throw_hand(player_id: int) -> str:
     """Fetch a player's throwing hand via the MLB people endpoint."""
@@ -32,10 +30,9 @@ def get_throw_hand(player_id: int) -> str:
     except requests.RequestException:
         return ""
 
-
 def main():
-    project_root = Path(__file__).resolve().parent
-    default_outdir = project_root / "data" / "raw" / "probable_starters"
+    # Write into repo-level data/raw/probable_starters by default
+    default_outdir = Path.cwd() / "data" / "raw" / "probable_starters"
 
     parser = argparse.ArgumentParser(
         description="Fetch MLB probable starters from MLB API for a given date and save locally."
@@ -107,7 +104,6 @@ def main():
     with open(local_path, "w", encoding="utf-8") as f:
         json.dump(records, f, indent=2)
     print(f"💾 Saved probable starters to {local_path} ({len(records)} records)")
-
 
 if __name__ == "__main__":
     main()
