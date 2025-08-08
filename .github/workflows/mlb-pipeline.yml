@@ -72,3 +72,18 @@ jobs:
         with:
           name: weather-${{ github.event.inputs.date }}
           path: data/raw/weather/mlb_weather_${{ github.event.inputs.date }}.json
+
+      - name: Run betting odds scraper
+        run: |
+          python mlb_betting_odds_scraper.py \
+            --date ${{ env.DATE }} \
+            --api-key ${{ env.ODDS_API_KEY }}
+          ls -l data/raw/betting || true
+          echo "Expect: data/raw/betting/mlb_betting_odds_${{ env.DATE }}.json"
+
+      - name: Upload betting odds artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: betting-odds-${{ env.DATE }}
+          path: data/raw/betting/mlb_betting_odds_${{ env.DATE }}.json
+
