@@ -1,4 +1,5 @@
-name: MLB Pipeline — Rosters Only
+# .github/workflows/mlb-pipeline.yml
+name: MLB Pipeline — Starters then Rosters
 
 on:
   workflow_dispatch:
@@ -8,13 +9,13 @@ on:
         required: true
 
 jobs:
-  roster-only:
+  starters-then-rosters:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
@@ -22,13 +23,29 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # 1) PROBABLE STARTERS FIRST
+      - name: Run probable starters scraper
+        run: python mlb_probable_starters_scraper.py --date "${{ github.event.inputs.date }}"
+
+      - name: Verify starters JSON
+        run: |
+          ls -l "data/raw/probable_starters/mlb_probable_starters_${{ github.event.inputs.date }}.json"
+          head -n 5 "data/raw/probable_starters/mlb_probable_starters_${{ github.event.inputs.date }}.json" || true
+
+      - name: Upload starters artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: starters-${{ github.event.inputs.date }}
+          path: data/raw/probable_starters/mlb_probable_starters_${{ github.event.inputs.date }}.json
+
+      # 2) ROSTERS (will inject starters using the file above)
       - name: Run roster scraper
         run: python mlb_rosters_scraper.py --date "${{ github.event.inputs.date }}"
 
-      - name: Verify roster JSON exists
+      - name: Verify roster JSON
         run: |
-          echo "Looking for roster file…"
-          ls -l data/raw/rosters/mlb_rosters_${{ github.event.inputs.date }}.json
+          ls -l "data/raw/rosters/mlb_rosters_${{ github.event.inputs.date }}.json"
+          head -n 5 "data/raw/rosters/mlb_rosters_${{ github.event.inputs.date }}.json" || true
 
       - name: Upload roster artifact
         uses: actions/upload-artifact@v4
