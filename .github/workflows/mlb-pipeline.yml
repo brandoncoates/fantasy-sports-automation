@@ -73,17 +73,21 @@ jobs:
           name: weather-${{ github.event.inputs.date }}
           path: data/raw/weather/mlb_weather_${{ github.event.inputs.date }}.json
 
+      # Betting odds — replace your current betting steps with these
       - name: Run betting odds scraper
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: |
           python mlb_betting_odds_scraper.py \
-            --date ${{ env.DATE }} \
-            --api-key ${{ env.ODDS_API_KEY }}
-          ls -l data/raw/betting || true
-          echo "Expect: data/raw/betting/mlb_betting_odds_${{ env.DATE }}.json"
+            --date "${{ github.event.inputs.date }}" \
+            --api-key "${ODDS_API_KEY}"
+          ls -l "data/raw/betting" || true
+          head -n 5 "data/raw/betting/mlb_betting_odds_${{ github.event.inputs.date }}.json" || true
 
       - name: Upload betting odds artifact
         uses: actions/upload-artifact@v4
         with:
-          name: betting-odds-${{ env.DATE }}
-          path: data/raw/betting/mlb_betting_odds_${{ env.DATE }}.json
+          name: betting-odds-${{ github.event.inputs.date }}
+          path: data/raw/betting/mlb_betting_odds_${{ github.event.inputs.date }}.json
+          if-no-files-found: error
 
