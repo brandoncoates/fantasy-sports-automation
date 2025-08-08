@@ -99,7 +99,11 @@ def main():
     records = []
     seen = set()
     for g in starters:
-        game_dt = datetime.fromisoformat(g.get("game_datetime").replace("Z", "+00:00"))
+        # parse game datetime, drop tzinfo so we compare naive<->naive
+        raw_dt = g.get("game_datetime")
+        game_dt = datetime.fromisoformat(raw_dt.replace("Z", "+00:00"))
+        game_dt = game_dt.replace(tzinfo=None)
+
         for side in ("home_team", "away_team"):
             team = g.get(side)
             key = normalize_key(team)
@@ -130,7 +134,8 @@ def main():
             times = data.get("hourly", {}).get("time", [])
             idx = 0
             for i, t in enumerate(times):
-                if datetime.fromisoformat(t) >= game_dt:
+                dt_t = datetime.fromisoformat(t)
+                if dt_t >= game_dt:
                     idx = i
                     break
 
