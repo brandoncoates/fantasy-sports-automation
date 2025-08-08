@@ -56,7 +56,7 @@ jobs:
         run: python mlb_weather_scraper.py --date ${{ env.DATE }}
 
       - name: Run box scores scraper
-        run: python mlb_boxscores_scraper.py --date ${{ env.DATE }}
+        run: python mlb_box_scraper.py --date ${{ env.DATE }}
 
       - name: Run betting odds scraper
         run: python mlb_betting_odds_scraper.py --date ${{ env.DATE }} --api-key ${{ env.ODDS_API_KEY }}
