@@ -64,27 +64,36 @@ jobs:
       - name: Combine all data
         run: python mlb_combine_all_files.py --date ${{ env.DATE }}
 
-      - name: CI: list root contents
+      - name: List workspace files
         run: |
-          echo "Current directory: $(pwd)"
-          ls -1 .
+          echo "📂 At $(pwd):"
+          ls -R .
 
-      - name: CI: debug structured JSON
+      - name: Dump structured JSON
         run: |
-          echo ">>> Contents of structured_players_${{ env.DATE }}.json <<<"
-          ls -1 structured_players_${{ env.DATE }}.json || echo "❌ File not found"
-          head -n 20 structured_players_${{ env.DATE }}.json || echo "❌ Cannot read file"
+          echo ">>>> structured_players_${{ env.DATE }}.json <<<<"
+          head -n 20 structured_players_${{ env.DATE }}.json || echo "❌ missing structured JSON"
+
+      - name: Verify structured JSON keys
+        # use bash so we can rely on $DATE in env
+        shell: bash
+        run: |
+          python - <<'PYCODE'
+import json, os
+path = f"structured_players_{os.environ['DATE']}.json"
+data = json.load(open(path))
+print("STRUCTURED KEYS:", list(next(iter(data.values())).keys()))
+PYCODE
 
       - name: Configure PYTHONPATH
         run: echo "PYTHONPATH=$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
 
       - name: Run trend analysis CLI
-        working-directory: ${{ github.workspace }}
         run: |
           python -m analyzer.cli \
             --date ${{ env.DATE }} \
-            --archive ${{ github.workspace }}/player_game_log.jsonl \
-            --structured ${{ github.workspace }}/structured_players_${{ env.DATE }}.json
+            --archive player_game_log.jsonl \
+            --structured structured_players_${{ env.DATE }}.json
 
       - name: Archive analysis outputs
         uses: actions/upload-artifact@v4
