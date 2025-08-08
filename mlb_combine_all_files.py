@@ -6,7 +6,7 @@ Combine raw JSON into structured_players_{DATE}.json
 and append to player_game_log.jsonl (with a 'date' field!).
 """
 import argparse, json, re
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 def normalize(text: str) -> str:
@@ -29,16 +29,17 @@ def main():
     )
     args = p.parse_args()
 
-    date    = args.date
-    raw     = args.raw_dir
-    # note: no more yday!
-    
+    date = args.date
+    # yesterday for boxscores
+    yday = (datetime.strptime(date,"%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+    raw = args.raw_dir
+
     # 1) load all raw JSONs
     rosters   = load_json(raw/"rosters"/f"mlb_rosters_{date}.json")
     starters  = load_json(raw/"probable_starters"/f"mlb_probable_starters_{date}.json")
     weather   = load_json(raw/"weather"/f"mlb_weather_{date}.json")
     odds      = load_json(raw/"betting"/f"mlb_betting_odds_{date}.json")
-    boxscores = load_json(raw/"boxscores"/f"mlb_boxscores_{date}.json")
+    boxscores = load_json(raw/"boxscores"/f"mlb_boxscores_{yday}.json")
 
     # 2) build lookups
     team_map = {
@@ -74,9 +75,11 @@ def main():
         for side in ("home_team","away_team"):
             t = g[side]; n = normalize(t)
             if n not in matchup:
-                opp = (g["away_team"]
-                       if side=="home_team"
-                       else g["home_team"])
+                opp = (
+                    g["away_team"]
+                    if side == "home_team"
+                    else g["home_team"]
+                )
                 matchup[n] = {
                     "opponent": opp,
                     "home_or_away": "home" if side=="home_team" else "away"
@@ -100,12 +103,20 @@ def main():
             w     = weather_by.get(canon, {})
             bd    = bet.get(canon, {})
 
+            # get box stats
             box = box_by.get(normalize(name), {}).copy()
             if r.get("position") not in ["P","SP","RP"]:
-                for stat in ("innings_pitched","earned_runs",
-                             "strikeouts_pitch","wins","quality_start"):
+                for stat in (
+                    "innings_pitched","earned_runs",
+                    "strikeouts_pitch","wins","quality_start"
+                ):
                     box.pop(stat, None)
 
+            # **rename 'rbis' → 'rbi' for trend analysis**
+            if "rbis" in box:
+                box["rbi"] = box.pop("rbis")
+
+            # mark probable starter
             snames = {
                 normalize(g["home_pitcher"]) for g in starters
             } | {
@@ -113,6 +124,7 @@ def main():
             }
             is_starter = normalize(name) in snames
 
+            # structured entry
             players[name] = {
                 "player_id":        pid,
                 "name":             name,
@@ -120,29 +132,31 @@ def main():
                 "opponent_team":    m.get("opponent"),
                 "home_or_away":     m.get("home_or_away"),
                 "position":         r.get("position"),
-                "handedness":       {"bats":r.get("bats"),"throws":r.get("throws")},
-                "roster_status":    {"status_code":r.get("status_code"),
-                                     "status_description":r.get("status_description")},
+                "handedness":       {"bats": r.get("bats"), "throws": r.get("throws")},
+                "roster_status":    {
+                    "status_code":       r.get("status_code"),
+                    "status_description": r.get("status_description")
+                },
                 "is_probable_starter": is_starter,
-                "starter":            is_starter,
-                "weather_context":    w.get("weather", {}),
-                "betting_context":    bd,
-                "reddit_mentions":    0,
-                "box_score":          box,
+                "starter":             is_starter,
+                "weather_context":     w.get("weather", {}),
+                "betting_context":     bd,
+                "reddit_mentions":     0,
+                "box_score":           box,
             }
 
-            # append *only* if we have box stats
+            # only append games where we have a box stat
             if box:
                 arch.write(json.dumps({
-                    "date":        date,     # use the same --date
-                    "player_id":   pid,
-                    "name":        name,
-                    "team":        canon,
-                    "opponent":    m.get("opponent"),
-                    "home_or_away":m.get("home_or_away"),
-                    "box_score":   box,
-                    "weather":     w.get("weather", {}),
-                    "betting":     bd,
+                    "date":         yday,
+                    "player_id":    pid,
+                    "name":         name,
+                    "team":         canon,
+                    "opponent":     m.get("opponent"),
+                    "home_or_away": m.get("home_or_away"),
+                    "box_score":    box,
+                    "weather":      w.get("weather", {}),
+                    "betting":      bd,
                 }) + "\n")
 
     # 4) write the structured JSON file
