@@ -64,6 +64,14 @@ jobs:
       - name: Combine all data
         run: python mlb_combine_all_files.py --date ${{ env.DATE }}
 
+      - name: List workspace files
+        run: ls -R .
+
+      - name: Dump structured JSON
+        run: |
+          echo ">>>> Showing structured_players_${{ env.DATE }}.json <<<<"
+          cat structured_players_${{ env.DATE }}.json
+
       - name: Verify structured JSON keys
         run: |
           python - <<EOF
