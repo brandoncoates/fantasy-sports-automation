@@ -59,37 +59,32 @@ jobs:
         run: python mlb_box_scraper.py --date ${{ env.DATE }}
 
       - name: Run betting odds scraper
-        run: python mlb_betting_odds_scraper.py --date ${{ env.DATE }} --api-key ${{ env.ODDS_API_KEY }}
+        run: python mlb_betting_odds.py --date ${{ env.DATE }} --api-key ${{ env.ODDS_API_KEY }}
 
       - name: Combine all data
         run: python mlb_combine_all_files.py --date ${{ env.DATE }}
 
-      - name: List workspace files
-        run: ls -R .
-
-      - name: Dump structured JSON
+      - name: CI: list root contents
         run: |
-          echo ">>>> Showing structured_players_${{ env.DATE }}.json <<<<"
-          cat structured_players_${{ env.DATE }}.json
+          echo "Current directory: $(pwd)"
+          ls -1 .
 
-      - name: Verify structured JSON keys
+      - name: CI: debug structured JSON
         run: |
-          python - <<EOF
-          import json, os
-          f = f"structured_players_${{ env.DATE }}.json"
-          data = json.load(open(f))
-          print("STRUCTURED KEYS:", next(iter(data.values())).keys())
-          EOF
+          echo ">>> Contents of structured_players_${{ env.DATE }}.json <<<"
+          ls -1 structured_players_${{ env.DATE }}.json || echo "❌ File not found"
+          head -n 20 structured_players_${{ env.DATE }}.json || echo "❌ Cannot read file"
 
       - name: Configure PYTHONPATH
         run: echo "PYTHONPATH=$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
 
       - name: Run trend analysis CLI
+        working-directory: ${{ github.workspace }}
         run: |
           python -m analyzer.cli \
             --date ${{ env.DATE }} \
-            --archive player_game_log.jsonl \
-            --structured structured_players_${{ env.DATE }}.json
+            --archive ${{ github.workspace }}/player_game_log.jsonl \
+            --structured ${{ github.workspace }}/structured_players_${{ env.DATE }}.json
 
       - name: Archive analysis outputs
         uses: actions/upload-artifact@v4
