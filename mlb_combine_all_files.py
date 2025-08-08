@@ -155,5 +155,10 @@ def main():
     structured.write_text(json.dumps(players, indent=2), encoding="utf-8")
     print(f"✅ Wrote {len(players)} players to {structured}")
 
+    # after the existing print…
+    data = json.loads(structured.read_text(encoding="utf-8"))
+    print("🔑 COMBINE RAN, KEYS:", list(next(iter(data.values())).keys()))
+
+
 if __name__ == "__main__":
     main()
