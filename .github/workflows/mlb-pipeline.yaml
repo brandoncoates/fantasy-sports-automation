@@ -1,5 +1,6 @@
 # .github/workflows/mlb-pipeline.yml
 name: MLB Pipeline
+
 on:
   workflow_dispatch:
     inputs:
@@ -8,8 +9,7 @@ on:
         required: false
         default: ''
   schedule:
-    # Runs every day at 4 AM UTC
-    - cron: '0 4 * * *'
+    - cron: '0 4 * * *'  # every day at 04:00 UTC
 
 env:
   ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
@@ -17,6 +17,7 @@ env:
 jobs:
   build-and-analyze:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -29,7 +30,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Determine pipeline date
@@ -39,6 +40,11 @@ jobs:
           else
             echo "DATE=$(date -u +%Y-%m-%d)" >> $GITHUB_ENV
           fi
+
+      - name: Clean out old outputs
+        run: |
+          rm -f player_game_log.jsonl
+          rm -f structured_players_${{ env.DATE }}.json
 
       - name: Run roster scraper
         run: python mlb_rosters_scraper.py --date ${{ env.DATE }}
@@ -50,13 +56,22 @@ jobs:
         run: python mlb_weather_scraper.py --date ${{ env.DATE }}
 
       - name: Run box scores scraper
-        run: python mlb_box_scraper.py --date ${{ env.DATE }}
+        run: python mlb_boxscores_scraper.py --date ${{ env.DATE }}
 
       - name: Run betting odds scraper
         run: python mlb_betting_odds_scraper.py --date ${{ env.DATE }} --api-key ${{ env.ODDS_API_KEY }}
 
       - name: Combine all data
         run: python mlb_combine_all_files.py --date ${{ env.DATE }}
+
+      - name: Verify structured JSON keys
+        run: |
+          python - <<EOF
+          import json, os
+          f = f"structured_players_${{ env.DATE }}.json"
+          data = json.load(open(f))
+          print("STRUCTURED KEYS:", next(iter(data.values())).keys())
+          EOF
 
       - name: Configure PYTHONPATH
         run: echo "PYTHONPATH=$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
@@ -75,4 +90,3 @@ jobs:
           path: |
             data/analysis/evaluation_${{ env.DATE }}.csv
             data/analysis/tiers_${{ env.DATE }}.csv
-
