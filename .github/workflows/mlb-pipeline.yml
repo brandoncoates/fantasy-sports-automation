@@ -1,28 +1,22 @@
 # .github/workflows/mlb-pipeline.yml
-name: MLB Pipeline — Step 1: Rosters
+name: MLB Pipeline — Step 1: Rosters Only
 
 on:
   workflow_dispatch:
     inputs:
       date:
         description: 'Date for pipeline (YYYY-MM-DD)'
-        required: false
+        required: true
         default: ''
-  # You can leave schedule in or comment it out until everything's green:
-  # schedule:
-  #   - cron: '0 4 * * *'
-
-env:
-  DATE: ${{ github.event.inputs.date || format('{0:yyyy-MM-dd}', github.event.schedule) || (github.event.inputs.date == '' && format('{0:yyyy-MM-dd}', fromJson('{"now":"'+github.event_time+'"}').now)) }}
 
 jobs:
   roster-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
@@ -33,11 +27,15 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run roster scraper
-        run: python mlb_rosters_scraper.py --date ${{ env.DATE }}
+        run: |
+          python mlb_rosters_scraper.py --date "${{ github.event.inputs.date }}"
+
+      - name: Verify roster file exists
+        run: |
+          ls -l "data/raw/rosters/mlb_rosters_${{ github.event.inputs.date }}.json"
 
       - name: Upload rosters artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rosters-${{ env.DATE }}
-          path: data/raw/rosters/mlb_rosters_${{ env.DATE }}.json
-
+          name: rosters-${{ github.event.inputs.date }}
+          path: data/raw/rosters/mlb_rosters_${{ github.event.inputs.date }}.json
