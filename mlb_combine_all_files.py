@@ -30,7 +30,7 @@ def main():
     date = args.date
     raw  = args.raw_dir
 
-    # 1) load all raw JSONs
+    # 1) load all raw JSONs (all using the same `date`)
     rosters   = load_json(raw / "rosters"          / f"mlb_rosters_{date}.json")
     starters  = load_json(raw / "probable_starters" / f"mlb_probable_starters_{date}.json")
     weather   = load_json(raw / "weather"          / f"mlb_weather_{date}.json")
@@ -46,10 +46,10 @@ def main():
 
     weather_by = {}
     for w in weather:
-        team = team_map.get(normalize(w["team"]), w["team"])
-        prev = weather_by.get(team)
+        t = team_map.get(normalize(w["team"]), w["team"])
+        prev = weather_by.get(t)
         if not prev or w["time_local"] < prev["time_local"]:
-            weather_by[team] = w
+            weather_by[t] = w
 
     bet, matchup = {}, {}
     for o in odds:
@@ -69,17 +69,17 @@ def main():
 
     for g in starters:
         for side in ("home_team", "away_team"):
-            name = g[side]; key = normalize(name)
+            nm = g[side]; key = normalize(nm)
             if key not in matchup:
-                opp = g["away_team"] if side == "home_team" else g["home_team"]
+                opp = g["away_team"] if side=="home_team" else g["home_team"]
                 matchup[key] = {
                     "opponent":     opp,
-                    "home_or_away": "home" if side == "home_team" else "away"
+                    "home_or_away": "home" if side=="home_team" else "away"
                 }
 
     box_by = { normalize(b["player_name"]): b for b in boxscores }
 
-    # 3) write archive + collect structured
+    # 3) archive + build structured
     archive    = Path("player_game_log.jsonl")
     structured = Path(f"structured_players_{date}.json")
     players    = {}
@@ -103,32 +103,36 @@ def main():
             if "rbis" in box:
                 box["rbi"] = box.pop("rbis")
 
-            snames = {
+            starters_set = {
                 normalize(g["home_pitcher"]) for g in starters
             } | {
                 normalize(g["away_pitcher"]) for g in starters
             }
-            is_starter = normalize(name) in snames
+            is_starter = normalize(name) in starters_set
 
+            # --- **Add "date" here** so structured_df has it too
             players[name] = {
-                "player_id":         pid,
-                "name":              name,
-                "team":              canon,
-                "opponent_team":     m.get("opponent"),
-                "home_or_away":      m.get("home_or_away"),
-                "position":          r.get("position"),
-                "handedness":        {"bats": r.get("bats"), "throws": r.get("throws")},
-                "roster_status":     {"status_code": r.get("status_code"), "status_description": r.get("status_description")},
+                "date":             date,
+                "player_id":        pid,
+                "name":             name,
+                "team":             canon,
+                "opponent_team":    m.get("opponent"),
+                "home_or_away":     m.get("home_or_away"),
+                "position":         r.get("position"),
+                "handedness":       {"bats": r.get("bats"), "throws": r.get("throws")},
+                "roster_status":    {
+                    "status_code":       r.get("status_code"),
+                    "status_description": r.get("status_description")
+                },
                 "is_probable_starter": is_starter,
                 "starter":             is_starter,
                 "weather_context":     w.get("weather", {}),
                 "betting_context":     bd,
                 "reddit_mentions":     0,
-                "box_score":           box
+                "box_score":           box,
             }
 
             if box:
-                # <-- uses the same 'date' for all scrapers
                 arch.write(json.dumps({
                     "date":         date,
                     "player_id":    pid,
@@ -141,7 +145,7 @@ def main():
                     "betting":      bd
                 }) + "\n")
 
-    # 4) dump structured JSON
+    # 4) write structured JSON
     structured.write_text(json.dumps(players, indent=2), encoding="utf-8")
     print(f"✅ Wrote {len(players)} players to {structured}")
 
