@@ -1,5 +1,5 @@
 # .github/workflows/mlb-pipeline.yml
-name: MLB Pipeline
+name: MLB Pipeline — Step 1: Rosters
 
 on:
   workflow_dispatch:
@@ -8,103 +8,36 @@ on:
         description: 'Date for pipeline (YYYY-MM-DD)'
         required: false
         default: ''
-  schedule:
-    - cron: '0 4 * * *'  # every day at 04:00 UTC
+  # You can leave schedule in or comment it out until everything's green:
+  # schedule:
+  #   - cron: '0 4 * * *'
 
 env:
-  ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+  DATE: ${{ github.event.inputs.date || format('{0:yyyy-MM-dd}', github.event.schedule) || (github.event.inputs.date == '' && format('{0:yyyy-MM-dd}', fromJson('{"now":"'+github.event_time+'"}').now)) }}
 
 jobs:
-  build-and-analyze:
+  roster-check:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Set up Python 3.10
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-          cache: pip
 
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Determine pipeline date
-        run: |
-          if [ -n "${{ github.event.inputs.date }}" ]; then
-            echo "DATE=${{ github.event.inputs.date }}" >> $GITHUB_ENV
-          else
-            echo "DATE=$(date -u +%Y-%m-%d)" >> $GITHUB_ENV
-          fi
-
-      - name: Clean out old outputs
-        run: |
-          rm -f player_game_log.jsonl
-          rm -f structured_players_${{ env.DATE }}.json
-
       - name: Run roster scraper
         run: python mlb_rosters_scraper.py --date ${{ env.DATE }}
 
-      - name: Run probable starters scraper
-        run: python mlb_probable_starters_scraper.py --date ${{ env.DATE }}
-
-      - name: Run weather scraper
-        run: python mlb_weather_scraper.py --date ${{ env.DATE }}
-
-      - name: Run box scores scraper
-        run: python mlb_box_scraper.py --date ${{ env.DATE }}
-
-      - name: Run betting odds scraper
-        run: python mlb_betting_odds_scraper.py --date ${{ env.DATE }} --api-key ${{ env.ODDS_API_KEY }}
-
-      - name: Combine all data
-        run: python mlb_combine_all_files.py --date ${{ env.DATE }}
-
-      - name: List workspace files
-        run: |
-          echo "📁 Working dir: $(pwd)"
-          ls -R .
-
-      - name: Dump structured JSON (first 20 lines)
-        run: |
-          echo ">>>> structured_players_${{ env.DATE }}.json <<<<"
-          head -n 20 structured_players_${{ env.DATE }}.json || echo "❌ missing"
-
-      - name: Verify structured JSON keys
-        shell: bash
-        run: |
-          python - << 'PYCODE'
-          import json, os
-          path = f"structured_players_{os.environ['DATE']}.json"
-          data = json.load(open(path))
-          print("STRUCTURED KEYS:", list(next(iter(data.values())).keys()))
-          PYCODE
-
-      - name: Sanity-check structured JSON absolute path
-        run: |
-          echo "--- ls -l $GITHUB_WORKSPACE/structured_players_${{ env.DATE }}.json ---"
-          ls -l "$GITHUB_WORKSPACE/structured_players_${{ env.DATE }}.json"
-          echo "--- head of absolute path file ---"
-          head -n 5 "$GITHUB_WORKSPACE/structured_players_${{ env.DATE }}.json"
-
-      - name: Configure PYTHONPATH
-        run: echo "PYTHONPATH=$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
-
-      - name: Run trend analysis CLI
-        run: |
-          python -m analyzer.cli \  
-            --date ${{ env.DATE }} \  
-            --archive ${{ github.workspace }}/player_game_log.jsonl \  
-            --structured ${{ github.workspace }}/structured_players_${{ env.DATE }}.json
-
-      - name: Archive analysis outputs
+      - name: Upload rosters artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mlb-analysis-${{ env.DATE }}
-          path: |
-            data/analysis/evaluation_${{ env.DATE }}.csv
-            data/analysis/tiers_${{ env.DATE }}.csv
+          name: rosters-${{ env.DATE }}
+          path: data/raw/rosters/mlb_rosters_${{ env.DATE }}.json
+
