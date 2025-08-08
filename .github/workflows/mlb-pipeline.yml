@@ -1,5 +1,5 @@
 # .github/workflows/mlb-pipeline.yml
-name: MLB Pipeline — Step 1: Rosters Only
+name: MLB Pipeline — Rosters Only
 
 on:
   workflow_dispatch:
@@ -7,15 +7,16 @@ on:
       date:
         description: 'Date for pipeline (YYYY-MM-DD)'
         required: true
-        default: ''
 
 jobs:
   roster-only:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
@@ -25,7 +26,7 @@ jobs:
       - name: Run roster scraper
         run: python mlb_rosters_scraper.py --date "${{ github.event.inputs.date }}"
 
-      - name: Verify roster JSON
+      - name: Verify roster JSON exists
         run: |
           echo "Looking for roster file…"
           ls -l data/raw/rosters/mlb_rosters_${{ github.event.inputs.date }}.json
