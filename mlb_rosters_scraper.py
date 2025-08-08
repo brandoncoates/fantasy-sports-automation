@@ -11,22 +11,12 @@ from pathlib import Path
 
 from shared.normalize_name import normalize_name
 
-
 def default_date_et():
-    """Return today's date string in Eastern Time."""
     eastern_now = datetime.now(ZoneInfo("America/New_York"))
     return eastern_now.strftime("%Y-%m-%d")
 
-
-def load_probable_starters(date_str: str):
-    """Load probable starters from local JSON, if available."""
-    path = (
-        Path.cwd()
-        / "data"
-        / "raw"
-        / "probable_starters"
-        / f"mlb_probable_starters_{date_str}.json"
-    )
+def load_probable_starters(date_str: str, repo_root: Path):
+    path = repo_root / "data" / "raw" / "probable_starters" / f"mlb_probable_starters_{date_str}.json"
     if not path.exists():
         print(f"⚠️  Probable starters file not found: {path}")
         return []
@@ -36,10 +26,11 @@ def load_probable_starters(date_str: str):
         print(f"⚠️  Error loading probable starters: {e}")
         return []
 
-
 def main():
-    # default to repo-root/data/raw/rosters
-    default_outdir = Path.cwd() / "data" / "raw" / "rosters"
+    # repo_root = project root (folder containing this script)
+    repo_root = Path(__file__).resolve().parent
+
+    default_outdir = repo_root / "data" / "raw" / "rosters"
 
     parser = argparse.ArgumentParser(
         description="Fetch MLB active rosters for a given date and save locally."
@@ -57,8 +48,7 @@ def main():
     target_date = args.date
     outdir: Path = args.outdir
     outdir.mkdir(parents=True, exist_ok=True)
-    filename = f"mlb_rosters_{target_date}.json"
-    local_path = outdir / filename
+    local_path = outdir / f"mlb_rosters_{target_date}.json"
 
     # === STEP 1: Fetch teams list ===
     teams_url = "https://statsapi.mlb.com/api/v1/teams?sportId=1"
@@ -94,7 +84,6 @@ def main():
             status_code = status.get("code", "")
             status_desc = status.get("description", "")
 
-            # Fetch hand info
             bats = throws = None
             details_url = f"https://statsapi.mlb.com/api/v1/people/{player_id}"
             try:
@@ -107,19 +96,19 @@ def main():
                 pass
 
             records.append({
-                "date": target_date,
-                "team": team_name,
-                "player": name,
-                "player_id": player_id,
-                "position": position,
-                "status_code": status_code,
+                "date":               target_date,
+                "team":               team_name,
+                "player":             name,
+                "player_id":          player_id,
+                "position":           position,
+                "status_code":        status_code,
                 "status_description": status_desc,
-                "bats": bats,
-                "throws": throws
+                "bats":               bats,
+                "throws":             throws
             })
 
     # === STEP 3: Inject missing probable starters ===
-    starters = load_probable_starters(target_date)
+    starters = load_probable_starters(target_date, repo_root)
     roster_names = {rec["player"].lower() for rec in records}
     for game in starters:
         for role in ("home_pitcher", "away_pitcher"):
@@ -129,24 +118,24 @@ def main():
             team = game.get("home_team") if role == "home_pitcher" else game.get("away_team")
             print(f"➕ Injecting probable starter: {nm}")
             records.append({
-                "date": target_date,
-                "team": team,
-                "player": nm,
-                "player_id": f"manual-{normalize_name(nm)}",
-                "position": "P",
-                "status_code": "A",
+                "date":               target_date,
+                "team":               team,
+                "player":             nm,
+                "player_id":          f"manual-{normalize_name(nm)}",
+                "position":           "P",
+                "status_code":        "A",
                 "status_description": "Probable Starter (Injected)",
-                "bats": None,
-                "throws": None
+                "bats":               None,
+                "throws":             None
             })
 
-    print(f"✅ Final roster count: {len(records)} players.")
-
-    # === STEP 4: Save locally ===
+    # Debug & save
+    print(f"🔍 Rosters scraped: {len(records)} entries")
+    if not records:
+        raise RuntimeError(f"No roster records; expected {local_path}")
     with open(local_path, "w", encoding="utf-8") as f:
         json.dump(records, f, indent=2)
     print(f"💾 Saved rosters to {local_path} ({len(records)} records)")
-
 
 if __name__ == "__main__":
     main()
