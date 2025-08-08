@@ -78,26 +78,26 @@ jobs:
         shell: bash
         run: |
           python - << 'PYCODE'
-            import json, os
-            path = f"structured_players_{os.environ['DATE']}.json"
-            data = json.load(open(path))
-            print("STRUCTURED KEYS:", list(next(iter(data.values())).keys()))
-            PYCODE
+          import json, os
+          path = f"structured_players_{os.environ['DATE']}.json"
+          data = json.load(open(path))
+          print("STRUCTURED KEYS:", list(next(iter(data.values())).keys()))
+          PYCODE
 
-                - name: Configure PYTHONPATH
-                    run: echo "PYTHONPATH=$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
+            - name: Configure PYTHONPATH
+                run: echo "PYTHONPATH=$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
 
-                - name: Run trend analysis CLI
-                    run: |
-                    python -m analyzer.cli \
-                        --date ${{ env.DATE }} \
-                        --archive player_game_log.jsonl \
-                        --structured structured_players_${{ env.DATE }}.json
+            - name: Run trend analysis CLI
+                run: |
+                python -m analyzer.cli \
+                    --date ${{ env.DATE }} \
+                    --archive player_game_log.jsonl \
+                    --structured structured_players_${{ env.DATE }}.json
 
-                - name: Archive analysis outputs
-                    uses: actions/upload-artifact@v4
-                    with:
-                    name: mlb-analysis-${{ env.DATE }}
-                    path: |
-                        data/analysis/evaluation_${{ env.DATE }}.csv
-                        data/analysis/tiers_${{ env.DATE }}.csv
+            - name: Archive analysis outputs
+                uses: actions/upload-artifact@v4
+                with:
+                name: mlb-analysis-${{ env.DATE }}
+                path: |
+                    data/analysis/evaluation_${{ env.DATE }}.csv
+                    data/analysis/tiers_${{ env.DATE }}.csv
