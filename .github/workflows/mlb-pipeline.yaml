@@ -58,8 +58,11 @@ jobs:
       - name: Combine all data
         run: python mlb_combine_all_files.py --date ${{ env.DATE }}
 
+      - name: Configure PYTHONPATH
+        run: echo "PYTHONPATH=$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
+
       - name: Run trend analysis CLI
-        run: python -m src.analyzer.cli --date ${{ env.DATE }}
+        run: python -m analyzer.cli --date ${{ env.DATE }}
 
       - name: Archive analysis outputs
         uses: actions/upload-artifact@v4
