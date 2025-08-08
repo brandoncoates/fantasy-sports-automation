@@ -2,179 +2,129 @@
 """
 mlb_combine_all_files.py
 
-Combine raw MLB JSON outputs into one structured per-player JSON,
-and append each game entry to an append-only archive for trend analysis.
+Combine raw JSON into structured_players_{DATE}.json and append to player_game_log.jsonl.
 """
-import argparse
-import json
-import glob
-import re
+import argparse, json, re, glob
 from datetime import datetime, timedelta
 from pathlib import Path
 from collections import defaultdict
 
 def normalize(text: str) -> str:
-    """Normalize text by stripping punctuation/spaces and lowercasing."""
     return re.sub(r"[ .'\\-]", "", (text or "")).lower()
 
 def load_json(path: Path):
     if not path.exists():
-        print(f"⚠️  {path} not found — skipping.")
         return []
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
+    return json.loads(path.read_text(encoding="utf-8"))
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Combine raw MLB JSON files into structured player output."
-    )
-    parser.add_argument(
-        "--date", "-d",
-        help="Date in YYYY-MM-DD format (default: today UTC)",
-        default=datetime.utcnow().strftime("%Y-%m-%d")
-    )
-    parser.add_argument(
-        "--raw-dir",
-        help="Root folder where raw JSON lives",
-        type=Path,
-        default=Path("data") / "raw"
-    )
-    args = parser.parse_args()
+    p = argparse.ArgumentParser()
+    p.add_argument("--date","-d",
+                   default=datetime.utcnow().strftime("%Y-%m-%d"),
+                   help="YYYY-MM-DD")
+    p.add_argument("--raw-dir", type=Path, default=Path("data")/"raw")
+    args = p.parse_args()
 
-    date_str = args.date
-    yday_str = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+    date = args.date
+    yday = (datetime.strptime(date,"%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
     raw = args.raw_dir
 
-    # load each source
-    rosters = load_json(raw / "rosters" / f"mlb_rosters_{date_str}.json")
-    starters = load_json(raw / "probable_starters" / f"mlb_probable_starters_{date_str}.json")
-    weather = load_json(raw / "weather" / f"mlb_weather_{date_str}.json")
-    odds    = load_json(raw / "betting" / f"mlb_betting_odds_{date_str}.json")
-    boxscores = load_json(raw / "boxscores" / f"mlb_boxscores_{yday_str}.json")
+    # Load sources
+    rosters   = load_json(raw/"rosters"/f"mlb_rosters_{date}.json")
+    starters  = load_json(raw/"probable_starters"/f"mlb_probable_starters_{date}.json")
+    weather   = load_json(raw/"weather"/f"mlb_weather_{date}.json")
+    odds      = load_json(raw/"betting"/f"mlb_betting_odds_{date}.json")
+    boxscores = load_json(raw/"boxscores"/f"mlb_boxscores_{yday}.json")
 
-    # build team lookup from starters
-    team_map = {}
-    for g in starters:
-        for side in ("home_team", "away_team"):
-            raw_team = g.get(side, "")
-            team_map[normalize(raw_team)] = raw_team
+    # Build team maps
+    team_map = { normalize(g[k]): g[k] 
+                 for g in starters for k in ("home_team","away_team") }
 
-    # WEATHER: earliest per team
-    weather_by_team = {}
+    # Earliest weather per team
+    weather_by = {}
     for w in weather:
-        team = w.get("team", "")
-        canon = team_map.get(normalize(team), team)
-        prev = weather_by_team.get(canon)
-        if not prev or w.get("time_local", "") < prev.get("time_local", ""):
-            weather_by_team[canon] = w
+        team = team_map.get(normalize(w["team"]), w["team"])
+        if team not in weather_by or w["time_local"] < weather_by[team]["time_local"]:
+            weather_by[team] = w
 
-    # BETTING + matchups
-    bet_by_team = {}
-    matchup_by_team = {}
+    # Betting & matchups
+    bet, matchup = {}, {}
     for o in odds:
-        if o.get("bookmaker") != "FanDuel":
-            continue
-        h = o.get("home_team", "")
-        a = o.get("away_team", "")
-        if h and a:
-            bet_info = {
-                "over_under": o.get("over_under"),
-                "spread": o.get("spread"),
-                "favorite": o.get("favorite"),
-                "underdog": o.get("underdog"),
-                "implied_totals": o.get("implied_totals", {})
-            }
-            bet_by_team[h] = bet_info
-            bet_by_team[a] = bet_info
-            matchup_by_team[normalize(h)] = {"opponent": a, "home_or_away": "home"}
-            matchup_by_team[normalize(a)] = {"opponent": h, "home_or_away": "away"}
+        if o.get("bookmaker")!="FanDuel": continue
+        h,a = o["home_team"], o["away_team"]
+        info = {
+          "over_under": o.get("over_under"),
+          "spread": o.get("spread"),
+          "favorite": o.get("favorite"),
+          "underdog": o.get("underdog"),
+          "implied_totals": o.get("implied_totals", {}),
+        }
+        bet[h]=bet[a]=info
+        matchup[normalize(h)]={"opponent":a,"home_or_away":"home"}
+        matchup[normalize(a)]={"opponent":h,"home_or_away":"away"}
 
-    # ensure every starter has a matchup
+    # Ensure every starter has a matchup
     for g in starters:
-        h = g.get("home_team",""); a = g.get("away_team","")
-        if normalize(h) not in matchup_by_team:
-            matchup_by_team[normalize(h)] = {"opponent": a, "home_or_away": "home"}
-        if normalize(a) not in matchup_by_team:
-            matchup_by_team[normalize(a)] = {"opponent": h, "home_or_away": "away"}
+        for side in ("home_team","away_team"):
+            t = g[side]; n=normalize(t)
+            if n not in matchup:
+                opp = g["away_team"] if side=="home_team" else g["home_team"]
+                matchup[n]={"opponent":opp,"home_or_away":("home" if side=="home_team" else "away")}
 
-    # box scores by normalized player name
-    box_by_name = {
-        normalize(b.get("player_name","")): b
-        for b in boxscores
-    }
+    # Box by player
+    box_by = { normalize(b["player_name"]):b for b in boxscores }
 
-    # prepare archive and output
-    archive_path = Path("player_game_log.jsonl")
-    out_file = Path(f"structured_players_{date_str}.json")
-    players_out = {}
+    # Prepare outputs
+    archive = Path("player_game_log.jsonl")
+    out_struct = Path(f"structured_players_{date}.json")
+    players = {}
 
-    # append to archive per player-game
-    with archive_path.open("a", encoding="utf-8") as archive:
+    with archive.open("a",encoding="utf-8") as arch:
         for r in rosters:
-            pid = str(r.get("player_id",""))
-            name = r.get("player","")
-            team = r.get("team","")
-            canon_team = team_map.get(normalize(team), team)
-            matchup = matchup_by_team.get(normalize(canon_team), {})
-            bet = bet_by_team.get(canon_team, {})
-            wc = weather_by_team.get(canon_team, {})
+            pid = str(r["player_id"])
+            name = r["player"]
+            team = r["team"]
+            canon = team_map.get(normalize(team), team)
+            m = matchup.get(normalize(canon),{})
+            w = weather_by.get(canon,{})
+            bd = bet.get(canon,{})
 
-            # fetch box score, drop pitching fields for non-pitchers
-            box = box_by_name.get(normalize(name), {}).copy()
+            # box score
+            box = box_by.get(normalize(name),{}).copy()
             if r.get("position") not in ["P","SP","RP"]:
                 for stat in ["innings_pitched","earned_runs","strikeouts_pitch","wins","quality_start"]:
-                    box.pop(stat, None)
+                    box.pop(stat,None)
 
-            # is_probable_starter?
-            starter_names = {
-                normalize(g.get("home_pitcher","")) for g in starters
-            } | {
-                normalize(g.get("away_pitcher","")) for g in starters
-            }
-            is_starter = normalize(name) in starter_names
+            # probable starter?
+            snames = { normalize(g["home_pitcher"]) for g in starters } \
+                     | { normalize(g["away_pitcher"]) for g in starters }
+            is_st = normalize(name) in snames
 
-            # build structured entry
-            players_out[name] = {
-                "player_id": pid,
-                "name": name,
-                "team": canon_team,
-                "opponent_team": matchup.get("opponent"),
-                "home_or_away": matchup.get("home_or_away"),
-                "position": r.get("position",""),
-                "handedness": {"bats": r.get("bats"), "throws": r.get("throws")},
-                "roster_status": {
-                    "status_code": r.get("status_code"),
-                    "status_description": r.get("status_description")
-                },
-                "is_probable_starter": is_starter,
-                "starter": is_starter,
-                "weather_context": wc.get("weather", {}),
-                "betting_context": bet,
-                "espn_mentions": 0,
-                "espn_articles": [],
-                "reddit_mentions": 0,
-                "box_score": box,
+            # structured entry
+            players[name] = {
+              "player_id":pid,"name":name,"team":canon,
+              "opponent_team":m.get("opponent"),"home_or_away":m.get("home_or_away"),
+              "position":r.get("position"),"handedness":{"bats":r.get("bats"),"throws":r.get("throws")},
+              "roster_status":{"status_code":r.get("status_code"),"status_description":r.get("status_description")},
+              "is_probable_starter":is_st,"starter":is_st,
+              "weather_context":w.get("weather",{}),"betting_context":bd,
+              "espn_mentions":0,"espn_articles":[],"reddit_mentions":0,
+              "box_score":box,
             }
 
-            # append archive entry if box present
+            # append archive
             if box:
                 entry = {
-                    "date": yday_str,
-                    "player_id": pid,
-                    "name": name,
-                    "team": canon_team,
-                    "opponent": matchup.get("opponent"),
-                    "home_or_away": matchup.get("home_or_away"),
-                    "box_score": box,
-                    "weather": wc.get("weather", {}),
-                    "betting": bet,
+                  "date": yday,"player_id":pid,"name":name,
+                  "team":canon,"opponent":m.get("opponent"),
+                  "home_or_away":m.get("home_or_away"),
+                  "box_score":box,"weather":w.get("weather",{}),"betting":bd
                 }
-                archive.write(json.dumps(entry) + "\n")
+                arch.write(json.dumps(entry)+"\n")
 
     # write structured JSON
-    with out_file.open("w", encoding="utf-8") as f:
-        json.dump(players_out, f, indent=2)
-    print(f"✅ Wrote {len(players_out)} players to {out_file}")
+    out_struct.write_text(json.dumps(players,indent=2),encoding="utf-8")
+    print(f"✅ Wrote {len(players)} players to {out_struct}")
 
-if __name__ == "__main__":
+if __name__=="__main__":
     main()
