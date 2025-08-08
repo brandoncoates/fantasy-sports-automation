@@ -4,6 +4,7 @@ mlb_combine_all_files.py
 
 Combine raw JSON into structured_players_{DATE}.json
 and append to player_game_log.jsonl (with a 'date' field!).
+Includes debug prints to trace missing inputs.
 """
 import argparse
 import json
@@ -15,7 +16,12 @@ def normalize(text: str) -> str:
     return re.sub(r"[ .'\\-]", "", (text or "")).lower()
 
 def load_json(path: Path):
-    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+    if not path.exists():
+        return []
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
 
 def main():
     p = argparse.ArgumentParser()
@@ -39,6 +45,11 @@ def main():
     odds      = load_json(raw / "betting"           / f"mlb_betting_odds_{date}.json")
     boxscores = load_json(raw / "boxscores"         / f"mlb_boxscores_{date}.json")
 
+    # ——— DEBUG: show counts so we know which scrapers produced data ———
+    print(f"🔍 Loaded: rosters={len(rosters)}, starters={len(starters)}, "
+          f"weather={len(weather)}, odds={len(odds)}, boxscores={len(boxscores)}")
+    # If any of these is zero, that scraper did not write its JSON where we expected.
+
     # 2) build lookups
     team_map = {
         normalize(g[k]): g[k]
@@ -48,10 +59,10 @@ def main():
 
     weather_by = {}
     for w in weather:
-        team = team_map.get(normalize(w["team"]), w["team"])
-        prev = weather_by.get(team)
+        t = team_map.get(normalize(w["team"]), w["team"])
+        prev = weather_by.get(t)
         if not prev or w["time_local"] < prev["time_local"]:
-            weather_by[team] = w
+            weather_by[t] = w
 
     bet, matchup = {}, {}
     for o in odds:
@@ -71,13 +82,12 @@ def main():
 
     for g in starters:
         for side in ("home_team", "away_team"):
-            nm = g[side]
-            key = normalize(nm)
+            nm = g[side]; key = normalize(nm)
             if key not in matchup:
-                opp = g["away_team"] if side == "home_team" else g["home_team"]
+                opp = g["away_team"] if side=="home_team" else g["home_team"]
                 matchup[key] = {
                     "opponent":     opp,
-                    "home_or_away": "home" if side == "home_team" else "away"
+                    "home_or_away": "home" if side=="home_team" else "away"
                 }
 
     box_by = { normalize(b["player_name"]): b for b in boxscores }
@@ -97,17 +107,14 @@ def main():
             w     = weather_by.get(canon, {})
             bd    = bet.get(canon, {})
 
-            # pull and prune box stats
             box = box_by.get(normalize(name), {}).copy()
             if r.get("position") not in ["P","SP","RP"]:
                 for stat in ("innings_pitched","earned_runs","strikeouts_pitch","wins","quality_start"):
                     box.pop(stat, None)
 
-            # rename for feature pipeline
             if "rbis" in box:
                 box["rbi"] = box.pop("rbis")
 
-            # starter flag
             starters_set = {
                 normalize(g["home_pitcher"]) for g in starters
             } | {
@@ -137,7 +144,6 @@ def main():
                 "box_score":           box
             }
 
-            # archive line (only if we have box stats)
             if box:
                 arch.write(json.dumps({
                     "date":         date,
@@ -155,10 +161,12 @@ def main():
     structured.write_text(json.dumps(players, indent=2), encoding="utf-8")
     print(f"✅ Wrote {len(players)} players to {structured}")
 
-    # after the existing print…
+    # ——— DEBUG: show which keys made it into structured JSON ———
     data = json.loads(structured.read_text(encoding="utf-8"))
-    print("🔑 COMBINE RAN, KEYS:", list(next(iter(data.values())).keys()))
-
+    if data:
+        print("🔑 Structured JSON keys:", list(next(iter(data.values())).keys()))
+    else:
+        print("⚠️ Structured JSON is empty!")
 
 if __name__ == "__main__":
     main()
