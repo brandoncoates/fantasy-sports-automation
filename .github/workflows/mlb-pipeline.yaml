@@ -1,3 +1,4 @@
+# .github/workflows/mlb-pipeline.yml
 name: MLB Pipeline
 on:
   workflow_dispatch:
@@ -61,7 +62,7 @@ jobs:
         run: python -m src.analyzer.cli --date ${{ env.DATE }}
 
       - name: Archive analysis outputs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mlb-analysis-${{ env.DATE }}
           path: |
