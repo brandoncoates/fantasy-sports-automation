@@ -1,172 +1,180 @@
 #!/usr/bin/env python3
 """
-Fetch MLB game-time weather for a given date’s probable starters and save locally.
+mlb_combine_all_files.py
+
+Combine raw MLB JSON outputs into one structured per-player JSON,
+and append each game entry to an append-only archive for trend analysis.
 """
 import argparse
 import json
-import time
-import requests
+import glob
 import re
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
 from pathlib import Path
-import pandas as pd
+from collections import defaultdict
 
-# Helpers
+def normalize(text: str) -> str:
+    """Normalize text by stripping punctuation/spaces and lowercasing."""
+    return re.sub(r"[ .'\\-]", "", (text or "")).lower()
 
-def normalize_key(text: str) -> str:
-    """Normalize text to match team keys (lowercase, no punctuation)."""
-    return re.sub(r"[ .'\-]", "", (text or "")).lower()
-
-
-def default_date_et():
-    """Return today's date string adjusted to Eastern Time."""
-    eastern_now = datetime.now(ZoneInfo("America/New_York"))
-    return eastern_now.strftime("%Y-%m-%d")
-
-
-def load_starters(date_str: str, starters_dir: Path):
-    """Load probable starters JSON from local file."""
-    path = starters_dir / f"mlb_probable_starters_{date_str}.json"
+def load_json(path: Path):
     if not path.exists():
-        print(f"⚠️ Probable starters file not found: {path}")
+        print(f"⚠️  {path} not found — skipping.")
         return []
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except Exception as e:
-        print(f"⚠️ Error loading starters: {e}")
-        return []
-
+    with path.open("r", encoding="utf-8") as f:
+        return json.load(f)
 
 def main():
-    # Determine project and default paths
-    project_root = Path(__file__).resolve().parent.parent
-    default_outdir = project_root / "data" / "raw" / "weather"
-    default_starters = project_root / "data" / "raw" / "probable_starters"
-    stadium_csv = project_root / "mlb_stadium_coordinates.csv"
-
     parser = argparse.ArgumentParser(
-        description="Fetch gametime weather for MLB probable starters and save locally."
+        description="Combine raw MLB JSON files into structured player output."
     )
     parser.add_argument(
-        "--date", type=str, default=default_date_et(),
-        help="Date in YYYY-MM-DD format (default: today ET)"
+        "--date", "-d",
+        help="Date in YYYY-MM-DD format (default: today UTC)",
+        default=datetime.utcnow().strftime("%Y-%m-%d")
     )
     parser.add_argument(
-        "--outdir", type=Path, default=default_outdir,
-        help="Output directory for weather JSON files"
-    )
-    parser.add_argument(
-        "--starters-dir", type=Path, default=default_starters,
-        help="Directory where probable starter JSON files are located"
-    )
-    parser.add_argument(
-        "--stadium-csv", type=Path, default=stadium_csv,
-        help="Path to the mlb_stadium_coordinates.csv file"
+        "--raw-dir",
+        help="Root folder where raw JSON lives",
+        type=Path,
+        default=Path("data") / "raw"
     )
     args = parser.parse_args()
 
-    target_date = args.date
-    outdir: Path = args.outdir
-    outdir.mkdir(parents=True, exist_ok=True)
-    filename = f"mlb_weather_{target_date}.json"
-    local_path = outdir / filename
+    date_str = args.date
+    yday_str = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+    raw = args.raw_dir
 
-    # Load starters
-    starters = load_starters(target_date, args.starters_dir)
-    if not starters:
-        print("❌ No starters data; exiting.")
-        return
+    # load each source
+    rosters = load_json(raw / "rosters" / f"mlb_rosters_{date_str}.json")
+    starters = load_json(raw / "probable_starters" / f"mlb_probable_starters_{date_str}.json")
+    weather = load_json(raw / "weather" / f"mlb_weather_{date_str}.json")
+    odds    = load_json(raw / "betting" / f"mlb_betting_odds_{date_str}.json")
+    boxscores = load_json(raw / "boxscores" / f"mlb_boxscores_{yday_str}.json")
 
-    # Load stadium coordinates
-    try:
-        df = pd.read_csv(args.stadium_csv)
-    except Exception as e:
-        print(f"❌ Error reading stadium CSV: {e}")
-        return
-    df["TeamKey"] = df["Team"].apply(lambda x: normalize_key(x))
-    stadium_map = {
-        row.TeamKey: {
-            "name": row.Stadium,
-            "lat": row.Latitude,
-            "lon": row.Longitude,
-            "is_dome": bool(row.get("Is_Dome", False))
-        }
-        for _, row in df.iterrows()
-    }
-    # Override Oakland Athletics home
-    override = {"name":"Sutter Health Park","lat":38.6254,"lon":-121.5050,"is_dome":False}
-    for alias in ["oaklandathletics","athletics","sacramentoathletics","sutterhealthpark"]:
-        stadium_map[alias] = override
-
-    # Fetch weather
-    records = []
-    seen = set()
+    # build team lookup from starters
+    team_map = {}
     for g in starters:
-        game_dt = datetime.fromisoformat(g.get("game_datetime").replace("Z", "+00:00"))
         for side in ("home_team", "away_team"):
-            team = g.get(side)
-            key = normalize_key(team)
-            if key in seen:
-                continue
-            seen.add(key)
-            info = stadium_map.get(key)
-            if not info:
-                print(f"⚠️ No stadium for team {team} (key: {key}); skipping")
-                continue
+            raw_team = g.get(side, "")
+            team_map[normalize(raw_team)] = raw_team
 
-            # Request weather
-            params = {
-                "latitude": info["lat"],
-                "longitude": info["lon"],
-                "hourly": "temperature_2m,relativehumidity_2m,windspeed_10m,winddirection_10m,precipitation_probability,cloudcover,weathercode",
-                "current_weather": True,
-                "timezone": "auto"
+    # WEATHER: earliest per team
+    weather_by_team = {}
+    for w in weather:
+        team = w.get("team", "")
+        canon = team_map.get(normalize(team), team)
+        prev = weather_by_team.get(canon)
+        if not prev or w.get("time_local", "") < prev.get("time_local", ""):
+            weather_by_team[canon] = w
+
+    # BETTING + matchups
+    bet_by_team = {}
+    matchup_by_team = {}
+    for o in odds:
+        if o.get("bookmaker") != "FanDuel":
+            continue
+        h = o.get("home_team", "")
+        a = o.get("away_team", "")
+        if h and a:
+            bet_info = {
+                "over_under": o.get("over_under"),
+                "spread": o.get("spread"),
+                "favorite": o.get("favorite"),
+                "underdog": o.get("underdog"),
+                "implied_totals": o.get("implied_totals", {})
             }
-            try:
-                resp = requests.get("https://api.open-meteo.com/v1/forecast", params=params, timeout=15)
-                resp.raise_for_status()
-                data = resp.json()
-            except Exception as e:
-                print(f"❌ Weather fetch failed for {team}: {e}")
-                continue
+            bet_by_team[h] = bet_info
+            bet_by_team[a] = bet_info
+            matchup_by_team[normalize(h)] = {"opponent": a, "home_or_away": "home"}
+            matchup_by_team[normalize(a)] = {"opponent": h, "home_or_away": "away"}
 
-            times = data.get("hourly", {}).get("time", [])
-            idx = 0
-            for i, t in enumerate(times):
-                if datetime.fromisoformat(t) >= game_dt:
-                    idx = i
-                    break
+    # ensure every starter has a matchup
+    for g in starters:
+        h = g.get("home_team",""); a = g.get("away_team","")
+        if normalize(h) not in matchup_by_team:
+            matchup_by_team[normalize(h)] = {"opponent": a, "home_or_away": "home"}
+        if normalize(a) not in matchup_by_team:
+            matchup_by_team[normalize(a)] = {"opponent": h, "home_or_away": "away"}
 
-            temp_c = data["hourly"]["temperature_2m"][idx]
-            temp_f = round(temp_c * 9/5 + 32, 1)
-            wind_mph = round(data["hourly"]["windspeed_10m"][idx] * 0.621371, 1)
-            # Normalize team name for Oakland variants
-            if team in ["Athletics","A's","As","Sacramento Athletics","Sutter Health Park"]:
-                team = "Oakland Athletics"
+    # box scores by normalized player name
+    box_by_name = {
+        normalize(b.get("player_name","")): b
+        for b in boxscores
+    }
 
-            records.append({
-                "date": target_date,
-                "team": team,
-                "stadium": info["name"],
-                "time_local": times[idx],
-                "weather": {
-                    "temperature_f": temp_f,
-                    "humidity_pct": data["hourly"]["relativehumidity_2m"][idx],
-                    "wind_speed_mph": wind_mph,
-                    "wind_direction_deg": data["hourly"]["winddirection_10m"][idx],
-                    "roof_status": "closed" if info["is_dome"] else "open"
+    # prepare archive and output
+    archive_path = Path("player_game_log.jsonl")
+    out_file = Path(f"structured_players_{date_str}.json")
+    players_out = {}
+
+    # append to archive per player-game
+    with archive_path.open("a", encoding="utf-8") as archive:
+        for r in rosters:
+            pid = str(r.get("player_id",""))
+            name = r.get("player","")
+            team = r.get("team","")
+            canon_team = team_map.get(normalize(team), team)
+            matchup = matchup_by_team.get(normalize(canon_team), {})
+            bet = bet_by_team.get(canon_team, {})
+            wc = weather_by_team.get(canon_team, {})
+
+            # fetch box score, drop pitching fields for non-pitchers
+            box = box_by_name.get(normalize(name), {}).copy()
+            if r.get("position") not in ["P","SP","RP"]:
+                for stat in ["innings_pitched","earned_runs","strikeouts_pitch","wins","quality_start"]:
+                    box.pop(stat, None)
+
+            # is_probable_starter?
+            starter_names = {
+                normalize(g.get("home_pitcher","")) for g in starters
+            } | {
+                normalize(g.get("away_pitcher","")) for g in starters
+            }
+            is_starter = normalize(name) in starter_names
+
+            # build structured entry
+            players_out[name] = {
+                "player_id": pid,
+                "name": name,
+                "team": canon_team,
+                "opponent_team": matchup.get("opponent"),
+                "home_or_away": matchup.get("home_or_away"),
+                "position": r.get("position",""),
+                "handedness": {"bats": r.get("bats"), "throws": r.get("throws")},
+                "roster_status": {
+                    "status_code": r.get("status_code"),
+                    "status_description": r.get("status_description")
                 },
-                "precipitation_probability": data["hourly"]["precipitation_probability"][idx],
-                "cloud_cover_pct": data["hourly"]["cloudcover"][idx],
-                "weather_code": data["hourly"]["weathercode"][idx]
-            })
-            time.sleep(1)
+                "is_probable_starter": is_starter,
+                "starter": is_starter,
+                "weather_context": wc.get("weather", {}),
+                "betting_context": bet,
+                "espn_mentions": 0,
+                "espn_articles": [],
+                "reddit_mentions": 0,
+                "box_score": box,
+            }
 
-    # Save locally
-    with open(local_path, "w", encoding="utf-8") as f:
-        json.dump(records, f, indent=2)
-    print(f"💾 Saved weather to {local_path} ({len(records)} records)")
+            # append archive entry if box present
+            if box:
+                entry = {
+                    "date": yday_str,
+                    "player_id": pid,
+                    "name": name,
+                    "team": canon_team,
+                    "opponent": matchup.get("opponent"),
+                    "home_or_away": matchup.get("home_or_away"),
+                    "box_score": box,
+                    "weather": wc.get("weather", {}),
+                    "betting": bet,
+                }
+                archive.write(json.dumps(entry) + "\n")
+
+    # write structured JSON
+    with out_file.open("w", encoding="utf-8") as f:
+        json.dump(players_out, f, indent=2)
+    print(f"✅ Wrote {len(players_out)} players to {out_file}")
 
 if __name__ == "__main__":
     main()
