@@ -1,58 +1,125 @@
 # trend_weights.py
+"""
+Contextual weighting for recent player trends.
 
-# You can import this module in your DFS article generator to apply weighted logic
-# to recent player trends using weather, matchup strength, and home/away context.
+This module is OPTIONAL. It is not required for the analyzer; it’s meant for
+downstream scoring / DFS write-ups to bias recent averages using:
+- weather_context (temperature_f, wind_speed_mph, roof_status)
+- home_or_away
+- betting_context.implied_totals (if present)
 
-def apply_weighting_to_trends(player, trends):
+It is designed to be tolerant of missing fields and only multiplies numeric stats.
+"""
+
+from typing import Dict, Any, Mapping, Optional
+
+
+# ---- Tunable constants -----------------------------------------------------
+
+TEMP_GOOD_MIN = 65      # °F
+TEMP_GOOD_MAX = 85
+TEMP_BONUS    = 0.10
+
+WIND_BOOST_THRESHOLD = 10.0  # mph
+WIND_BONUS           = 0.05
+
+HOME_BONUS           = 0.05
+FAVORITE_BONUS       = 0.10
+
+MAX_WEIGHT           = 1.30  # cap the total multiplier
+
+
+# ---- Helpers ---------------------------------------------------------------
+
+def _num(x) -> Optional[float]:
+    """Return float(x) if x looks numeric, else None."""
+    try:
+        return float(x)
+    except Exception:
+        return None
+
+
+def _is_numeric(x) -> bool:
+    try:
+        float(x)
+        return True
+    except Exception:
+        return False
+
+
+# ---- Core weighting --------------------------------------------------------
+
+def apply_weighting_to_trends(player: Mapping[str, Any],
+                              trends: Mapping[str, Any]) -> Dict[str, float]:
     """
-    Applies contextual weights to a player's recent average stats.
+    Apply a bounded multiplicative weight to a player's recent averages.
 
     Args:
-        player (dict): Structured player entry with weather, matchup, and betting context.
-        trends (dict): Recent average stats for the player.
+        player: structured player dict from structured_players_<date>.json.
+                Expected keys used here:
+                  - "weather_context": dict with
+                        temperature_f, wind_speed_mph, roof_status  (optional)
+                  - "home_or_away": "home" | "away" (optional)
+                  - "team": canonical team name (optional)
+                  - "opponent_team": canonical team name (optional)
+                  - "betting_context": dict with "implied_totals" (optional)
+        trends: dict of recent averages, e.g. {"hits": 1.2, "home_runs": 0.3, ...}
 
     Returns:
-        dict: Weighted trends dictionary.
+        New dict of weighted trends (numeric keys scaled, others skipped).
     """
     weight = 1.0
 
-    # Weather boost for good conditions
-    weather = player.get("weather_context", {}).get("weather", {})
-    temp = weather.get("temperature_f")
-    wind = weather.get("wind_speed_mph")
-    cloud = player.get("weather_context", {}).get("cloud_cover_pct")
+    # --- Weather weighting (inner dict already in combine as weather_context)
+    wctx = player.get("weather_context") or {}
+    temp = _num(wctx.get("temperature_f"))
+    wind = _num(wctx.get("wind_speed_mph"))
+    roof = (wctx.get("roof_status") or "").lower()
 
-    if temp and 65 <= temp <= 85:
-        weight += 0.1
-    if wind and wind > 10:
-        weight += 0.05
-    if cloud is not None and cloud < 40:
-        weight += 0.05
+    # Comfortable temps
+    if temp is not None and TEMP_GOOD_MIN <= temp <= TEMP_GOOD_MAX:
+        weight += TEMP_BONUS
 
-    # Home advantage
-    if player.get("home_or_away") == "home":
-        weight += 0.05
+    # Wind bonus only matters if roof isn't closed
+    if (roof != "closed") and (wind is not None) and (wind > WIND_BOOST_THRESHOLD):
+        weight += WIND_BONUS
 
-    # Matchup boost for facing weaker opponents
-    opp = player.get("opponent_team")
-    implied_totals = player.get("betting_context", {}).get("implied_totals", {})
-    team_total = implied_totals.get(player.get("team"))
-    opp_total = implied_totals.get(opp)
+    # --- Home advantage
+    if (player.get("home_or_away") or "").lower() == "home":
+        weight += HOME_BONUS
 
-    if opp_total is not None and team_total is not None:
-        if team_total > opp_total:
-            weight += 0.1
+    # --- Favorite vs underdog via implied totals (if present)
+    team = player.get("team")
+    opp  = player.get("opponent_team")
+    implied_totals = (player.get("betting_context") or {}).get("implied_totals") or {}
+    if isinstance(implied_totals, dict) and team in implied_totals and opp in implied_totals:
+        team_total = _num(implied_totals.get(team))
+        opp_total  = _num(implied_totals.get(opp))
+        if team_total is not None and opp_total is not None and team_total > opp_total:
+            weight += FAVORITE_BONUS
 
-    # Cap weight to prevent extreme boosts
-    weight = min(weight, 1.3)
+    # --- Cap the total weight to avoid runaway boosts
+    if weight > MAX_WEIGHT:
+        weight = MAX_WEIGHT
 
-    # Apply weight to each stat
-    return {k: round(v * weight, 2) for k, v in trends.items()}
+    # --- Apply to numeric trend values only
+    out: Dict[str, float] = {}
+    for k, v in trends.items():
+        if _is_numeric(v):
+            out[k] = round(float(v) * weight, 3)
+        # If non-numeric, we skip it on purpose (keeps output purely numeric)
+
+    return out
 
 
-def apply_weighted_trends_to_all(players):
+def apply_weighted_trends_to_all(players: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """
+    For each player entry (as in structured_players JSON), if it has a
+    'recent_averages' dict, compute 'weighted_trends' using the logic above.
+    Mutates and returns the same players dict for convenience.
+    """
     for name, player in players.items():
-        if "recent_averages" in player:
-            weighted = apply_weighting_to_trends(player, player["recent_averages"])
-            player["weighted_trends"] = weighted
+        trends = player.get("recent_averages")
+        if isinstance(trends, dict) and trends:
+            player["weighted_trends"] = apply_weighting_to_trends(player, trends)
     return players

@@ -1,16 +1,23 @@
 # .github/workflows/mlb-pipeline.yml
-name: MLB Pipeline — Starters, Rosters, Weather
+name: MLB Pipeline
 
 on:
   workflow_dispatch:
     inputs:
       date:
-        description: 'Date for pipeline (YYYY-MM-DD)'
-        required: true
+        description: "Date for pipeline (YYYY-MM-DD)"
+        required: false
+        default: ""
+  schedule:
+    - cron: "0 4 * * *"  # every day at 04:00 UTC
+
+env:
+  ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
 
 jobs:
-  srw:
+  build-and-analyze:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -18,88 +25,84 @@ jobs:
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
+          cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      # 1) PROBABLE STARTERS FIRST
+      - name: Determine pipeline DATE and YDAY
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            D="${{ github.event.inputs.date }}"
+          else
+            D="$(date -u +%Y-%m-%d)"
+          fi
+          Y="$(date -u -d "$D -1 day" +%Y-%m-%d)"
+          echo "DATE=$D"  >> "$GITHUB_ENV"
+          echo "YDAY=$Y"  >> "$GITHUB_ENV"
+          echo "Using DATE=$D, YDAY=$Y"
+
+      - name: Prepare directories
+        run: |
+          mkdir -p data/raw/probable_starters data/raw/rosters data/raw/weather data/raw/boxscores data/raw/betting
+          mkdir -p data/analysis
+
+      # --- SCRAPERS (order matters) ---
       - name: Run probable starters scraper
-        run: python mlb_probable_starters_scraper.py --date "${{ github.event.inputs.date }}"
+        run: python mlb_probable_starters_scraper.py --date ${{ env.DATE }}
 
-      - name: Verify starters JSON
-        run: |
-          ls -l "data/raw/probable_starters/mlb_probable_starters_${{ github.event.inputs.date }}.json"
-          head -n 5 "data/raw/probable_starters/mlb_probable_starters_${{ github.event.inputs.date }}.json" || true
-
-      - name: Upload starters artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: starters-${{ github.event.inputs.date }}
-          path: data/raw/probable_starters/mlb_probable_starters_${{ github.event.inputs.date }}.json
-
-      # 2) ROSTERS (injects starters if needed)
-      - name: Run roster scraper
-        run: python mlb_rosters_scraper.py --date "${{ github.event.inputs.date }}"
-
-      - name: Verify roster JSON
-        run: |
-          ls -l "data/raw/rosters/mlb_rosters_${{ github.event.inputs.date }}.json"
-          head -n 5 "data/raw/rosters/mlb_rosters_${{ github.event.inputs.date }}.json" || true
-
-      - name: Upload roster artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: rosters-${{ github.event.inputs.date }}
-          path: data/raw/rosters/mlb_rosters_${{ github.event.inputs.date }}.json
-
-      # 3) WEATHER
-      - name: Verify stadium CSV exists
-        run: |
-          ls -l "mlb_stadium_coordinates.csv"
-          head -n 3 "mlb_stadium_coordinates.csv" || true
+      - name: Run roster scraper (injects probable starters)
+        run: python mlb_rosters_scraper.py --date ${{ env.DATE }}
 
       - name: Run weather scraper
-        run: python mlb_weather_scraper.py --date "${{ github.event.inputs.date }}"
+        run: python mlb_weather_scraper.py --date ${{ env.DATE }}
 
-      - name: Verify weather JSON
-        run: |
-          ls -l "data/raw/weather/mlb_weather_${{ github.event.inputs.date }}.json"
-          head -n 5 "data/raw/weather/mlb_weather_${{ github.event.inputs.date }}.json" || true
+      - name: Run box scores scraper (yesterday)
+        run: python mlb_boxscores_scraper.py --date ${{ env.YDAY }}
 
-      - name: Upload weather artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: weather-${{ github.event.inputs.date }}
-          path: data/raw/weather/mlb_weather_${{ github.event.inputs.date }}.json
-
-      # Betting odds — replace your current betting steps with these
       - name: Run betting odds scraper
-        env:
-          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-        run: |
-          python mlb_betting_odds_scraper.py \
-            --date "${{ github.event.inputs.date }}" \
-            --api-key "${ODDS_API_KEY}"
-          ls -l "data/raw/betting" || true
-          head -n 5 "data/raw/betting/mlb_betting_odds_${{ github.event.inputs.date }}.json" || true
+        run: python mlb_betting_odds_scraper.py --date ${{ env.DATE }} --api-key ${{ env.ODDS_API_KEY }}
 
-      - name: Upload betting odds artifact
+      # --- COMBINE + ANALYZE ---
+      - name: Combine all data
+        run: python mlb_combine_all_files.py --date ${{ env.DATE }}
+
+      - name: Configure PYTHONPATH for analyzer
+        run: echo "PYTHONPATH=$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
+
+      - name: Run analyzer
+        run: |
+          python -m analyzer.cli \
+            --date ${{ env.DATE }} \
+            --archive player_game_log.jsonl \
+            --structured structured_players_${{ env.DATE }}.json
+
+      # --- ARTIFACTS ---
+      - name: Upload raw inputs
         uses: actions/upload-artifact@v4
         with:
-          name: betting-odds-${{ github.event.inputs.date }}
-          path: data/raw/betting/mlb_betting_odds_${{ github.event.inputs.date }}.json
-          if-no-files-found: error
+          name: mlb-raw-${{ env.DATE }}
+          path: |
+            data/raw/probable_starters/mlb_probable_starters_${{ env.DATE }}*.json
+            data/raw/rosters/mlb_rosters_${{ env.DATE }}*.json
+            data/raw/weather/mlb_weather_${{ env.DATE }}*.json
+            data/raw/boxscores/mlb_boxscores_${{ env.YDAY }}*.json
+            data/raw/betting/mlb_betting_odds_${{ env.DATE }}*.json
+          if-no-files-found: warn
 
-      - name: Run box scores scraper
-        run: |
-          python mlb_box_scraper.py --date "${{ github.event.inputs.date }}"
-          ls -l data/raw/boxscores || true
-          head -n 5 "data/raw/boxscores/mlb_boxscores_${{ github.event.inputs.date }}.json" || true
-
-      - name: Upload box scores artifact
+      - name: Upload combined + analysis outputs
         uses: actions/upload-artifact@v4
         with:
-          name: boxscores-${{ github.event.inputs.date }}
-          path: data/raw/boxscores/mlb_boxscores_${{ github.event.inputs.date }}.json
-          if-no-files-found: error
+          name: mlb-analysis-${{ env.DATE }}
+          path: |
+            structured_players_${{ env.DATE }}.json
+            player_game_log.jsonl
+            data/analysis/tiers_${{ env.DATE }}.csv
+            data/analysis/evaluation_${{ env.DATE }}.csv
+            data/analysis/tiers_${{ env.DATE }}.parquet
+            data/analysis/evaluation_${{ env.DATE }}.parquet
+          if-no-files-found: warn

@@ -1,83 +1,158 @@
 #!/usr/bin/env python3
+# analyzer/feature_engineering.py
 """
-feature_engineering.py
+Feature engineering for MLB pipeline.
 
-Compute rolling performance metrics (3/6/10-game windows) and merge in contextual features
-(weather, matchups) into a unified DataFrame ready for streak detection and ranking.
+- compute_rolling_stats(log_df):
+    Builds per-player rolling features from player_game_log.jsonl.
+    Works even if the log is empty (returns an empty DF with expected columns).
+
+- merge_context(feat_df, structured_df):
+    Merges rolling features with per-player context (weather/betting/home/away/opponent).
+    If feat_df is empty (no history yet), it seeds rows from structured_df so
+    downstream steps still have data for the pipeline date.
 """
-import pandas as pd
+
+from __future__ import annotations
+from typing import Dict, Any, Iterable
 from pathlib import Path
 
-def compute_rolling_stats(log_df: pd.DataFrame, windows=(3, 6, 10)) -> pd.DataFrame:
+import numpy as np
+import pandas as pd
+
+
+# ------- Helpers -------------------------------------------------------------
+
+def _to_num(x, default=None):
+    try:
+        return float(x)
+    except Exception:
+        return default
+
+
+def _metric_from_box(box: Dict[str, Any]) -> float | None:
     """
-    Given a game-log DataFrame with one row per player-game,
-    compute rolling batting average, on-base pct, slugging, etc.
-    over the specified window sizes (in number of recent games).
-
-    Parameters:
-    - log_df: DataFrame with columns ['player_id', 'date', 'box_score'] and other fields
-    - windows: iterable of integers, window sizes (e.g. [3,6,10])
-
-    Returns:
-    - DataFrame where for each player-game, the rolling metrics for each window are appended
+    Build a simple per-game performance metric from a box_score dict.
+    - For batters: approximate total bases (singles+2*2B+3*3B+4*HR)
+    - For pitchers: strikeouts - earned runs (very simple proxy)
+    Returns None if no useful data.
     """
-    # Normalize date and sort
-    df = log_df.copy()
-    df['date'] = pd.to_datetime(df['date'])
-    df = df.sort_values(['player_id','date'])
+    if not isinstance(box, dict) or not box:
+        return None
 
-    # Extract basic counting stats into flat columns
-    stats = ['hits','at_bats','runs','home_runs','rbi']  # extend as needed
-    flat = pd.json_normalize(df['box_score'])
-    flat.index = df.index
-    df = pd.concat([df, flat[stats]], axis=1)
+    # Batter path (prefer if we see batting stats)
+    hits = _to_num(box.get("hits"))
+    ab   = _to_num(box.get("at_bats"))
+    hr   = _to_num(box.get("home_runs"))
+    dbl  = _to_num(box.get("doubles"))
+    trp  = _to_num(box.get("triples"))
+    bb   = _to_num(box.get("walks"))
 
-    # Compute rolling, by player
-    for w in windows:
-        roll = df.groupby('player_id')[stats].rolling(window=w, min_periods=1).sum()
-        roll = roll.reset_index(level=0, drop=True)
-        for stat in stats:
-            df[f'{stat}_sum_last_{w}'] = roll[stat]
-        df[f'games_played_last_{w}'] = df.groupby('player_id')['date'].rolling(window=w, min_periods=1).count().reset_index(level=0, drop=True)
-        # compute averages (e.g. batting average)
-        df[f'avg_last_{w}'] = df[f'hits_sum_last_{w}'] / df[f'at_bats_sum_last_{w}'].replace(0, pd.NA)
+    # If it looks like a batter line, compute total bases proxy
+    if any(v is not None for v in [hits, ab, hr, dbl, trp, bb]):
+        hits = hits or 0.0
+        hr   = hr or 0.0
+        dbl  = dbl or 0.0
+        trp  = trp or 0.0
+        singles = max(hits - (hr + dbl + trp), 0.0)
+        total_bases = singles + 2*dbl + 3*trp + 4*hr
+        # Small credit for walks
+        total_bases += (bb or 0.0) * 0.2
+        return float(total_bases)
 
-    return df
+    # Pitcher path
+    k  = _to_num(box.get("strikeouts_pitch"))
+    er = _to_num(box.get("earned_runs"))
+    if k is not None or er is not None:
+        k  = k or 0.0
+        er = er or 0.0
+        return float(k - er)
+
+    return None
 
 
-def merge_context(df: pd.DataFrame, structured_df: pd.DataFrame) -> pd.DataFrame:
+def _ensure_datetime(df: pd.DataFrame, col: str) -> None:
+    if col in df.columns:
+        df[col] = pd.to_datetime(df[col], errors="coerce")
+
+
+# ------- Public API ----------------------------------------------------------
+
+def compute_rolling_stats(log_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Merge game-log rolling stats with structured player info
-    (handedness, weather_context, betting_context) for the same date.
+    Given the JSONL game log (one row per player-game), compute rolling features.
 
-    Parameters:
-    - df: DataFrame output from compute_rolling_stats
-    - structured_df: DataFrame loaded from structured_players_{date}.json with player_id and context columns
+    Returns a DataFrame with at least:
+      ['player_id','name','date','metric','avg_last_3','avg_last_6','avg_last_10']
 
-    Returns:
-    - Merged DataFrame ready for streak analysis and ranking
+    If log_df is empty or missing key columns, returns an empty DataFrame with
+    those columns (so downstream code won't KeyError).
     """
-    # Ensure same date type
-    structured_df['date'] = pd.to_datetime(structured_df['date'])
-    df = df.merge(
-        structured_df[['player_id', 'date', 'weather_context', 'betting_context', 'home_or_away', 'opponent_team']],
-        on=['player_id','date'], how='left'
-    )
-    return df
+    # Expected minimum inputs
+    needed = {"player_id", "name", "date", "box_score"}
+    if log_df is None or log_df.empty or not needed.issubset(set(log_df.columns)):
+        cols = ["player_id", "name", "date", "metric", "avg_last_3", "avg_last_6", "avg_last_10"]
+        return pd.DataFrame(columns=cols)
 
-if __name__ == '__main__':
-    import argparse
-    from analyzer.data_loader import load_game_log, load_structured_players
+    df = log_df[["player_id", "name", "date", "box_score"]].copy()
+    _ensure_datetime(df, "date")
+    df = df[df["date"].notna()]
+    if df.empty:
+        cols = ["player_id", "name", "date", "metric", "avg_last_3", "avg_last_6", "avg_last_10"]
+        return pd.DataFrame(columns=cols)
 
-    parser = argparse.ArgumentParser(description='Compute rolling stats and merge context')
-    parser.add_argument('--archive', type=Path, required=True, help='Path to player_game_log.jsonl')
-    parser.add_argument('--structured', type=Path, required=True, help='Path to structured_players_{date}.json')
-    parser.add_argument('--date', type=str, required=True, help='Date in YYYY-MM-DD format')
-    args = parser.parse_args()
+    # Compute per-game metric
+    df["metric"] = df["box_score"].apply(_metric_from_box).astype(float)
+    df["metric"] = df["metric"].fillna(0.0)
 
-    log_df = load_game_log(args.archive)
-    structured_df = load_structured_players(args.structured)
+    # Sort & group
+    df = df.sort_values(["player_id", "date"])
+    g = df.groupby("player_id", group_keys=False)
 
-    df_roll = compute_rolling_stats(log_df)
-    df_ctx = merge_context(df_roll, structured_df)
-    print(f"☑️ Computed features for {len(df_ctx)} player-games.")
+    # Rolling windows (include current game)
+    df["avg_last_3"]  = g["metric"].rolling(window=3,  min_periods=1).mean().reset_index(level=0, drop=True)
+    df["avg_last_6"]  = g["metric"].rolling(window=6,  min_periods=1).mean().reset_index(level=0, drop=True)
+    df["avg_last_10"] = g["metric"].rolling(window=10, min_periods=1).mean().reset_index(level=0, drop=True)
+
+    # Select minimal set used downstream
+    out_cols = ["player_id", "name", "date", "metric", "avg_last_3", "avg_last_6", "avg_last_10"]
+    return df[out_cols].copy()
+
+
+def merge_context(feat_df: pd.DataFrame, structured_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Merge rolling features (feat_df) with structured context (structured_df).
+    - Ensures required context columns exist.
+    - Ensures date alignment.
+    - If feat_df is empty (e.g., no history yet), seeds rows from structured_df
+      for the pipeline date so downstream steps still have data.
+    """
+    # Defensive copies
+    s = structured_df.copy() if structured_df is not None else pd.DataFrame()
+    f = feat_df.copy() if feat_df is not None else pd.DataFrame()
+
+    # Required context columns for downstream
+    required_ctx = ["player_id", "date", "weather_context", "betting_context", "home_or_away", "opponent_team", "name"]
+    for col in required_ctx:
+        if col not in s.columns:
+            s[col] = None
+
+    _ensure_datetime(s, "date")
+    _ensure_datetime(f, "date")
+
+    # If no features (fresh start), seed rows from structured for that date
+    if f.empty:
+        # Seed with player_id, name, date from structured
+        seed = s[["player_id", "name", "date"]].copy()
+        # Provide neutral feature defaults
+        for col in ["metric", "avg_last_3", "avg_last_6", "avg_last_10"]:
+            seed[col] = 0.0
+        f = seed
+
+    # Prepare context slice for merge
+    ctx = s[["player_id", "date", "weather_context", "betting_context", "home_or_away", "opponent_team"]].copy()
+
+    # Merge features with context
+    out = f.merge(ctx, on=["player_id", "date"], how="left")
+
+    return out

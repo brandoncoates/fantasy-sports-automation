@@ -1,58 +1,71 @@
 #!/usr/bin/env python3
+# analyzer/data_loader.py
 """
-data_loader.py
+Loaders for the analyzer:
+- load_game_log: read JSONL history (one line per player-game)
+- load_structured_players: read structured_players_<DATE>.json and KEEP nested dicts
+"""
 
-Load the append-only game log archive and today’s structured players JSON into pandas DataFrames for analysis.
-"""
-import json
 from pathlib import Path
+from typing import Any, Dict, List
+import json
 import pandas as pd
 
+
 def load_game_log(archive_path: Path) -> pd.DataFrame:
-    """
-    Read the JSONL archive file at archive_path and return a DataFrame where each row is one game-log entry.
-
-    Parameters:
-    - archive_path: Path to `player_game_log.jsonl` (append-only archive)
-
-    Returns:
-    - pandas.DataFrame with one row per game-log entry.
-    """
-    records = []
-    with archive_path.open('r', encoding='utf-8') as f:
-        for line in f:
-            try:
-                records.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
-    return pd.DataFrame(records)
+    """Read player_game_log.jsonl into a DataFrame (tolerant of missing/invalid lines)."""
+    archive_path = Path(archive_path)
+    records: List[Dict[str, Any]] = []
+    if archive_path.exists():
+        with archive_path.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    records.append(json.loads(line))
+                except json.JSONDecodeError:
+                    # skip malformed rows
+                    continue
+    df = pd.DataFrame(records)
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    return df
 
 
 def load_structured_players(structured_path: Path) -> pd.DataFrame:
     """
-    Read the structured players JSON file at structured_path and return a DataFrame.
-
-    Parameters:
-    - structured_path: Path to `structured_players_{date}.json`
-
-    Returns:
-    - pandas.DataFrame with one row per player.
+    Read structured_players_<DATE>.json and PRESERVE nested dicts like
+    weather_context and betting_context. (Do NOT normalize/flatten here.)
     """
-    data = json.loads(structured_path.read_text(encoding='utf-8'))
-    # Convert nested dicts into flat columns if necessary
-    df = pd.json_normalize(data.values())
+    p = Path(structured_path)
+    if not p.exists():
+        return pd.DataFrame()
+    data = json.loads(p.read_text(encoding="utf-8"))
+    if not isinstance(data, dict) or not data:
+        return pd.DataFrame()
+    df = pd.DataFrame.from_dict(data, orient="index").reset_index(drop=True)
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
     return df
 
-if __name__ == '__main__':
+
+# Optional alias if other code calls load_structured(...)
+def load_structured(structured_path: Path) -> pd.DataFrame:
+    return load_structured_players(structured_path)
+
+
+if __name__ == "__main__":
     import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--archive", type=Path, default=Path("player_game_log.jsonl"))
+    ap.add_argument("--structured", type=Path, required=False)
+    args = ap.parse_args()
 
-    parser = argparse.ArgumentParser(description='Load game log and structured player data into DataFrames')
-    parser.add_argument('--archive', type=Path, required=True, help='Path to player_game_log.jsonl')
-    parser.add_argument('--structured', type=Path, required=True, help='Path to structured_players_{date}.json')
-    args = parser.parse_args()
+    gl = load_game_log(args.archive)
+    print(f"Game log rows: {len(gl)}")
 
-    game_log_df = load_game_log(args.archive)
-    structured_df = load_structured_players(args.structured)
-    print('Loaded {} game-log entries and {} player records.'.format(
-        len(game_log_df), len(structured_df)
-    ))
+    if args.structured:
+        st = load_structured_players(args.structured)
+        print(f"Structured rows: {len(st)}")
+        print("Structured columns:", list(st.columns))
