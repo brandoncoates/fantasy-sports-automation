@@ -8,7 +8,10 @@ on:
         required: false
         default: ""
   schedule:
-    - cron: "0 4 * * *"  # every day at 04:00 UTC
+    # 7:30 AM Mountain during DST (Mar–Nov, UTC-6): 13:30 UTC
+    - cron: "30 13 * 3-11 *"
+    # 7:30 AM Mountain during Standard Time (Dec–Feb, UTC-7): 14:30 UTC
+    - cron: "30 14 * 12,1,2 *"
 
 env:
   ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
@@ -64,7 +67,6 @@ jobs:
         run: |
           aws s3 cp "s3://${S3_BUCKET}/mlb-history/player_game_log.jsonl" ./player_game_log.jsonl || true
           aws s3 cp "s3://${S3_BUCKET}/mlb-history/eval_history.jsonl" data/analysis/eval_history.jsonl || true
-          # Optional ranked history if you add it later
           aws s3 cp "s3://${S3_BUCKET}/mlb-history/ranked_history.jsonl" data/analysis/ranked_history.jsonl || true
 
       # ---------- SCRAPERS (order matters) ----------
@@ -97,12 +99,11 @@ jobs:
             --archive player_game_log.jsonl \
             --structured structured_players_${{ env.DATE }}.json
 
-      # ---------- Upload updated history back to S3 ----------
+      # ---------- Upload updated history to S3 ----------
       - name: Upload updated history to S3
         run: |
           aws s3 cp ./player_game_log.jsonl "s3://${S3_BUCKET}/mlb-history/player_game_log.jsonl"
           aws s3 cp data/analysis/eval_history.jsonl "s3://${S3_BUCKET}/mlb-history/eval_history.jsonl"
-          # Optional ranked history if you add that append in cli.py
           if [ -f data/analysis/ranked_history.jsonl ]; then
             aws s3 cp data/analysis/ranked_history.jsonl "s3://${S3_BUCKET}/mlb-history/ranked_history.jsonl"
           fi
@@ -117,7 +118,7 @@ jobs:
           aws s3 cp "data/analysis/ranked_full_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
           aws s3 cp "data/analysis/ranked_full_${{ env.DATE }}.parquet" "s3://${S3_BUCKET}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
 
-      # ---------- Artifacts (optional, still useful) ----------
+      # ---------- Artifacts (optional) ----------
       - name: Upload raw inputs
         uses: actions/upload-artifact@v4
         with:
