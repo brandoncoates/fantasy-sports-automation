@@ -91,3 +91,15 @@ jobs:
           path: data/raw/betting/mlb_betting_odds_${{ github.event.inputs.date }}.json
           if-no-files-found: error
 
+      - name: Run box scores scraper
+        run: |
+          python mlb_box_scraper.py --date "${{ github.event.inputs.date }}"
+          ls -l data/raw/boxscores || true
+          head -n 5 "data/raw/boxscores/mlb_boxscores_${{ github.event.inputs.date }}.json" || true
+
+      - name: Upload box scores artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: boxscores-${{ github.event.inputs.date }}
+          path: data/raw/boxscores/mlb_boxscores_${{ github.event.inputs.date }}.json
+          if-no-files-found: error
