@@ -63,6 +63,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Validate AWS env
+        run: |
+          test -n "${{ env.S3_BUCKET }}" || (echo "❌ S3_BUCKET is empty. Set it in repo secrets." && exit 1)
+          test -n "${{ env.AWS_REGION }}" || (echo "❌ AWS_REGION is empty. Set it in repo secrets." && exit 1)
+          aws sts get-caller-identity >/dev/null || (echo "❌ AWS credentials invalid." && exit 1)
+          echo "✅ AWS creds and env look good. Bucket=${{ env.S3_BUCKET }} Region=${{ env.AWS_REGION }}"
+
       - name: Restore history from S3 (if exists)
         run: |
           aws s3 cp "s3://${S3_BUCKET}/mlb-history/player_game_log.jsonl" ./player_game_log.jsonl || true
