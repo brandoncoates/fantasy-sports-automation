@@ -62,9 +62,20 @@ def main():
     print(f"🔢 Loaded game log rows: {len(log_df)}")
     print(f"🔢 Loaded structured rows: {len(struct_df)}")
 
-    # 2) Feature engineering (rolling stats from history; safe on empty)
+    # 2) Feature engineering (rolling stats from history)
     feat_df = compute_rolling_stats(log_df)
     print(f"🧪 Feature rows: {len(feat_df)}")
+
+    # --- Cold start guard: if no history, seed from structured so we still produce tiers ---
+    if feat_df.empty:
+        print("🧊 No game-log history found — cold start mode. Seeding from structured players.")
+        # Seed with minimal keys (ensure 'name' is carried)
+        seed_cols = [c for c in ['player_id', 'date', 'name'] if c in struct_df.columns]
+        feat_df = struct_df[seed_cols].drop_duplicates(subset=['player_id', 'date']).copy()
+        # Add zeroed features expected by ranking (safe defaults)
+        for col in ('avg_last_3', 'avg_last_6', 'avg_last_10', 'current_streak_length'):
+            if col not in feat_df.columns:
+                feat_df[col] = 0
 
     # 3) Merge structured context (weather/betting/home_or_away/opponent_team/position)
     ctx_df = merge_context(feat_df, struct_df)
@@ -97,8 +108,9 @@ def main():
     context_cols = ["team", "opponent_team", "home_or_away", "position", "starting_pitcher_today"]
     out_cols = [c for c in (base_cols + context_cols) if c in ranked_df.columns]
 
-    # Must-haves
-    missing = [c for c in ["player_id", "name", "date", "raw_score", "tier"] if c not in out_cols]
+    # Must-haves (we expect name now because we seeded it on cold start)
+    must_haves = ["player_id", "name", "date", "raw_score", "tier"]
+    missing = [c for c in must_haves if c not in out_cols]
     if missing:
         raise KeyError(f"Missing expected columns in ranked_df: {missing}")
 
