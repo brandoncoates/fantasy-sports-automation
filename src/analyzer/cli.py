@@ -108,8 +108,35 @@ def main():
     context_cols = ["team", "opponent_team", "home_or_away", "position", "starting_pitcher_today"]
     out_cols = [c for c in (base_cols + context_cols) if c in ranked_df.columns]
 
-    # Must-haves (we expect name now because we seeded it on cold start)
+    # --- DEBUG + NORMALIZE before must_haves check ---
+    logger.info(f"[DEBUG] ranked_df shape: {ranked_df.shape}")
+    logger.info(f"[DEBUG] ranked_df columns: {list(ranked_df.columns)}")
+
+    sample_cols = [c for c in ranked_df.columns if 'name' in c.lower() or 'player' in c.lower()]
+    logger.info(f"[DEBUG] name-like columns present: {sample_cols}")
+    if sample_cols:
+        logger.info(f"[DEBUG] ranked_df head (name-like):\n{ranked_df[sample_cols].head(3)}")
+
+    # Normalize 'name' if missing but other variants exist
+    if 'name' not in ranked_df.columns:
+        for cand in ['player_name', 'full_name', 'player_full_name', 'display_name', 'name_x', 'name_y']:
+            if cand in ranked_df.columns:
+                ranked_df = ranked_df.rename(columns={cand: 'name'})
+                logger.warning(f"[DEBUG] Renamed column {cand} -> name")
+                break
+
+    # Last resort: map from structured players if we have player_id
+    if 'name' not in ranked_df.columns and 'player_id' in ranked_df.columns:
+        try:
+            sp = structured_df[['player_id', 'name']].drop_duplicates()
+            ranked_df = ranked_df.merge(sp, on='player_id', how='left')
+            logger.warning("[DEBUG] Merged name from structured_df by player_id")
+        except Exception as e:
+            logger.error(f"[DEBUG] Failed to merge name: {e}")
+
+    # --- existing must_haves check ---
     must_haves = ["player_id", "name", "date", "raw_score", "tier"]
+    out_cols = ranked_df.columns  # Make sure this is defined correctly
     missing = [c for c in must_haves if c not in out_cols]
     if missing:
         raise KeyError(f"Missing expected columns in ranked_df: {missing}")
@@ -117,6 +144,7 @@ def main():
     tier_csv = args.output_dir / f"tiers_{args.date}.csv"
     ranked_df[out_cols].to_csv(tier_csv, index=False)
     print(f"💾 Wrote tiers CSV to {tier_csv}")
+
 
     # Extra exports: pitchers-only and probable starters
     if 'position' in ranked_df.columns:
