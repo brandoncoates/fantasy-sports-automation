@@ -10,6 +10,13 @@ import argparse
 from pathlib import Path
 import json
 import pandas as pd
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,  # set to DEBUG while fixing if you want more logs
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 from analyzer.data_loader import load_game_log, load_structured_players
 from analyzer.feature_engineering import compute_rolling_stats, merge_context
@@ -62,6 +69,11 @@ def main():
     print(f"🔢 Loaded game log rows: {len(log_df)}")
     print(f"🔢 Loaded structured rows: {len(struct_df)}")
 
+    # Ensure structured has a date column for today (many structured files are per-day snapshots)
+    if "date" not in struct_df.columns:
+        struct_df = struct_df.copy()
+        struct_df["date"] = args.date
+
     # 2) Feature engineering (rolling stats from history)
     feat_df = compute_rolling_stats(log_df)
     print(f"🧪 Feature rows: {len(feat_df)}")
@@ -69,11 +81,19 @@ def main():
     # --- Cold start guard: if no history, seed from structured so we still produce tiers ---
     if feat_df.empty:
         print("🧊 No game-log history found — cold start mode. Seeding from structured players.")
-        # Seed with minimal keys (ensure 'name' is carried)
-        seed_cols = [c for c in ['player_id', 'date', 'name'] if c in struct_df.columns]
-        feat_df = struct_df[seed_cols].drop_duplicates(subset=['player_id', 'date']).copy()
+        # Seed with minimal keys (ensure 'name' is carried if available)
+        seed_cols = [c for c in ["player_id", "name", "date"] if c in struct_df.columns]
+        feat_df = struct_df[seed_cols].copy()
+
+        # Drop duplicates on whatever keys we have available
+        dd_subset = [c for c in ["player_id", "date"] if c in feat_df.columns]
+        if dd_subset:
+            feat_df = feat_df.drop_duplicates(subset=dd_subset)
+        else:
+            feat_df = feat_df.drop_duplicates()
+
         # Add zeroed features expected by ranking (safe defaults)
-        for col in ('avg_last_3', 'avg_last_6', 'avg_last_10', 'current_streak_length'):
+        for col in ("avg_last_3", "avg_last_6", "avg_last_10", "current_streak_length"):
             if col not in feat_df.columns:
                 feat_df[col] = 0
 
@@ -95,67 +115,76 @@ def main():
 
     # ---------- Derive starting pitcher flag ----------
     # True only if player is a pitcher AND marked as probable starter
-    if 'position' in ranked_df.columns and ('is_probable_starter' in ranked_df.columns or 'starter' in ranked_df.columns):
-        starter_col = 'is_probable_starter' if 'is_probable_starter' in ranked_df.columns else 'starter'
-        ranked_df['starting_pitcher_today'] = (
-            ranked_df['position'].isin(['P', 'SP', 'RP']) & ranked_df[starter_col].fillna(False)
+    if "position" in ranked_df.columns and ("is_probable_starter" in ranked_df.columns or "starter" in ranked_df.columns):
+        starter_col = "is_probable_starter" if "is_probable_starter" in ranked_df.columns else "starter"
+        ranked_df["starting_pitcher_today"] = (
+            ranked_df["position"].isin(["P", "SP", "RP"]) & ranked_df[starter_col].fillna(False)
         )
     else:
-        ranked_df['starting_pitcher_today'] = False
+        ranked_df["starting_pitcher_today"] = False
 
     # ---------- Output: tiers with extra context ----------
     base_cols = ["player_id", "name", "date", "raw_score", "tier"]
     context_cols = ["team", "opponent_team", "home_or_away", "position", "starting_pitcher_today"]
-    out_cols = [c for c in (base_cols + context_cols) if c in ranked_df.columns]
 
     # --- DEBUG + NORMALIZE before must_haves check ---
     logger.info(f"[DEBUG] ranked_df shape: {ranked_df.shape}")
     logger.info(f"[DEBUG] ranked_df columns: {list(ranked_df.columns)}")
 
-    sample_cols = [c for c in ranked_df.columns if 'name' in c.lower() or 'player' in c.lower()]
+    sample_cols = [c for c in ranked_df.columns if "name" in c.lower() or "player" in c.lower()]
     logger.info(f"[DEBUG] name-like columns present: {sample_cols}")
     if sample_cols:
-        logger.info(f"[DEBUG] ranked_df head (name-like):\n{ranked_df[sample_cols].head(3)}")
+        try:
+            logger.info(f"[DEBUG] ranked_df head (name-like):\n{ranked_df[sample_cols].head(3)}")
+        except Exception:
+            pass
 
     # Normalize 'name' if missing but other variants exist
-    if 'name' not in ranked_df.columns:
-        for cand in ['player_name', 'full_name', 'player_full_name', 'display_name', 'name_x', 'name_y']:
+    if "name" not in ranked_df.columns:
+        for cand in ["player_name", "full_name", "player_full_name", "display_name", "name_x", "name_y"]:
             if cand in ranked_df.columns:
-                ranked_df = ranked_df.rename(columns={cand: 'name'})
+                ranked_df = ranked_df.rename(columns={cand: "name"})
                 logger.warning(f"[DEBUG] Renamed column {cand} -> name")
                 break
 
-    # Last resort: map from structured players if we have player_id
-    if 'name' not in ranked_df.columns and 'player_id' in ranked_df.columns:
+    # Last resort: map from structured players if we have player_id (FIX: use struct_df, not structured_df)
+    if "name" not in ranked_df.columns and "player_id" in ranked_df.columns:
         try:
-            sp = structured_df[['player_id', 'name']].drop_duplicates()
-            ranked_df = ranked_df.merge(sp, on='player_id', how='left')
-            logger.warning("[DEBUG] Merged name from structured_df by player_id")
+            if "name" in struct_df.columns:
+                sp = struct_df[["player_id", "name"]].drop_duplicates()
+                ranked_df = ranked_df.merge(sp, on="player_id", how="left", suffixes=("", "_struct"))
+                logger.warning("[DEBUG] Merged name from struct_df by player_id")
         except Exception as e:
-            logger.error(f"[DEBUG] Failed to merge name: {e}")
+            logger.error(f"[DEBUG] Failed to merge name from struct_df: {e}")
 
-    # --- existing must_haves check ---
+    # Final fallback so we never crash downstream
+    if "name" not in ranked_df.columns:
+        ranked_df["name"] = ranked_df.get("player_id", pd.Series(range(len(ranked_df)))).astype(str)
+        logger.warning("[DEBUG] Backfilled 'name' from player_id as string")
+
+    # Must-haves (we expect name now because we seeded/normalized it)
     must_haves = ["player_id", "name", "date", "raw_score", "tier"]
-    out_cols = ranked_df.columns  # Make sure this is defined correctly
-    missing = [c for c in must_haves if c not in out_cols]
+    missing = [c for c in must_haves if c not in ranked_df.columns]
     if missing:
         raise KeyError(f"Missing expected columns in ranked_df: {missing}")
+
+    # Decide which columns we actually write
+    out_cols = [c for c in (base_cols + context_cols) if c in ranked_df.columns]
 
     tier_csv = args.output_dir / f"tiers_{args.date}.csv"
     ranked_df[out_cols].to_csv(tier_csv, index=False)
     print(f"💾 Wrote tiers CSV to {tier_csv}")
 
-
     # Extra exports: pitchers-only and probable starters
-    if 'position' in ranked_df.columns:
-        pitchers = ranked_df[ranked_df['position'].isin(['P', 'SP', 'RP'])].copy()
+    if "position" in ranked_df.columns:
+        pitchers = ranked_df[ranked_df["position"].isin(["P", "SP", "RP"])].copy()
         if not pitchers.empty:
             pitch_csv = args.output_dir / f"tiers_pitchers_{args.date}.csv"
             pitchers[out_cols].to_csv(pitch_csv, index=False)
             print(f"💾 Wrote pitchers-only tiers CSV to {pitch_csv}")
 
-            if 'starting_pitcher_today' in pitchers.columns:
-                starters = pitchers[pitchers['starting_pitcher_today'].fillna(False)]
+            if "starting_pitcher_today" in pitchers.columns:
+                starters = pitchers[pitchers["starting_pitcher_today"].fillna(False)]
                 if not starters.empty:
                     sp_csv = args.output_dir / f"tiers_starting_pitchers_{args.date}.csv"
                     starters[out_cols].to_csv(sp_csv, index=False)
@@ -178,18 +207,18 @@ def main():
 
     # Quick calibration: precision by tier bucket (if we have actuals)
     try:
-        if 'hits' in log_df.columns and not ranked_df.empty:
+        if "hits" in log_df.columns and not ranked_df.empty:
             calib = ranked_df.merge(
-                log_df[['player_id', 'date', 'hits']], how='left', on=['player_id', 'date']
+                log_df[["player_id", "date", "hits"]], how="left", on=["player_id", "date"]
             )
             if not calib.empty:
-                calib['hit_flag'] = (calib['hits'].fillna(0) > 0).astype(int)
-                calib['tier_bucket'] = pd.cut(
-                    calib['tier'], bins=[-1, 2, 5, 8, 11], labels=['low', 'mid', 'high', 'elite']
+                calib["hit_flag"] = (calib["hits"].fillna(0) > 0).astype(int)
+                calib["tier_bucket"] = pd.cut(
+                    calib["tier"], bins=[-1, 2, 5, 8, 11], labels=["low", "mid", "high", "elite"]
                 )
                 calib_summary = (
-                    calib.groupby('tier_bucket', dropna=False)
-                         .agg(games=('hit_flag', 'size'), hit_rate=('hit_flag', 'mean'))
+                    calib.groupby("tier_bucket", dropna=False)
+                         .agg(games=("hit_flag", "size"), hit_rate=("hit_flag", "mean"))
                          .reset_index()
                 )
                 calib_path = args.output_dir / f"calibration_{args.date}.csv"
