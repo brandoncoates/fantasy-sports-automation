@@ -121,38 +121,42 @@ def compute_rolling_stats(log_df: pd.DataFrame) -> pd.DataFrame:
 
 def merge_context(feat_df: pd.DataFrame, structured_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Merge rolling features (feat_df) with structured context (structured_df).
-    - Ensures required context columns exist.
-    - Ensures date alignment.
-    - If feat_df is empty (e.g., no history yet), seeds rows from structured_df
-      for the pipeline date so downstream steps still have data.
+    Merge rolling-feature frame (feat_df) with contextual data from structured_df
+    on ['player_id','date'].
+
+    We carry through weather/betting context plus team/opponent/home_or_away,
+    position and probable-starter flags so they’re available for ranking/outputs.
     """
-    # Defensive copies
-    s = structured_df.copy() if structured_df is not None else pd.DataFrame()
-    f = feat_df.copy() if feat_df is not None else pd.DataFrame()
+    df = feat_df.copy()
 
-    # Required context columns for downstream
-    required_ctx = ["player_id", "date", "weather_context", "betting_context", "home_or_away", "opponent_team", "name"]
-    for col in required_ctx:
-        if col not in s.columns:
-            s[col] = None
+    # Make sure the merge keys are aligned as datetimes
+    if 'date' in df.columns:
+        df['date'] = pd.to_datetime(df['date']).dt.date
+    if 'date' in structured_df.columns:
+        structured_df = structured_df.copy()
+        structured_df['date'] = pd.to_datetime(structured_df['date']).dt.date
 
-    _ensure_datetime(s, "date")
-    _ensure_datetime(f, "date")
+    # Columns we want from structured; only keep those that actually exist
+    wanted = [
+        'player_id', 'date',
+        'name',                # useful if feat_df doesn't carry it
+        'team',
+        'opponent_team',
+        'home_or_away',
+        'position',
+        'is_probable_starter', # may or may not exist
+        'starter',             # fallback if you kept only 'starter'
+        'weather_context',
+        'betting_context',
+    ]
+    keep = [c for c in wanted if c in structured_df.columns]
+    ctx = structured_df[keep].drop_duplicates(subset=['player_id','date'])
 
-    # If no features (fresh start), seed rows from structured for that date
-    if f.empty:
-        # Seed with player_id, name, date from structured
-        seed = s[["player_id", "name", "date"]].copy()
-        # Provide neutral feature defaults
-        for col in ["metric", "avg_last_3", "avg_last_6", "avg_last_10"]:
-            seed[col] = 0.0
-        f = seed
+    # Left join: keep all rows from feat_df
+    out = pd.merge(df, ctx, on=['player_id','date'], how='left')
 
-    # Prepare context slice for merge
-    ctx = s[["player_id", "date", "weather_context", "betting_context", "home_or_away", "opponent_team"]].copy()
-
-    # Merge features with context
-    out = f.merge(ctx, on=["player_id", "date"], how="left")
+    # Normalize: if only 'starter' exists, mirror it into 'is_probable_starter'
+    if 'is_probable_starter' not in out.columns and 'starter' in out.columns:
+        out['is_probable_starter'] = out['starter']
 
     return out

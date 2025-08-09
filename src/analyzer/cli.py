@@ -80,16 +80,32 @@ def main():
     eval_df = evaluate_predictions(ranked_df, log_df)
     print(f"✅ Evaluation rows: {len(eval_df)}")
 
-    # Write outputs
-    tier_cols = ["player_id", "name", "date", "raw_score", "tier"]
-    missing_cols = [c for c in tier_cols if c not in ranked_df.columns]
-    if missing_cols:
-        raise KeyError(f"Missing expected columns in ranked_df: {missing_cols}")
+    # ---------- Output: tiers with extra context ----------
+    # Derive a clean "starting_pitcher_today" flag:
+    # True only if player is a pitcher AND marked as probable starter
+    if 'position' in ranked_df.columns and ('is_probable_starter' in ranked_df.columns or 'starter' in ranked_df.columns):
+        starter_col = 'is_probable_starter' if 'is_probable_starter' in ranked_df.columns else 'starter'
+        ranked_df['starting_pitcher_today'] = (
+            ranked_df['position'].isin(['P', 'SP', 'RP']) & ranked_df[starter_col].fillna(False)
+        )
+    else:
+        ranked_df['starting_pitcher_today'] = False
+
+    # Columns for tiers export
+    base_cols = ["player_id", "name", "date", "raw_score", "tier"]
+    context_cols = ["team", "opponent_team", "home_or_away", "position", "starting_pitcher_today"]
+    out_cols = [c for c in (base_cols + context_cols) if c in ranked_df.columns]
+
+    # Must-haves
+    missing = [c for c in ["player_id", "name", "date", "raw_score", "tier"] if c not in out_cols]
+    if missing:
+        raise KeyError(f"Missing expected columns in ranked_df: {missing}")
 
     tier_csv = args.output_dir / f"tiers_{args.date}.csv"
-    ranked_df[tier_cols].to_csv(tier_csv, index=False)
+    ranked_df[out_cols].to_csv(tier_csv, index=False)
     print(f"💾 Wrote tiers CSV to {tier_csv}")
 
+    # ---------- Output: evaluation ----------
     eval_csv = args.output_dir / f"evaluation_{args.date}.csv"
     eval_df.to_csv(eval_csv, index=False)
     print(f"💾 Wrote evaluation CSV to {eval_csv}")
@@ -97,7 +113,7 @@ def main():
     # Also write Parquet (optional; requires pyarrow)
     try:
         tier_parq = args.output_dir / f"tiers_{args.date}.parquet"
-        ranked_df[tier_cols].to_parquet(tier_parq, index=False)
+        ranked_df[out_cols].to_parquet(tier_parq, index=False)
         print(f"💾 Wrote tiers Parquet to {tier_parq}")
 
         eval_parq = args.output_dir / f"evaluation_{args.date}.parquet"
