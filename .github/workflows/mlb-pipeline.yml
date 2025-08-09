@@ -1,4 +1,3 @@
-# .github/workflows/mlb-pipeline.yml
 name: MLB Pipeline
 
 on:
@@ -13,6 +12,8 @@ on:
 
 env:
   ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  S3_BUCKET: ${{ secrets.S3_BUCKET }}
 
 jobs:
   build-and-analyze:
@@ -20,10 +21,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
           cache: "pip"
@@ -51,7 +52,22 @@ jobs:
           mkdir -p data/raw/probable_starters data/raw/rosters data/raw/weather data/raw/boxscores data/raw/betting
           mkdir -p data/analysis
 
-      # --- SCRAPERS (order matters) ---
+      # ---------- S3: configure + restore history ----------
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Restore history from S3 (if exists)
+        run: |
+          aws s3 cp "s3://${S3_BUCKET}/mlb-history/player_game_log.jsonl" ./player_game_log.jsonl || true
+          aws s3 cp "s3://${S3_BUCKET}/mlb-history/eval_history.jsonl" data/analysis/eval_history.jsonl || true
+          # Optional ranked history if you add it later
+          aws s3 cp "s3://${S3_BUCKET}/mlb-history/ranked_history.jsonl" data/analysis/ranked_history.jsonl || true
+
+      # ---------- SCRAPERS (order matters) ----------
       - name: Run probable starters scraper
         run: python mlb_probable_starters_scraper.py --date ${{ env.DATE }}
 
@@ -67,7 +83,7 @@ jobs:
       - name: Run betting odds scraper
         run: python mlb_betting_odds_scraper.py --date ${{ env.DATE }} --api-key ${{ env.ODDS_API_KEY }}
 
-      # --- COMBINE + ANALYZE ---
+      # ---------- COMBINE + ANALYZE ----------
       - name: Combine all data
         run: python mlb_combine_all_files.py --date ${{ env.DATE }}
 
@@ -81,7 +97,27 @@ jobs:
             --archive player_game_log.jsonl \
             --structured structured_players_${{ env.DATE }}.json
 
-      # --- ARTIFACTS ---
+      # ---------- Upload updated history back to S3 ----------
+      - name: Upload updated history to S3
+        run: |
+          aws s3 cp ./player_game_log.jsonl "s3://${S3_BUCKET}/mlb-history/player_game_log.jsonl"
+          aws s3 cp data/analysis/eval_history.jsonl "s3://${S3_BUCKET}/mlb-history/eval_history.jsonl"
+          # Optional ranked history if you add that append in cli.py
+          if [ -f data/analysis/ranked_history.jsonl ]; then
+            aws s3 cp data/analysis/ranked_history.jsonl "s3://${S3_BUCKET}/mlb-history/ranked_history.jsonl"
+          fi
+
+      # ---------- Upload today's outputs to dated folder ----------
+      - name: Upload daily outputs to S3
+        run: |
+          aws s3 cp "structured_players_${{ env.DATE }}.json" "s3://${S3_BUCKET}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/tiers_hitters_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/tiers_starting_pitchers_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/evaluation_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/ranked_full_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/ranked_full_${{ env.DATE }}.parquet" "s3://${S3_BUCKET}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+
+      # ---------- Artifacts (optional, still useful) ----------
       - name: Upload raw inputs
         uses: actions/upload-artifact@v4
         with:
@@ -101,8 +137,9 @@ jobs:
           path: |
             structured_players_${{ env.DATE }}.json
             player_game_log.jsonl
-            data/analysis/tiers_${{ env.DATE }}.csv
+            data/analysis/tiers_hitters_${{ env.DATE }}.csv
+            data/analysis/tiers_starting_pitchers_${{ env.DATE }}.csv
             data/analysis/evaluation_${{ env.DATE }}.csv
-            data/analysis/tiers_${{ env.DATE }}.parquet
-            data/analysis/evaluation_${{ env.DATE }}.parquet
+            data/analysis/ranked_full_${{ env.DATE }}.csv
+            data/analysis/ranked_full_${{ env.DATE }}.parquet
           if-no-files-found: warn

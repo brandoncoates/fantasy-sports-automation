@@ -123,7 +123,7 @@ def main():
     else:
         ranked_df["starting_pitcher_today"] = False
 
-    # ---------- Output: tiers with extra context ----------
+    # ---------- Output schemas ----------
     base_cols = ["player_id", "name", "date", "raw_score", "tier"]
     context_cols = ["team", "opponent_team", "home_or_away", "position", "starting_pitcher_today"]
 
@@ -147,7 +147,7 @@ def main():
                 logger.warning(f"[DEBUG] Renamed column {cand} -> name")
                 break
 
-    # Last resort: map from structured players if we have player_id (FIX: use struct_df, not structured_df)
+    # Last resort: map from structured players if we have player_id
     if "name" not in ranked_df.columns and "player_id" in ranked_df.columns:
         try:
             if "name" in struct_df.columns:
@@ -162,7 +162,7 @@ def main():
         ranked_df["name"] = ranked_df.get("player_id", pd.Series(range(len(ranked_df)))).astype(str)
         logger.warning("[DEBUG] Backfilled 'name' from player_id as string")
 
-    # Must-haves (we expect name now because we seeded/normalized it)
+    # Validate must-haves exist in ranked_df
     must_haves = ["player_id", "name", "date", "raw_score", "tier"]
     missing = [c for c in must_haves if c not in ranked_df.columns]
     if missing:
@@ -171,24 +171,48 @@ def main():
     # Decide which columns we actually write
     out_cols = [c for c in (base_cols + context_cols) if c in ranked_df.columns]
 
-    tier_csv = args.output_dir / f"tiers_{args.date}.csv"
-    ranked_df[out_cols].to_csv(tier_csv, index=False)
-    print(f"💾 Wrote tiers CSV to {tier_csv}")
+    # ---------- RAW full export (all players) ----------
+    raw_csv = args.output_dir / f"tiers_raw_{args.date}.csv"
+    ranked_df[out_cols].to_csv(raw_csv, index=False)
+    print(f"💾 Wrote RAW tiers CSV (all players) to {raw_csv}")
 
-    # Extra exports: pitchers-only and probable starters
+    # Also write Parquet for raw (optional; requires pyarrow)
+    try:
+        raw_parq = args.output_dir / f"tiers_raw_{args.date}.parquet"
+        ranked_df[out_cols].to_parquet(raw_parq, index=False)
+        print(f"💾 Wrote RAW tiers Parquet to {raw_parq}")
+    except Exception as e:
+        print(f"⚠️ Skipped RAW Parquet write (install pyarrow to enable): {e}")
+
+    # ---------- SPLIT exports ----------
+    # Position players (non-pitchers)
     if "position" in ranked_df.columns:
-        pitchers = ranked_df[ranked_df["position"].isin(["P", "SP", "RP"])].copy()
-        if not pitchers.empty:
-            pitch_csv = args.output_dir / f"tiers_pitchers_{args.date}.csv"
-            pitchers[out_cols].to_csv(pitch_csv, index=False)
-            print(f"💾 Wrote pitchers-only tiers CSV to {pitch_csv}")
+        position_players = ranked_df[~ranked_df["position"].isin(["P", "SP", "RP"])].copy()
+    else:
+        position_players = ranked_df.iloc[0:0].copy()  # empty frame if no position available
 
-            if "starting_pitcher_today" in pitchers.columns:
-                starters = pitchers[pitchers["starting_pitcher_today"].fillna(False)]
-                if not starters.empty:
-                    sp_csv = args.output_dir / f"tiers_starting_pitchers_{args.date}.csv"
-                    starters[out_cols].to_csv(sp_csv, index=False)
-                    print(f"💾 Wrote probable starters tiers CSV to {sp_csv}")
+    if not position_players.empty:
+        pos_csv = args.output_dir / f"tiers_position_players_{args.date}.csv"
+        position_players[out_cols].to_csv(pos_csv, index=False)
+        print(f"💾 Wrote position players tiers CSV to {pos_csv}")
+    else:
+        print("ℹ️ No position players found to export.")
+
+    # Starting pitchers only (probable starters)
+    if "starting_pitcher_today" in ranked_df.columns:
+        starters = ranked_df[
+            ranked_df["starting_pitcher_today"].fillna(False)
+            & ranked_df["position"].isin(["P", "SP", "RP"])
+        ].copy()
+    else:
+        starters = ranked_df.iloc[0:0].copy()
+
+    if not starters.empty:
+        sp_csv = args.output_dir / f"tiers_starting_pitchers_{args.date}.csv"
+        starters[out_cols].to_csv(sp_csv, index=False)
+        print(f"💾 Wrote probable starters tiers CSV to {sp_csv}")
+    else:
+        print("ℹ️ No starting pitchers found to export.")
 
     # ---------- Output: evaluation ----------
     eval_csv = args.output_dir / f"evaluation_{args.date}.csv"
@@ -226,18 +250,6 @@ def main():
                 print(f"📈 Wrote calibration to {calib_path}")
     except Exception as e:
         print(f"⚠️ Skipped calibration summary: {e}")
-
-    # Also write Parquet (optional; requires pyarrow)
-    try:
-        tier_parq = args.output_dir / f"tiers_{args.date}.parquet"
-        ranked_df[out_cols].to_parquet(tier_parq, index=False)
-        print(f"💾 Wrote tiers Parquet to {tier_parq}")
-
-        eval_parq = args.output_dir / f"evaluation_{args.date}.parquet"
-        eval_df.to_parquet(eval_parq, index=False)
-        print(f"💾 Wrote evaluation Parquet to {eval_parq}")
-    except Exception as e:
-        print(f"⚠️ Skipped Parquet writes (install pyarrow to enable): {e}")
 
 
 if __name__ == "__main__":
