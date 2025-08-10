@@ -1,270 +1,213 @@
 #!/usr/bin/env python3
 """
-cli.py
+ranking.py
 
-Run the full analysis pipeline: load data, engineer features,
-annotate streaks, assign tiers, and evaluate performance.
+Assign tier-based scores to player rows by combining recent-performance features
+and contextual features (weather, betting, home/away). Safe with empty inputs
+and missing columns. Supports nested dict fields via dotted keys
+(e.g., "weather_context.temperature_f").
 
-Outputs (under data/analysis/):
-  - tiers_raw_<DATE>.csv                # all players, with context columns
-  - ranked_full_<DATE>.csv              # predictions JOIN actuals (+context) for learning
-  - tiers_position_players_<DATE>.csv   # non-pitchers only
-  - tiers_hitters_<DATE>.csv            # alias of tiers_position_players_* (workflow compatibility)
-  - tiers_starting_pitchers_<DATE>.csv  # probable SPs only (if detectable)
-  - evaluation_<DATE>.csv               # evaluation summary
-  - calibration_<DATE>.csv              # tier bucket hit-rate (if actuals available)
-  - eval_history.jsonl                  # rolling per-row learning records (appended daily)
-  - (optional) matching .parquet files if pyarrow is installed
+You can override weights at runtime:
+  1) Set env var RANKING_WEIGHTS_JSON to a JSON object string
+     e.g. '{"avg_last_3":1.2,"betting_context.over_under":0.25}'
+  2) Or set env var RANKING_WEIGHTS_PATH to a JSON file path
+  3) Or place a local "ranking_weights.json" next to this file
+
+Precedence: env JSON > env PATH file > local file > defaults.
 """
 
 from __future__ import annotations
 
-import argparse
 import json
-import logging
-from pathlib import Path
+import os
+from typing import Any, Mapping, Optional, Dict
 
+import numpy as np
 import pandas as pd
 
-from analyzer.data_loader import load_game_log, load_structured_players
-from analyzer.feature_engineering import compute_rolling_stats, merge_context
-from analyzer.streaks import annotate_streaks
-from analyzer.ranking import assign_tiers
-from analyzer.evaluation import evaluate_predictions
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
-)
-logger = logging.getLogger(__name__)
+# ----------------------------- default weights ------------------------------
+
+DEFAULT_FEATURE_WEIGHTS: Dict[str, float] = {
+    "avg_last_3": 1.0,
+    "avg_last_6": 1.0,
+    "avg_last_10": 1.0,
+    "current_streak_length": 0.5,
+    # Matches your combine output: weather_context and betting_context are dicts
+    "weather_context.temperature_f": 0.2,
+    "betting_context.over_under": 0.1,
+}
 
 
-def _ensure_name(ranked_df: pd.DataFrame, struct_df: pd.DataFrame) -> pd.DataFrame:
-    """Guarantee a 'name' column exists, pulling from common variants or struct_df if needed."""
-    df = ranked_df.copy()
-    if "name" in df.columns:
-        return df
+def _load_weights_from_env_json() -> Optional[Dict[str, float]]:
+    raw = os.getenv("RANKING_WEIGHTS_JSON")
+    if not raw:
+        return None
+    try:
+        obj = json.loads(raw)
+        if isinstance(obj, dict):
+            return {str(k): float(v) for k, v in obj.items()}
+    except Exception:
+        pass
+    return None
 
-    # Try common variants first
-    for cand in ["player_name", "full_name", "player_full_name", "display_name", "name_x", "name_y"]:
-        if cand in df.columns:
-            df = df.rename(columns={cand: "name"})
-            logger.info(f"Renamed {cand} -> name")
-            return df
 
-    # Merge from structured on player_id if possible
-    if "player_id" in df.columns and "name" in struct_df.columns:
-        names = struct_df[["player_id", "name"]].drop_duplicates()
-        before = len(df)
-        df = df.merge(names, on="player_id", how="left", suffixes=("", "_struct"))
-        after = len(df)
-        logger.info(f"Merged names from structured: {before} -> {after} rows")
-        if "name" in df.columns:
-            return df
+def _load_weights_from_env_path() -> Optional[Dict[str, float]]:
+    path = os.getenv("RANKING_WEIGHTS_PATH")
+    if not path:
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            obj = json.load(f)
+        if isinstance(obj, dict):
+            return {str(k): float(v) for k, v in obj.items()}
+    except Exception:
+        pass
+    return None
 
-    # Final fallback: synthesize a name from player_id or index
-    src = df["player_id"].astype(str) if "player_id" in df.columns else pd.Series(df.index, index=df.index).astype(str)
-    df["name"] = src
-    logger.warning("Backfilled 'name' from player_id/index")
+
+def _load_weights_from_local_file() -> Optional[Dict[str, float]]:
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidate = os.path.join(here, "ranking_weights.json")
+    if not os.path.exists(candidate):
+        return None
+    try:
+        with open(candidate, "r", encoding="utf-8") as f:
+            obj = json.load(f)
+        if isinstance(obj, dict):
+            return {str(k): float(v) for k, v in obj.items()}
+    except Exception:
+        pass
+    return None
+
+
+def load_feature_weights() -> Dict[str, float]:
+    """
+    Load weights with precedence:
+      env JSON > env PATH file > local file > defaults.
+    """
+    for loader in (_load_weights_from_env_json, _load_weights_from_env_path, _load_weights_from_local_file):
+        w = loader()
+        if w:
+            # Merge onto defaults so missing keys still exist
+            merged = DEFAULT_FEATURE_WEIGHTS.copy()
+            merged.update(w)
+            return merged
+    return DEFAULT_FEATURE_WEIGHTS.copy()
+
+
+# ----------------------------- helpers --------------------------------------
+
+def _num(x: Any) -> Optional[float]:
+    try:
+        return float(x)
+    except Exception:
+        return None
+
+
+def _get_nested(obj: Any, dotted_key: str) -> Optional[float]:
+    """
+    Extract nested value like "weather_context.temperature_f" from a dict-typed cell.
+    Returns numeric or None.
+    """
+    if not isinstance(obj, Mapping):
+        return None
+    cur = obj
+    for part in dotted_key.split("."):
+        if isinstance(cur, Mapping) and part in cur:
+            cur = cur[part]
+        else:
+            return None
+    return _num(cur)
+
+
+# ----------------------------- core API -------------------------------------
+
+def assign_tiers(df: pd.DataFrame, weights: Optional[Dict[str, float]] = None) -> pd.DataFrame:
+    """
+    Compute a raw score for each row by combining features and weights, then map to a tier [0..10].
+    Works even if df is empty or some features are missing.
+
+    Returns a *new* DataFrame with 'raw_score' and 'tier' columns added.
+    """
+    if df is None or df.empty:
+        out = df.copy() if df is not None else pd.DataFrame()
+        out["raw_score"] = []
+        out["tier"] = []
+        return out
+
+    if weights is None:
+        weights = load_feature_weights()
+
+    df = df.copy()
+    df["raw_score"] = 0.0
+
+    for feature, w in weights.items():
+        if "." in feature:
+            # nested: "<column>.<subkey>[.<subsub>...]"
+            col, subpath = feature.split(".", 1)
+            if col in df.columns:
+                df["raw_score"] += df[col].apply(lambda x: (_get_nested(x, subpath) or 0.0)) * float(w)
+        else:
+            if feature in df.columns:
+                vals = pd.to_numeric(df[feature], errors="coerce").fillna(0.0)
+                df["raw_score"] += vals * float(w)
+
+    # Map raw_score → tier 0..10 with min-max scaling
+    rs = pd.to_numeric(df["raw_score"], errors="coerce").fillna(0.0)
+    rmin, rmax = rs.min(), rs.max()
+    if rmax > rmin:
+        tiers = ((rs - rmin) / (rmax - rmin) * 10.0).round().astype(int)
+    else:
+        tiers = pd.Series(np.full(len(df), 5, dtype=int), index=df.index)  # neutral if no variance
+    df["tier"] = tiers.clip(lower=0, upper=10)
+
     return df
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Run full player trend analysis pipeline")
-    parser.add_argument("--date", type=str, required=True, help="Date in YYYY-MM-DD format")
-    parser.add_argument(
-        "--archive",
-        type=Path,
-        default=Path("player_game_log.jsonl"),
-        help="Path to player game log JSONL (default: ./player_game_log.jsonl)",
-    )
-    parser.add_argument(
-        "--structured",
-        type=Path,
-        default=None,
-        help="Path to structured players JSON (default: structured_players_<DATE>.json)",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=Path("data/analysis"),
-        help="Directory to write outputs (default: data/analysis/)",
-    )
-    parser.add_argument(
-        "--no-parquet",
-        action="store_true",
-        help="Skip writing parquet outputs even if pyarrow is available.",
-    )
-    args = parser.parse_args()
+# ----------------------------- optional CLI ---------------------------------
+
+if __name__ == "__main__":
+    import argparse
+    from pathlib import Path
+    from analyzer.data_loader import load_game_log, load_structured_players
+    from analyzer.feature_engineering import compute_rolling_stats, merge_context
+    from analyzer.streaks import annotate_streaks
+
+    p = argparse.ArgumentParser(description="Assign tiers 0–10 to player-games")
+    p.add_argument("--date", type=str, required=True, help="YYYY-MM-DD")
+    p.add_argument("--archive", type=Path, default=Path("player_game_log.jsonl"),
+                   help="Path to game log (JSONL). Default: ./player_game_log.jsonl")
+    p.add_argument("--structured", type=Path, default=None,
+                   help="Path to structured JSON. Default: structured_players_<DATE>.json")
+    p.add_argument("--output", type=Path, default=Path("data/analysis"),
+                   help="Output directory for CSV (default: data/analysis)")
+    p.add_argument("--weights-json", type=str, default=None,
+                   help="Optional JSON string of weights to override defaults.")
+    args = p.parse_args()
 
     if args.structured is None:
         args.structured = Path(f"structured_players_{args.date}.json")
+    args.output.mkdir(parents=True, exist_ok=True)
 
-    args.output_dir.mkdir(parents=True, exist_ok=True)
+    logs = load_game_log(args.archive)
+    structured = load_structured_players(args.structured)
+    feats = compute_rolling_stats(logs)
+    ctx = merge_context(feats, structured)
+    streaked = annotate_streaks(ctx)
 
-    print(f"📦 Archive:    {args.archive.resolve()}")
-    print(f"📦 Structured: {args.structured.resolve()}")
-    print(f"📂 Outputs:    {args.output_dir.resolve()}")
-
-    # ---- Load
-    log_df = load_game_log(args.archive)
-    struct_df = load_structured_players(args.structured)
-    print(f"🔢 Loaded game log rows: {len(log_df)}")
-    print(f"🔢 Loaded structured rows: {len(struct_df)}")
-
-    # Ensure structured has a date column (daily snapshot)
-    if "date" not in struct_df.columns:
-        struct_df = struct_df.copy()
-        struct_df["date"] = args.date
-
-    # ---- Features
-    feat_df = compute_rolling_stats(log_df)
-    print(f"🧪 Feature rows: {len(feat_df)}")
-
-    # Cold start: seed from structured so we can still rank
-    if feat_df.empty:
-        print("🧊 No game-log history — cold start mode. Seeding from structured players.")
-        seed_cols = [c for c in ["player_id", "name", "date"] if c in struct_df.columns]
-        feat_df = struct_df[seed_cols].copy()
-        dd_subset = [c for c in ["player_id", "date"] if c in feat_df.columns]
-        feat_df = feat_df.drop_duplicates(subset=dd_subset) if dd_subset else feat_df.drop_duplicates()
-        for col in ("avg_last_3", "avg_last_6", "avg_last_10", "current_streak_length"):
-            if col not in feat_df.columns:
-                feat_df[col] = 0
-
-    # ---- Context merge
-    ctx_df = merge_context(feat_df, struct_df)
-    print(f"🧩 Context-merged rows: {len(ctx_df)}")
-
-    # ---- Streaks & Ranking
-    streaked_df = annotate_streaks(ctx_df)
-    print(f"🔥 Streaks annotated rows: {len(streaked_df)}")
-
-    ranked_df = assign_tiers(streaked_df)
-    print(f"🏅 Ranked rows: {len(ranked_df)}")
-
-    # ---- Evaluation (safe if empty)
-    eval_df = evaluate_predictions(ranked_df, log_df)
-    print(f"✅ Evaluation rows: {len(eval_df)}")
-
-    # ---- Derive starting pitcher flag
-    if "position" in ranked_df.columns and ("is_probable_starter" in ranked_df.columns or "starter" in ranked_df.columns):
-        starter_col = "is_probable_starter" if "is_probable_starter" in ranked_df.columns else "starter"
-        ranked_df["starting_pitcher_today"] = (
-            ranked_df["position"].isin(["P", "SP", "RP"]) & ranked_df[starter_col].fillna(False)
-        )
-    else:
-        ranked_df["starting_pitcher_today"] = False
-
-    # ---- Ensure 'name' exists
-    ranked_df = _ensure_name(ranked_df, struct_df)
-
-    # ---- Export columns
-    base_cols = ["player_id", "name", "date", "raw_score", "tier"]
-    context_cols = ["team", "opponent_team", "home_or_away", "position", "starting_pitcher_today"]
-    must_haves = ["player_id", "name", "date", "raw_score", "tier"]
-
-    # Fill missing date defensively
-    if "date" not in ranked_df.columns:
-        ranked_df["date"] = args.date
-
-    missing = [c for c in must_haves if c not in ranked_df.columns]
-    if missing:
-        raise KeyError(f"Missing expected columns in ranked_df: {missing}")
-
-    out_cols = [c for c in (base_cols + context_cols) if c in ranked_df.columns]
-
-    # ---- RAW (all players)
-    raw_csv = args.output_dir / f"tiers_raw_{args.date}.csv"
-    ranked_df[out_cols].to_csv(raw_csv, index=False)
-    print(f"💾 Wrote RAW tiers CSV to {raw_csv}")
-
-    # ---- LEARNING SNAPSHOT (predictions JOIN actuals)
-    actuals = log_df[["player_id", "date", "hits"]] if "hits" in log_df.columns else pd.DataFrame(columns=["player_id", "date", "hits"])
-    learn_df = ranked_df.merge(actuals, how="left", on=["player_id", "date"])
-    learn_df["hits"] = learn_df["hits"].fillna(0)
-    learn_df["hit_flag"] = (learn_df["hits"] > 0).astype(int)
-
-    ranked_full_csv = args.output_dir / f"ranked_full_{args.date}.csv"
-    learn_df[out_cols + ["hits", "hit_flag"]].to_csv(ranked_full_csv, index=False)
-    print(f"💾 Wrote full learning snapshot to {ranked_full_csv}")
-
-    # ---- Parquet (optional)
-    if not args.no_parquet:
+    custom_weights = None
+    if args.weights_json:
         try:
-            ranked_df[out_cols].to_parquet(args.output_dir / f"tiers_raw_{args.date}.parquet", index=False)
-            learn_df[out_cols + ["hits", "hit_flag"]].to_parquet(args.output_dir / f"ranked_full_{args.date}.parquet", index=False)
-        except Exception as e:
-            logger.info(f"Skipped Parquet writes: {e}")
+            w = json.loads(args.weights_json)
+            if isinstance(w, dict):
+                custom_weights = DEFAULT_FEATURE_WEIGHTS.copy()
+                custom_weights.update({str(k): float(v) for k, v in w.items()})
+        except Exception:
+            pass
 
-    # ---- Position players (hitters)
-    hitters = ranked_df[~ranked_df.get("position", pd.Series(index=ranked_df.index)).isin(["P", "SP", "RP"])].copy()
-    if not hitters.empty:
-        hitters_csv = args.output_dir / f"tiers_position_players_{args.date}.csv"
-        hitters[out_cols].to_csv(hitters_csv, index=False)
-        print(f"💾 Wrote hitters tiers CSV to {hitters_csv}")
-
-        alias_hitters = args.output_dir / f"tiers_hitters_{args.date}.csv"
-        hitters[out_cols].to_csv(alias_hitters, index=False)
-        print(f"💾 Wrote alias tiers_hitters CSV to {alias_hitters}")
-    else:
-        print("ℹ️ No hitters found to export.")
-
-    # ---- Probable starting pitchers
-    starters = ranked_df[
-        ranked_df.get("starting_pitcher_today", pd.Series(False, index=ranked_df.index)).fillna(False)
-        & ranked_df.get("position", pd.Series(index=ranked_df.index)).isin(["P", "SP", "RP"])
-    ].copy()
-    if not starters.empty:
-        sp_csv = args.output_dir / f"tiers_starting_pitchers_{args.date}.csv"
-        starters[out_cols].to_csv(sp_csv, index=False)
-        print(f"💾 Wrote probable starters tiers CSV to {sp_csv}")
-    else:
-        print("ℹ️ No starting pitchers found to export.")
-
-    # ---- Evaluation file
-    eval_csv = args.output_dir / f"evaluation_{args.date}.csv"
-    eval_df.to_csv(eval_csv, index=False)
-    print(f"💾 Wrote evaluation CSV to {eval_csv}")
-
-    # ---- Append learning records to rolling JSONL (for future tuning)
-    try:
-        hist_path = args.output_dir / "eval_history.jsonl"
-        keep_for_jsonl = [
-            "date", "player_id", "name", "position", "team", "opponent_team", "home_or_away",
-            "tier", "raw_score", "hits", "hit_flag", "starting_pitcher_today",
-            "betting_context", "weather_context"
-        ]
-        jcols = [c for c in keep_for_jsonl if c in learn_df.columns]
-        with hist_path.open("a", encoding="utf-8") as f:
-            for rec in learn_df[jcols].to_dict(orient="records"):
-                f.write(json.dumps(rec, default=str) + "\n")
-        print(f"🧷 Appended {len(learn_df)} learning records to {hist_path}")
-    except Exception as e:
-        logger.info(f"Skipped eval history append: {e}")
-
-    # ---- Quick calibration summary if we have actuals
-    try:
-        if "hits" in log_df.columns and not ranked_df.empty:
-            calib = ranked_df.merge(
-                log_df[["player_id", "date", "hits"]], how="left", on=["player_id", "date"]
-            )
-            if not calib.empty:
-                calib["hit_flag"] = (calib["hits"].fillna(0) > 0).astype(int)
-                calib["tier_bucket"] = pd.cut(
-                    calib["tier"], bins=[-1, 2, 5, 8, 11], labels=["low", "mid", "high", "elite"]
-                )
-                calib_summary = (
-                    calib.groupby("tier_bucket", dropna=False)
-                         .agg(games=("hit_flag", "size"), hit_rate=("hit_flag", "mean"))
-                         .reset_index()
-                )
-                calib_path = args.output_dir / f"calibration_{args.date}.csv"
-                calib_summary.to_csv(calib_path, index=False)
-                print(f"📈 Wrote calibration to {calib_path}")
-    except Exception as e:
-        logger.info(f"Skipped calibration: {e}")
-
-
-if __name__ == "__main__":
-    main()
+    ranked = assign_tiers(streaked, custom_weights)
+    cols = ["player_id", "name", "date", "raw_score", "tier"]
+    out_csv = args.output / f"tiers_{args.date}.csv"
+    ranked.sort_values(["tier", "raw_score"], ascending=[False, False])[cols].to_csv(out_csv, index=False)
+    print(f"💾 wrote tiers to {out_csv}")
