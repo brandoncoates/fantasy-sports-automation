@@ -24,8 +24,8 @@ on:
 env:
   ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
   AWS_REGION: ${{ secrets.AWS_REGION }}
-  # Prefer manual input, else repo secret, else repo var/default
-  S3_BUCKET: ${{ github.event.inputs.s3_bucket || secrets.S3_BUCKET }}
+  # Prefer manual input, else repo secret/var, else hard default (works now)
+  S3_BUCKET: ${{ github.event.inputs.s3_bucket || secrets.S3_BUCKET || vars.S3_BUCKET || 'fantasy-sports-csvs' }}
   S3_PREFIX: ${{ github.event.inputs.s3_prefix || vars.S3_PREFIX || 'baseball' }}
 
 jobs:
