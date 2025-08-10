@@ -17,26 +17,23 @@ Outputs (under data/analysis/):
   - (optional) matching .parquet files if pyarrow is installed
 """
 
-from __future__ import annotations
-
 import argparse
-import json
-import logging
 from pathlib import Path
-
+import json
 import pandas as pd
-
-from analyzer.data_loader import load_game_log, load_structured_players
-from analyzer.feature_engineering import compute_rolling_stats, merge_context
-from analyzer.streaks import annotate_streaks
-from analyzer.ranking import assign_tiers
-from analyzer.evaluation import evaluate_predictions
+import logging
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+from analyzer.data_loader import load_game_log, load_structured_players
+from analyzer.feature_engineering import compute_rolling_stats, merge_context
+from analyzer.streaks import annotate_streaks
+from analyzer.ranking import assign_tiers
+from analyzer.evaluation import evaluate_predictions
 
 
 def _ensure_name(ranked_df: pd.DataFrame, struct_df: pd.DataFrame) -> pd.DataFrame:
@@ -63,7 +60,8 @@ def _ensure_name(ranked_df: pd.DataFrame, struct_df: pd.DataFrame) -> pd.DataFra
             return df
 
     # Final fallback: synthesize a name from player_id or index
-    src = df["player_id"].astype(str) if "player_id" in df.columns else pd.Series(df.index, index=df.index).astype(str)
+    src = df["player_id"].astype(str) if "player_id" in df.columns \
+          else pd.Series(df.index, index=df.index).astype(str)
     df["name"] = src
     logger.warning("Backfilled 'name' from player_id/index")
     return df
@@ -89,11 +87,6 @@ def main():
         type=Path,
         default=Path("data/analysis"),
         help="Directory to write outputs (default: data/analysis/)",
-    )
-    parser.add_argument(
-        "--no-parquet",
-        action="store_true",
-        help="Skip writing parquet outputs even if pyarrow is available.",
     )
     args = parser.parse_args()
 
@@ -156,17 +149,13 @@ def main():
     else:
         ranked_df["starting_pitcher_today"] = False
 
-    # ---- Ensure 'name' exists
+    # ---- Ensure 'name' exists (fixes the KeyError you saw)
     ranked_df = _ensure_name(ranked_df, struct_df)
 
     # ---- Export columns
     base_cols = ["player_id", "name", "date", "raw_score", "tier"]
     context_cols = ["team", "opponent_team", "home_or_away", "position", "starting_pitcher_today"]
     must_haves = ["player_id", "name", "date", "raw_score", "tier"]
-
-    # Fill missing date defensively
-    if "date" not in ranked_df.columns:
-        ranked_df["date"] = args.date
 
     missing = [c for c in must_haves if c not in ranked_df.columns]
     if missing:
@@ -180,22 +169,22 @@ def main():
     print(f"💾 Wrote RAW tiers CSV to {raw_csv}")
 
     # ---- LEARNING SNAPSHOT (predictions JOIN actuals)
+    # Pull actual hits if present; otherwise create empty columns so schema is stable
     actuals = log_df[["player_id", "date", "hits"]] if "hits" in log_df.columns else pd.DataFrame(columns=["player_id", "date", "hits"])
     learn_df = ranked_df.merge(actuals, how="left", on=["player_id", "date"])
-    learn_df["hits"] = learn_df["hits"].fillna(0)
-    learn_df["hit_flag"] = (learn_df["hits"] > 0).astype(int)
+    learn_df["hit_flag"] = (learn_df["hits"].fillna(0) > 0).astype(int)
 
     ranked_full_csv = args.output_dir / f"ranked_full_{args.date}.csv"
-    learn_df[out_cols + ["hits", "hit_flag"]].to_csv(ranked_full_csv, index=False)
+    learn_df[out_cols + [c for c in ["hits", "hit_flag"] if c in learn_df.columns]].to_csv(ranked_full_csv, index=False)
     print(f"💾 Wrote full learning snapshot to {ranked_full_csv}")
 
-    # ---- Parquet (optional)
-    if not args.no_parquet:
-        try:
-            ranked_df[out_cols].to_parquet(args.output_dir / f"tiers_raw_{args.date}.parquet", index=False)
-            learn_df[out_cols + ["hits", "hit_flag"]].to_parquet(args.output_dir / f"ranked_full_{args.date}.parquet", index=False)
-        except Exception as e:
-            logger.info(f"Skipped Parquet writes: {e}")
+    # ---- Parquet (optional, best-effort)
+    try:
+        ranked_df[out_cols].to_parquet(args.output_dir / f"tiers_raw_{args.date}.parquet", index=False)
+        learn_df[out_cols + [c for c in ["hits", "hit_flag"] if c in learn_df.columns]] \
+            .to_parquet(args.output_dir / f"ranked_full_{args.date}.parquet", index=False)
+    except Exception as e:
+        logger.info(f"Skipped Parquet writes: {e}")
 
     # ---- Position players (hitters)
     hitters = ranked_df[~ranked_df.get("position", pd.Series(index=ranked_df.index)).isin(["P", "SP", "RP"])].copy()
@@ -204,6 +193,7 @@ def main():
         hitters[out_cols].to_csv(hitters_csv, index=False)
         print(f"💾 Wrote hitters tiers CSV to {hitters_csv}")
 
+        # Alias expected by workflow
         alias_hitters = args.output_dir / f"tiers_hitters_{args.date}.csv"
         hitters[out_cols].to_csv(alias_hitters, index=False)
         print(f"💾 Wrote alias tiers_hitters CSV to {alias_hitters}")
@@ -230,9 +220,11 @@ def main():
     # ---- Append learning records to rolling JSONL (for future tuning)
     try:
         hist_path = args.output_dir / "eval_history.jsonl"
+        # sensible subset for JSONL (keeps nested dicts if present)
         keep_for_jsonl = [
             "date", "player_id", "name", "position", "team", "opponent_team", "home_or_away",
             "tier", "raw_score", "hits", "hit_flag", "starting_pitcher_today",
+            # optional contexts if they exist:
             "betting_context", "weather_context"
         ]
         jcols = [c for c in keep_for_jsonl if c in learn_df.columns]

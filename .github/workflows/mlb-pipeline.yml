@@ -16,10 +16,10 @@ on:
         required: false
         default: ""
   schedule:
-    # 7:30 AM Mountain during DST (Mar–Nov, UTC-6): 13:30 UTC
-    - cron: "30 13 * 3-11 *"
-    # 7:30 AM Mountain during Standard Time (Dec–Feb, UTC-7): 14:30 UTC
-    - cron: "30 14 * 12,1,2 *"
+    # 8:00 AM Mountain during DST (Mar–Nov, UTC-6): 14:00 UTC
+    - cron: "0 14 * 3-11 *"
+    # 8:00 AM Mountain during Standard Time (Dec–Feb, UTC-7): 15:00 UTC
+    - cron: "0 15 * 12,1,2 *"
 
 env:
   ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
