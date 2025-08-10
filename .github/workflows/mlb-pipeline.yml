@@ -7,6 +7,14 @@ on:
         description: "Date for pipeline (YYYY-MM-DD)"
         required: false
         default: ""
+      s3_bucket:
+        description: "Override S3 bucket (optional)"
+        required: false
+        default: ""
+      s3_prefix:
+        description: "Override S3 prefix/folder (optional)"
+        required: false
+        default: ""
   schedule:
     # 7:30 AM Mountain during DST (Mar–Nov, UTC-6): 13:30 UTC
     - cron: "30 13 * 3-11 *"
@@ -16,7 +24,9 @@ on:
 env:
   ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
   AWS_REGION: ${{ secrets.AWS_REGION }}
-  S3_BUCKET: ${{ secrets.S3_BUCKET }}
+  # Prefer manual input, else repo secret, else repo var/default
+  S3_BUCKET: ${{ github.event.inputs.s3_bucket || secrets.S3_BUCKET }}
+  S3_PREFIX: ${{ github.event.inputs.s3_prefix || vars.S3_PREFIX || 'baseball' }}
 
 jobs:
   build-and-analyze:
@@ -65,16 +75,17 @@ jobs:
 
       - name: Validate AWS env
         run: |
-          test -n "${{ env.S3_BUCKET }}" || (echo "❌ S3_BUCKET is empty. Set it in repo secrets." && exit 1)
-          test -n "${{ env.AWS_REGION }}" || (echo "❌ AWS_REGION is empty. Set it in repo secrets." && exit 1)
+          echo "::notice::Bucket='${S3_BUCKET}' Prefix='${S3_PREFIX}' Region='${AWS_REGION}'"
+          test -n "${S3_BUCKET}" || (echo "❌ S3_BUCKET is empty. Set it in repo secrets or pass via workflow input." && exit 1)
+          test -n "${AWS_REGION}" || (echo "❌ AWS_REGION is empty. Set it in repo secrets." && exit 1)
           aws sts get-caller-identity >/dev/null || (echo "❌ AWS credentials invalid." && exit 1)
-          echo "✅ AWS creds and env look good. Bucket=${{ env.S3_BUCKET }} Region=${{ env.AWS_REGION }}"
+          echo "✅ AWS creds OK. Using s3://${S3_BUCKET}/${S3_PREFIX}/"
 
       - name: Restore history from S3 (if exists)
         run: |
-          aws s3 cp "s3://${S3_BUCKET}/mlb-history/player_game_log.jsonl" ./player_game_log.jsonl || true
-          aws s3 cp "s3://${S3_BUCKET}/mlb-history/eval_history.jsonl" data/analysis/eval_history.jsonl || true
-          aws s3 cp "s3://${S3_BUCKET}/mlb-history/ranked_history.jsonl" data/analysis/ranked_history.jsonl || true
+          aws s3 cp "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/player_game_log.jsonl" ./player_game_log.jsonl || true
+          aws s3 cp "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/eval_history.jsonl" data/analysis/eval_history.jsonl || true
+          aws s3 cp "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/ranked_history.jsonl" data/analysis/ranked_history.jsonl || true
 
       # ---------- SCRAPERS (order matters) ----------
       - name: Run probable starters scraper
@@ -109,21 +120,21 @@ jobs:
       # ---------- Upload updated history to S3 ----------
       - name: Upload updated history to S3
         run: |
-          aws s3 cp ./player_game_log.jsonl "s3://${S3_BUCKET}/mlb-history/player_game_log.jsonl"
-          aws s3 cp data/analysis/eval_history.jsonl "s3://${S3_BUCKET}/mlb-history/eval_history.jsonl"
+          aws s3 cp ./player_game_log.jsonl "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/player_game_log.jsonl"
+          aws s3 cp data/analysis/eval_history.jsonl "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/eval_history.jsonl"
           if [ -f data/analysis/ranked_history.jsonl ]; then
-            aws s3 cp data/analysis/ranked_history.jsonl "s3://${S3_BUCKET}/mlb-history/ranked_history.jsonl"
+            aws s3 cp data/analysis/ranked_history.jsonl "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/ranked_history.jsonl"
           fi
 
       # ---------- Upload today's outputs to dated folder ----------
       - name: Upload daily outputs to S3
         run: |
-          aws s3 cp "structured_players_${{ env.DATE }}.json" "s3://${S3_BUCKET}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
-          aws s3 cp "data/analysis/tiers_hitters_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
-          aws s3 cp "data/analysis/tiers_starting_pitchers_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
-          aws s3 cp "data/analysis/evaluation_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
-          aws s3 cp "data/analysis/ranked_full_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
-          aws s3 cp "data/analysis/ranked_full_${{ env.DATE }}.parquet" "s3://${S3_BUCKET}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "structured_players_${{ env.DATE }}.json" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/tiers_hitters_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/tiers_starting_pitchers_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/evaluation_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/ranked_full_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/ranked_full_${{ env.DATE }}.parquet" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
 
       # ---------- Artifacts (optional) ----------
       - name: Upload raw inputs
