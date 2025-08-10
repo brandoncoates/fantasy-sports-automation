@@ -55,7 +55,7 @@ jobs:
           else
             D="$(date -u +%Y-%m-%d)"
           fi
-          Y="$(date -u -d "$D -1 day" +%Y-%m-%d)"
+          Y="$(date -u -d "$D - 1 day" +%Y-%m-%d)"
           echo "DATE=$D"  >> "$GITHUB_ENV"
           echo "YDAY=$Y"  >> "$GITHUB_ENV"
           echo "Using DATE=$D, YDAY=$Y"
@@ -117,6 +117,26 @@ jobs:
             --archive player_game_log.jsonl \
             --structured structured_players_${{ env.DATE }}.json
 
+      - name: Verify expected outputs exist
+        shell: bash
+        run: |
+          set -e
+          HIT="data/analysis/tiers_hitters_${DATE}.csv"
+          SP="data/analysis/tiers_starting_pitchers_${DATE}.csv"
+          FULL="data/analysis/ranked_full_${DATE}.csv"
+          MISSING=0
+          for f in "$HIT" "$SP" "$FULL"; do
+            if [ ! -f "$f" ]; then
+              echo "::warning file=${f}::Expected output missing: $f"
+              MISSING=1
+            else
+              echo "Found $f (size: $(stat -c%s "$f" 2>/dev/null || stat -f%z "$f"))"
+            fi
+          done
+          if [ $MISSING -eq 1 ]; then
+            echo "::notice::One or more expected outputs are missing. Check analyzer outputs in logs."
+          fi
+
       # ---------- Upload updated history to S3 ----------
       - name: Upload updated history to S3
         run: |
@@ -135,6 +155,11 @@ jobs:
           aws s3 cp "data/analysis/evaluation_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
           aws s3 cp "data/analysis/ranked_full_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
           aws s3 cp "data/analysis/ranked_full_${{ env.DATE }}.parquet" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+
+      - name: List S3 daily folder
+        run: |
+          echo "Listing s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${DATE}/"
+          aws s3 ls "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${DATE}/" || true
 
       # ---------- Artifacts (optional) ----------
       - name: Upload raw inputs
@@ -161,4 +186,6 @@ jobs:
             data/analysis/evaluation_${{ env.DATE }}.csv
             data/analysis/ranked_full_${{ env.DATE }}.csv
             data/analysis/ranked_full_${{ env.DATE }}.parquet
+            data/analysis/eval_history.jsonl
+            data/analysis/ranked_history.jsonl
           if-no-files-found: warn
