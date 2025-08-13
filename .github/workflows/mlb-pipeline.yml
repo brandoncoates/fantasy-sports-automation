@@ -110,22 +110,42 @@ jobs:
       - name: Configure PYTHONPATH for analyzer
         run: echo "PYTHONPATH=$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
 
-      - name: Run analyzer
+      - name: Run analyzer (with conflict resolver)
+        env:
+          # Optional: let repo Variables set defaults at runtime
+          DROP_POLICY: ${{ vars.DROP_POLICY }}
+          HITTER_TIER_MIN: ${{ vars.HITTER_TIER_MIN }}
+          SP_TIER_MIN: ${{ vars.SP_TIER_MIN }}
+          DROP_SP_IF_N_HIT_GTE: ${{ vars.DROP_SP_IF_N_HIT_GTE }}
+          CONFLICT_TIER_PENALTY: ${{ vars.CONFLICT_TIER_PENALTY }}
+          CONFLICT_TIER_PENALTY_MAX: ${{ vars.CONFLICT_TIER_PENALTY_MAX }}
         run: |
           python -m analyzer.cli \
             --date ${{ env.DATE }} \
             --archive player_game_log.jsonl \
-            --structured structured_players_${{ env.DATE }}.json
+            --structured structured_players_${{ env.DATE }}.json \
+            --resolve-conflicts \
+            --drop-policy "${{ vars.DROP_POLICY || 'prefer_sp' }}" \
+            --hitter-tier-min "${{ vars.HITTER_TIER_MIN || '6.0' }}" \
+            --sp-tier-min "${{ vars.SP_TIER_MIN || '6.0' }}" \
+            --drop-sp-if-n-hit-gte "${{ vars.DROP_SP_IF_N_HIT_GTE || '2' }}" \
+            --conflict-tier-penalty "${{ vars.CONFLICT_TIER_PENALTY || '0.4' }}" \
+            --conflict-tier-penalty-max "${{ vars.CONFLICT_TIER_PENALTY_MAX || '1.0' }}"
 
       - name: Verify expected outputs exist
         shell: bash
         run: |
           set -e
-          HIT="data/analysis/tiers_hitters_${DATE}.csv"
-          SP="data/analysis/tiers_starting_pitchers_${DATE}.csv"
-          FULL="data/analysis/ranked_full_${DATE}.csv"
+          declare -a files=(
+            "data/analysis/tiers_hitters_${DATE}.csv"
+            "data/analysis/tiers_starting_pitchers_${DATE}.csv"
+            "data/analysis/ranked_full_${DATE}.csv"
+            "data/analysis/tiers_hitters_filtered_${DATE}.csv"
+            "data/analysis/tiers_starting_pitchers_filtered_${DATE}.csv"
+            "data/analysis/tiers_conflicts_${DATE}.csv"
+          )
           MISSING=0
-          for f in "$HIT" "$SP" "$FULL"; do
+          for f in "${files[@]}"; do
             if [ ! -f "$f" ]; then
               echo "::warning file=${f}::Expected output missing: $f"
               MISSING=1
@@ -152,6 +172,9 @@ jobs:
           aws s3 cp "structured_players_${{ env.DATE }}.json" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
           aws s3 cp "data/analysis/tiers_hitters_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
           aws s3 cp "data/analysis/tiers_starting_pitchers_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/tiers_hitters_filtered_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/tiers_starting_pitchers_filtered_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/tiers_conflicts_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
           aws s3 cp "data/analysis/evaluation_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
           aws s3 cp "data/analysis/ranked_full_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
           aws s3 cp "data/analysis/ranked_full_${{ env.DATE }}.parquet" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
@@ -183,6 +206,9 @@ jobs:
             player_game_log.jsonl
             data/analysis/tiers_hitters_${{ env.DATE }}.csv
             data/analysis/tiers_starting_pitchers_${{ env.DATE }}.csv
+            data/analysis/tiers_hitters_filtered_${{ env.DATE }}.csv
+            data/analysis/tiers_starting_pitchers_filtered_${{ env.DATE }}.csv
+            data/analysis/tiers_conflicts_${{ env.DATE }}.csv
             data/analysis/evaluation_${{ env.DATE }}.csv
             data/analysis/ranked_full_${{ env.DATE }}.csv
             data/analysis/ranked_full_${{ env.DATE }}.parquet

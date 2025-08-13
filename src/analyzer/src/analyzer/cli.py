@@ -51,11 +51,15 @@ def _ensure_name(ranked_df: pd.DataFrame, struct_df: pd.DataFrame) -> pd.DataFra
     df = ranked_df.copy()
     if "name" in df.columns:
         return df
+
+    # Try common variants first
     for cand in ["player_name", "full_name", "player_full_name", "display_name", "name_x", "name_y"]:
         if cand in df.columns:
             df = df.rename(columns={cand: "name"})
             logger.info(f"Renamed {cand} -> name")
             return df
+
+    # Merge from structured on player_id if possible
     if "player_id" in df.columns and "name" in struct_df.columns:
         names = struct_df[["player_id", "name"]].drop_duplicates()
         before = len(df)
@@ -64,36 +68,13 @@ def _ensure_name(ranked_df: pd.DataFrame, struct_df: pd.DataFrame) -> pd.DataFra
         logger.info(f"Merged names from structured: {before} -> {after} rows")
         if "name" in df.columns:
             return df
-    src = df["player_id"].astype(str) if "player_id" in df.columns else pd.Series(df.index, index=df.index).astype(str)
+
+    # Final fallback: synthesize a name from player_id or index
+    src = df["player_id"].astype(str) if "player_id" in df.columns \
+          else pd.Series(df.index, index=df.index).astype(str)
     df["name"] = src
     logger.warning("Backfilled 'name' from player_id/index")
     return df
-
-
-def _write_empty_outputs(out_dir: Path, date_str: str, do_conflicts: bool) -> None:
-    """Emit empty CSVs with correct headers so downstream steps/artifacts succeed."""
-    base_cols = ["player_id","name","date","raw_score","tier","team","opponent_team","home_or_away","position","starting_pitcher_today"]
-    learn_cols = base_cols + ["hits","hit_flag"]
-    empty = pd.DataFrame(columns=base_cols)
-    empty_learn = pd.DataFrame(columns=learn_cols)
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    empty.to_csv(out_dir / f"tiers_raw_{date_str}.csv", index=False)
-    empty_learn.to_csv(out_dir / f"ranked_full_{date_str}.csv", index=False)
-    empty.to_csv(out_dir / f"tiers_position_players_{date_str}.csv", index=False)
-    empty.to_csv(out_dir / f"tiers_hitters_{date_str}.csv", index=False)
-    empty.to_csv(out_dir / f"tiers_starting_pitchers_{date_str}.csv", index=False)
-    pd.DataFrame(columns=["metric","value"]).to_csv(out_dir / f"evaluation_{date_str}.csv", index=False)
-    pd.DataFrame(columns=["tier_bucket","games","hit_rate"]).to_csv(out_dir / f"calibration_{date_str}.csv", index=False)
-
-    if do_conflicts:
-        empty.to_csv(out_dir / f"tiers_hitters_filtered_{date_str}.csv", index=False)
-        empty.to_csv(out_dir / f"tiers_starting_pitchers_filtered_{date_str}.csv", index=False)
-        pd.DataFrame(columns=[
-            "player_id_sp","name_sp","team_sp","opponent_team_sp","tier_sp",
-            "player_id_h","name_h","team_h","opponent_team_h","tier_h",
-            "hitter_ge_thresh","sp_ge_thresh","reason","action"
-        ]).to_csv(out_dir / f"tiers_conflicts_{date_str}.csv", index=False)
 
 
 def main():
@@ -163,12 +144,6 @@ def main():
     print(f"🔢 Loaded game log rows: {len(log_df)}")
     print(f"🔢 Loaded structured rows: {len(struct_df)}")
 
-    # Fast-fail if structured is empty (cold day)
-    if struct_df.empty:
-        print("⚠️ Structured players is empty — emitting empty outputs and exiting cleanly.")
-        _write_empty_outputs(args.output_dir, args.date, args.resolve_conflicts)
-        return
-
     # Ensure structured has a date column (daily snapshot)
     if "date" not in struct_df.columns:
         struct_df = struct_df.copy()
@@ -182,11 +157,6 @@ def main():
     if feat_df.empty:
         print("🧊 No game-log history — cold start mode. Seeding from structured players.")
         seed_cols = [c for c in ["player_id", "name", "date"] if c in struct_df.columns]
-        # If player_id missing in structured (shouldn't happen), stop cleanly
-        if "player_id" not in seed_cols:
-            print("⚠️ Structured missing player_id — emitting empty outputs and exiting cleanly.")
-            _write_empty_outputs(args.output_dir, args.date, args.resolve_conflicts)
-            return
         feat_df = struct_df[seed_cols].copy()
         dd_subset = [c for c in ["player_id", "date"] if c in feat_df.columns]
         feat_df = feat_df.drop_duplicates(subset=dd_subset) if dd_subset else feat_df.drop_duplicates()
@@ -291,7 +261,7 @@ def main():
     eval_df.to_csv(eval_csv, index=False)
     print(f"💾 Wrote evaluation CSV to {eval_csv}")
 
-    # ---- Append learning records to rolling JSONL (for future tuning)
+    # ---- Append learning records to rolling JSONL
     try:
         hist_path = args.output_dir / "eval_history.jsonl"
         keep_for_jsonl = [
