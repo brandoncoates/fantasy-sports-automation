@@ -119,6 +119,11 @@ jobs:
           DROP_SP_IF_N_HIT_GTE: ${{ vars.DROP_SP_IF_N_HIT_GTE }}
           CONFLICT_TIER_PENALTY: ${{ vars.CONFLICT_TIER_PENALTY }}
           CONFLICT_TIER_PENALTY_MAX: ${{ vars.CONFLICT_TIER_PENALTY_MAX }}
+          # NEW: cap vs top SP knobs
+          TOP_SP_TIER_MIN: ${{ vars.TOP_SP_TIER_MIN }}
+          MAX_HITTERS_VS_TOP_SP: ${{ vars.MAX_HITTERS_VS_TOP_SP }}
+          HITTER_OVER_SP_MARGIN: ${{ vars.HITTER_OVER_SP_MARGIN }}
+          MIN_KEEP_VS_TOP_SP: ${{ vars.MIN_KEEP_VS_TOP_SP }}
         run: |
           python -m analyzer.cli \
             --date ${{ env.DATE }} \
@@ -130,7 +135,11 @@ jobs:
             --sp-tier-min "${{ vars.SP_TIER_MIN || '6.0' }}" \
             --drop-sp-if-n-hit-gte "${{ vars.DROP_SP_IF_N_HIT_GTE || '2' }}" \
             --conflict-tier-penalty "${{ vars.CONFLICT_TIER_PENALTY || '0.4' }}" \
-            --conflict-tier-penalty-max "${{ vars.CONFLICT_TIER_PENALTY_MAX || '1.0' }}"
+            --conflict-tier-penalty-max "${{ vars.CONFLICT_TIER_PENALTY_MAX || '1.0' }}" \
+            --top-sp-tier-min "${{ vars.TOP_SP_TIER_MIN || '9.0' }}" \
+            --max-hitters-vs-top-sp "${{ vars.MAX_HITTERS_VS_TOP_SP || '2' }}" \
+            --hitter-over-sp-margin "${{ vars.HITTER_OVER_SP_MARGIN || '0.0' }}" \
+            --min-keep-vs-top-sp "${{ vars.MIN_KEEP_VS_TOP_SP || '1' }}"
 
       - name: Verify expected outputs exist
         shell: bash
