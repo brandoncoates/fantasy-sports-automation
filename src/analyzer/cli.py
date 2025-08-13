@@ -51,11 +51,15 @@ def _ensure_name(ranked_df: pd.DataFrame, struct_df: pd.DataFrame) -> pd.DataFra
     df = ranked_df.copy()
     if "name" in df.columns:
         return df
+
+    # Try common variants first
     for cand in ["player_name", "full_name", "player_full_name", "display_name", "name_x", "name_y"]:
         if cand in df.columns:
             df = df.rename(columns={cand: "name"})
             logger.info(f"Renamed {cand} -> name")
             return df
+
+    # Merge from structured on player_id if possible
     if "player_id" in df.columns and "name" in struct_df.columns:
         names = struct_df[["player_id", "name"]].drop_duplicates()
         before = len(df)
@@ -64,10 +68,37 @@ def _ensure_name(ranked_df: pd.DataFrame, struct_df: pd.DataFrame) -> pd.DataFra
         logger.info(f"Merged names from structured: {before} -> {after} rows")
         if "name" in df.columns:
             return df
-    src = df["player_id"].astype(str) if "player_id" in df.columns else pd.Series(df.index, index=df.index).astype(str)
+
+    # Final fallback: synthesize a name from player_id or index
+    src = df["player_id"].astype(str) if "player_id" in df.columns \
+          else pd.Series(df.index, index=df.index).astype(str)
     df["name"] = src
     logger.warning("Backfilled 'name' from player_id/index")
     return df
+
+
+# --- Safe env readers (treat None/"" as missing, fall back to default)
+def _env_str(name: str, default: str) -> str:
+    v = os.getenv(name)
+    return v if v not in (None, "") else default
+
+def _env_float(name: str, default: float) -> float:
+    v = os.getenv(name)
+    if v in (None, ""):
+        return default
+    try:
+        return float(v)
+    except ValueError:
+        return default
+
+def _env_int(name: str, default: int) -> int:
+    v = os.getenv(name)
+    if v in (None, ""):
+        return default
+    try:
+        return int(v)
+    except ValueError:
+        return default
 
 
 def _write_empty_outputs(out_dir: Path, date_str: str, do_conflicts: bool) -> None:
@@ -123,27 +154,27 @@ def main():
         help="Skip writing parquet outputs even if pyarrow is available.",
     )
 
-    # --- Conflict resolver knobs ---
+    # --- Conflict resolver knobs (now robust to blank env vars) ---
     parser.add_argument("--resolve-conflicts", action="store_true",
                         help="Run SP↔hitter conflict resolver after ranking and write filtered outputs.")
     parser.add_argument("--drop-policy", type=str,
-                        default=os.getenv("DROP_POLICY", "prefer_sp"),
+                        default=_env_str("DROP_POLICY", "prefer_sp"),
                         choices=["prefer_sp", "prefer_hitters", "soft_penalty"],
                         help="Conflict policy (env DROP_POLICY also supported).")
     parser.add_argument("--hitter-tier-min", type=float,
-                        default=float(os.getenv("HITTER_TIER_MIN", 6.0)),
+                        default=_env_float("HITTER_TIER_MIN", 6.0),
                         help="Minimum hitter tier to treat as legit in conflicts.")
     parser.add_argument("--sp-tier-min", type=float,
-                        default=float(os.getenv("SP_TIER_MIN", 6.0)),
+                        default=_env_float("SP_TIER_MIN", 6.0),
                         help="Minimum SP tier to treat as legit in conflicts.")
     parser.add_argument("--drop-sp-if-n-hit-gte", type=int,
-                        default=int(os.getenv("DROP_SP_IF_N_HIT_GTE", 2)),
+                        default=_env_int("DROP_SP_IF_N_HIT_GTE", 2),
                         help="Only in prefer_sp: drop SP if >=N opposing hitters meet threshold.")
     parser.add_argument("--conflict-tier-penalty", type=float,
-                        default=float(os.getenv("CONFLICT_TIER_PENALTY", 0.4)),
+                        default=_env_float("CONFLICT_TIER_PENALTY", 0.4),
                         help="soft_penalty: per-conflict tier penalty.")
     parser.add_argument("--conflict-tier-penalty-max", type=float,
-                        default=float(os.getenv("CONFLICT_TIER_PENALTY_MAX", 1.0)),
+                        default=_env_float("CONFLICT_TIER_PENALTY_MAX", 1.0),
                         help="soft_penalty: cap on total tier penalty.")
 
     args = parser.parse_args()
