@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 cli.py
 
@@ -77,7 +77,7 @@ def _ensure_name(ranked_df: pd.DataFrame, struct_df: pd.DataFrame) -> pd.DataFra
     return df
 
 
-# --- Safe env readers (treat None/"" as missing, fall back to default)
+# --- Safe env readers (treat None/""/invalid as missing, fall back to default)
 def _env_str(name: str, default: str) -> str:
     v = os.getenv(name)
     return v if v not in (None, "") else default
@@ -154,30 +154,74 @@ def main():
         help="Skip writing parquet outputs even if pyarrow is available.",
     )
 
-    # --- Conflict resolver knobs (now robust to blank env vars) ---
-    parser.add_argument("--resolve-conflicts", action="store_true",
-                        help="Run SP?hitter conflict resolver after ranking and write filtered outputs.")
-    parser.add_argument("--drop-policy", type=str,
-                        default=_env_str("DROP_POLICY", "prefer_sp"),
-                        choices=["prefer_sp", "prefer_hitters", "soft_penalty"],
-                        help="Conflict policy (env DROP_POLICY also supported).")
-    parser.add_argument("--hitter-tier-min", type=float,
-                        default=_env_float("HITTER_TIER_MIN", 6.0),
-                        help="Minimum hitter tier to treat as legit in conflicts.")
-    parser.add_argument("--sp-tier-min", type=float,
-                        default=_env_float("SP_TIER_MIN", 6.0),
-                        help="Minimum SP tier to treat as legit in conflicts.")
-    parser.add_argument("--drop-sp-if-n-hit-gte", type=int,
-                        default=_env_int("DROP_SP_IF_N_HIT_GTE", 2),
-                        help="Only in prefer_sp: drop SP if >=N opposing hitters meet threshold.")
-    parser.add_argument("--conflict-tier-penalty", type=float,
-                        default=_env_float("CONFLICT_TIER_PENALTY", 0.4),
-                        help="soft_penalty: per-conflict tier penalty.")
-    parser.add_argument("--conflict-tier-penalty-max", type=float,
-                        default=_env_float("CONFLICT_TIER_PENALTY_MAX", 1.0),
-                        help="soft_penalty: cap on total tier penalty.")
-                        default=_env_float("CONFLICT_TIER_PENALTY_MAX", 1.0),
-                        help="soft_penalty: cap on total tier penalty.")
+    # --- Conflict resolver knobs (robust to blank env vars) ---
+    parser.add_argument(
+        "--resolve-conflicts",
+        action="store_true",
+        help="Run SP↔hitter conflict resolver after ranking and write filtered outputs.",
+    )
+    parser.add_argument(
+        "--drop-policy",
+        type=str,
+        default=_env_str("DROP_POLICY", "prefer_sp"),
+        choices=["prefer_sp", "prefer_hitters", "soft_penalty"],
+        help="Conflict policy (env DROP_POLICY also supported).",
+    )
+    parser.add_argument(
+        "--hitter-tier-min",
+        type=float,
+        default=_env_float("HITTER_TIER_MIN", 6.0),
+        help="Minimum hitter tier to treat as legit in conflicts.",
+    )
+    parser.add_argument(
+        "--sp-tier-min",
+        type=float,
+        default=_env_float("SP_TIER_MIN", 6.0),
+        help="Minimum SP tier to treat as legit in conflicts.",
+    )
+    parser.add_argument(
+        "--drop-sp-if-n-hit-gte",
+        type=int,
+        default=_env_int("DROP_SP_IF_N_HIT_GTE", 2),
+        help="Only in prefer_sp: drop SP if >=N opposing hitters meet threshold.",
+    )
+    parser.add_argument(
+        "--conflict-tier-penalty",
+        type=float,
+        default=_env_float("CONFLICT_TIER_PENALTY", 0.4),
+        help="soft_penalty: per-conflict tier penalty.",
+    )
+    parser.add_argument(
+        "--conflict-tier-penalty-max",
+        type=float,
+        default=_env_float("CONFLICT_TIER_PENALTY_MAX", 1.0),
+        help="soft_penalty: cap on total tier penalty.",
+    )
+    # NEW: cap full stacks vs top-tier SPs
+    parser.add_argument(
+        "--top-sp-tier-min",
+        type=float,
+        default=_env_float("TOP_SP_TIER_MIN", 9.0),
+        help="SPs at/above this tier trigger lineup cap on opposing hitters.",
+    )
+    parser.add_argument(
+        "--max-hitters-vs-top-sp",
+        type=int,
+        default=_env_int("MAX_HITTERS_VS_TOP_SP", 2),
+        help="Maximum opposing hitters to keep vs a top-tier SP.",
+    )
+    parser.add_argument(
+        "--hitter-over-sp-margin",
+        type=float,
+        default=_env_float("HITTER_OVER_SP_MARGIN", 0.0),
+        help="Only keep opposing hitters if hitter_tier >= sp_tier + margin.",
+    )
+    parser.add_argument(
+        "--min-keep-vs-top-sp",
+        type=int,
+        default=_env_int("MIN_KEEP_VS_TOP_SP", 1),
+        help="Fallback keep count if margin yields none (allow occasional one-offs).",
+    )
 
     args = parser.parse_args()
 
@@ -186,19 +230,19 @@ def main():
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"?? Archive:    {args.archive.resolve()}")
-    print(f"?? Structured: {args.structured.resolve()}")
-    print(f"?? Outputs:    {args.output_dir.resolve()}")
+    print(f"📦 Archive:    {args.archive.resolve()}")
+    print(f"📦 Structured: {args.structured.resolve()}")
+    print(f"📂 Outputs:    {args.output_dir.resolve()}")
 
     # ---- Load
     log_df = load_game_log(args.archive)
     struct_df = load_structured_players(args.structured)
-    print(f"?? Loaded game log rows: {len(log_df)}")
-    print(f"?? Loaded structured rows: {len(struct_df)}")
+    print(f"🔢 Loaded game log rows: {len(log_df)}")
+    print(f"🔢 Loaded structured rows: {len(struct_df)}")
 
     # Fast-fail if structured is empty (cold day)
     if struct_df.empty:
-        print("?? Structured players is empty � emitting empty outputs and exiting cleanly.")
+        print("⚠️ Structured players is empty — emitting empty outputs and exiting cleanly.")
         _write_empty_outputs(args.output_dir, args.date, args.resolve_conflicts)
         return
 
@@ -209,15 +253,14 @@ def main():
 
     # ---- Features
     feat_df = compute_rolling_stats(log_df)
-    print(f"?? Feature rows: {len(feat_df)}")
+    print(f"🧪 Feature rows: {len(feat_df)}")
 
     # Cold start: seed from structured so we can still rank
     if feat_df.empty:
-        print("?? No game-log history � cold start mode. Seeding from structured players.")
+        print("🧊 No game-log history — cold start mode. Seeding from structured players.")
         seed_cols = [c for c in ["player_id", "name", "date"] if c in struct_df.columns]
-        # If player_id missing in structured (shouldn't happen), stop cleanly
         if "player_id" not in seed_cols:
-            print("?? Structured missing player_id � emitting empty outputs and exiting cleanly.")
+            print("⚠️ Structured missing player_id — emitting empty outputs and exiting cleanly.")
             _write_empty_outputs(args.output_dir, args.date, args.resolve_conflicts)
             return
         feat_df = struct_df[seed_cols].copy()
@@ -229,18 +272,18 @@ def main():
 
     # ---- Context merge
     ctx_df = merge_context(feat_df, struct_df)
-    print(f"?? Context-merged rows: {len(ctx_df)}")
+    print(f"🧩 Context-merged rows: {len(ctx_df)}")
 
     # ---- Streaks & Ranking
     streaked_df = annotate_streaks(ctx_df)
-    print(f"?? Streaks annotated rows: {len(streaked_df)}")
+    print(f"🔥 Streaks annotated rows: {len(streaked_df)}")
 
     ranked_df = assign_tiers(streaked_df)
-    print(f"?? Ranked rows: {len(ranked_df)}")
+    print(f"🏅 Ranked rows: {len(ranked_df)}")
 
     # ---- Evaluation (safe if empty)
     eval_df = evaluate_predictions(ranked_df, log_df)
-    print(f"? Evaluation rows: {len(eval_df)}")
+    print(f"✅ Evaluation rows: {len(eval_df)}")
 
     # ---- Derive starting pitcher flag
     if "position" in ranked_df.columns and ("is_probable_starter" in ranked_df.columns or "starter" in ranked_df.columns):
@@ -272,7 +315,7 @@ def main():
     # ---- RAW (all players)
     raw_csv = args.output_dir / f"tiers_raw_{args.date}.csv"
     ranked_df[out_cols].to_csv(raw_csv, index=False)
-    print(f"?? Wrote RAW tiers CSV to {raw_csv}")
+    print(f"💾 Wrote RAW tiers CSV to {raw_csv}")
 
     # ---- LEARNING SNAPSHOT (predictions JOIN actuals)
     actuals = log_df[["player_id", "date", "hits"]] if "hits" in log_df.columns else pd.DataFrame(columns=["player_id", "date", "hits"])
@@ -282,7 +325,7 @@ def main():
 
     ranked_full_csv = args.output_dir / f"ranked_full_{args.date}.csv"
     learn_df[out_cols + ["hits", "hit_flag"]].to_csv(ranked_full_csv, index=False)
-    print(f"?? Wrote full learning snapshot to {ranked_full_csv}")
+    print(f"💾 Wrote full learning snapshot to {ranked_full_csv}")
 
     # ---- Parquet (optional)
     if not args.no_parquet:
@@ -297,13 +340,13 @@ def main():
     if not hitters.empty:
         hitters_csv = args.output_dir / f"tiers_position_players_{args.date}.csv"
         hitters[out_cols].to_csv(hitters_csv, index=False)
-        print(f"?? Wrote hitters tiers CSV to {hitters_csv}")
+        print(f"💾 Wrote hitters tiers CSV to {hitters_csv}")
 
         alias_hitters = args.output_dir / f"tiers_hitters_{args.date}.csv"
         hitters[out_cols].to_csv(alias_hitters, index=False)
-        print(f"?? Wrote alias tiers_hitters CSV to {alias_hitters}")
+        print(f"💾 Wrote alias tiers_hitters CSV to {alias_hitters}")
     else:
-        print("?? No hitters found to export.")
+        print("ℹ️ No hitters found to export.")
         alias_hitters = None
 
     # ---- Probable starting pitchers
@@ -314,15 +357,15 @@ def main():
     if not starters.empty:
         sp_csv = args.output_dir / f"tiers_starting_pitchers_{args.date}.csv"
         starters[out_cols].to_csv(sp_csv, index=False)
-        print(f"?? Wrote probable starters tiers CSV to {sp_csv}")
+        print(f"💾 Wrote probable starters tiers CSV to {sp_csv}")
     else:
-        print("?? No starting pitchers found to export.")
+        print("ℹ️ No starting pitchers found to export.")
         sp_csv = None
 
     # ---- Evaluation file
     eval_csv = args.output_dir / f"evaluation_{args.date}.csv"
     eval_df.to_csv(eval_csv, index=False)
-    print(f"?? Wrote evaluation CSV to {eval_csv}")
+    print(f"💾 Wrote evaluation CSV to {eval_csv}")
 
     # ---- Append learning records to rolling JSONL (for future tuning)
     try:
@@ -336,7 +379,7 @@ def main():
         with hist_path.open("a", encoding="utf-8") as f:
             for rec in learn_df[jcols].to_dict(orient="records"):
                 f.write(json.dumps(rec, default=str) + "\n")
-        print(f"?? Appended {len(learn_df)} learning records to {hist_path}")
+        print(f"🧷 Appended {len(learn_df)} learning records to {hist_path}")
     except Exception as e:
         logger.info(f"Skipped eval history append: {e}")
 
@@ -358,7 +401,7 @@ def main():
                 )
                 calib_path = args.output_dir / f"calibration_{args.date}.csv"
                 calib_summary.to_csv(calib_path, index=False)
-                print(f"?? Wrote calibration to {calib_path}")
+                print(f"📈 Wrote calibration to {calib_path}")
     except Exception as e:
         logger.info(f"Skipped calibration: {e}")
 
@@ -401,11 +444,11 @@ def main():
             sp_f.to_csv(sp_out, index=False)
             conflicts_df.to_csv(conflicts_out, index=False)
 
-            print(f"?? Conflict resolver wrote: {hitters_out.name}, {sp_out.name}, {conflicts_out.name}")
+            print(f"🧹 Conflict resolver wrote: {hitters_out.name}, {sp_out.name}, {conflicts_out.name}")
         elif args.resolve_conflicts:
-            print("?? Conflict resolver enabled but missing hitters or SP CSVs � skipped.")
+            print("ℹ️ Conflict resolver enabled but missing hitters or SP CSVs — skipped.")
         else:
-            print("?? Conflict resolver not enabled. Use --resolve-conflicts to run it.")
+            print("ℹ️ Conflict resolver not enabled. Use --resolve-conflicts to run it.")
     except Exception as e:
         logger.info(f"Conflict resolver step skipped due to error: {e}")
 
