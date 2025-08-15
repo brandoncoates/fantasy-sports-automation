@@ -1,0 +1,167 @@
+[
+  {
+    "date": "2025-08-12",
+    "game_id": 776776,
+    "game_datetime": "2025-08-12T22:35:00Z",
+    "away_team": "Seattle Mariners",
+    "away_pitcher": "George Kirby",
+    "away_throw_hand": "R",
+    "home_team": "Baltimore Orioles",
+    "home_pitcher": "Dean Kremer",
+    "home_throw_hand": "R"
+  },
+  {
+    "date": "2025-08-12",
+    "game_id": 776777,
+    "game_datetime": "2025-08-12T22:40:00Z",
+    "away_team": "Philadelphia Phillies",
+    "away_pitcher": "Ranger Su\u00e1rez",
+    "away_throw_hand": "L",
+    "home_team": "Cincinnati Reds",
+    "home_pitcher": "Brady Singer",
+    "home_throw_hand": "R"
+  },
+  {
+    "date": "2025-08-12",
+    "game_id": 776778,
+    "game_datetime": "2025-08-12T22:40:00Z",
+    "away_team": "Miami Marlins",
+    "away_pitcher": "Janson Junk",
+    "away_throw_hand": "R",
+    "home_team": "Cleveland Guardians",
+    "home_pitcher": "Logan Allen",
+    "home_throw_hand": "L"
+  },
+  {
+    "date": "2025-08-12",
+    "game_id": 776774,
+    "game_datetime": "2025-08-12T23:05:00Z",
+    "away_team": "Minnesota Twins",
+    "away_pitcher": "Travis Adams",
+    "away_throw_hand": "R",
+    "home_team": "New York Yankees",
+    "home_pitcher": "Carlos Rod\u00f3n",
+    "home_throw_hand": "L"
+  },
+  {
+    "date": "2025-08-12",
+    "game_id": 776768,
+    "game_datetime": "2025-08-12T23:07:00Z",
+    "away_team": "Chicago Cubs",
+    "away_pitcher": "Javier Assad",
+    "away_throw_hand": "R",
+    "home_team": "Toronto Blue Jays",
+    "home_pitcher": "Jos\u00e9 Berr\u00edos",
+    "home_throw_hand": "R"
+  },
+  {
+    "date": "2025-08-12",
+    "game_id": 776772,
+    "game_datetime": "2025-08-12T23:10:00Z",
+    "away_team": "Atlanta Braves",
+    "away_pitcher": "Spencer Strider",
+    "away_throw_hand": "R",
+    "home_team": "New York Mets",
+    "home_pitcher": "Clay Holmes",
+    "home_throw_hand": "R"
+  },
+  {
+    "date": "2025-08-12",
+    "game_id": 776770,
+    "game_datetime": "2025-08-12T23:40:00Z",
+    "away_team": "Washington Nationals",
+    "away_pitcher": "Mitchell Parker",
+    "away_throw_hand": "L",
+    "home_team": "Kansas City Royals",
+    "home_pitcher": "Michael Wacha",
+    "home_throw_hand": "R"
+  },
+  {
+    "date": "2025-08-12",
+    "game_id": 776773,
+    "game_datetime": "2025-08-12T23:40:00Z",
+    "away_team": "Detroit Tigers",
+    "away_pitcher": "Jack Flaherty",
+    "away_throw_hand": "R",
+    "home_team": "Chicago White Sox",
+    "home_pitcher": "Yoendrys G\u00f3mez",
+    "home_throw_hand": "R"
+  },
+  {
+    "date": "2025-08-12",
+    "game_id": 776771,
+    "game_datetime": "2025-08-12T23:40:00Z",
+    "away_team": "Pittsburgh Pirates",
+    "away_pitcher": "Paul Skenes",
+    "away_throw_hand": "R",
+    "home_team": "Milwaukee Brewers",
+    "home_pitcher": "Freddy Peralta",
+    "home_throw_hand": "R"
+  },
+  {
+    "date": "2025-08-12",
+    "game_id": 776775,
+    "game_datetime": "2025-08-12T23:45:00Z",
+    "away_team": "Colorado Rockies",
+    "away_pitcher": "Kyle Freeland",
+    "away_throw_hand": "L",
+    "home_team": "St. Louis Cardinals",
+    "home_pitcher": "Matthew Liberatore",
+    "home_throw_hand": "L"
+  },
+  {
+    "date": "2025-08-12",
+    "game_id": 776764,
+    "game_datetime": "2025-08-13T00:05:00Z",
+    "away_team": "Arizona Diamondbacks",
+    "away_pitcher": "Anthony DeSclafani",
+    "away_throw_hand": "R",
+    "home_team": "Texas Rangers",
+    "home_pitcher": "Jack Leiter",
+    "home_throw_hand": "R"
+  },
+  {
+    "date": "2025-08-12",
+    "game_id": 776769,
+    "game_datetime": "2025-08-13T00:10:00Z",
+    "away_team": "Boston Red Sox",
+    "away_pitcher": "Dustin May",
+    "away_throw_hand": "R",
+    "home_team": "Houston Astros",
+    "home_pitcher": "Spencer Arrighetti",
+    "home_throw_hand": "R"
+  },
+  {
+    "date": "2025-08-12",
+    "game_id": 776763,
+    "game_datetime": "2025-08-13T01:38:00Z",
+    "away_team": "Los Angeles Dodgers",
+    "away_pitcher": "Emmet Sheehan",
+    "away_throw_hand": "R",
+    "home_team": "Los Angeles Angels",
+    "home_pitcher": "Victor Mederos",
+    "home_throw_hand": "R"
+  },
+  {
+    "date": "2025-08-12",
+    "game_id": 776767,
+    "game_datetime": "2025-08-13T01:45:00Z",
+    "away_team": "San Diego Padres",
+    "away_pitcher": "Nestor Cortes",
+    "away_throw_hand": "L",
+    "home_team": "San Francisco Giants",
+    "home_pitcher": "Robbie Ray",
+    "home_throw_hand": "L"
+  },
+  {
+    "date": "2025-08-12",
+    "game_id": 776762,
+    "game_datetime": "2025-08-13T02:05:00Z",
+    "away_team": "Tampa Bay Rays",
+    "away_pitcher": "Shane Baz",
+    "away_throw_hand": "R",
+    "home_team": "Athletics",
+    "home_pitcher": "Jacob Lopez",
+    "home_throw_hand": "L"
+  }
+]

@@ -34,6 +34,7 @@ import pandas as pd
 
 from analyzer.data_loader import load_game_log, load_structured_players
 from analyzer.feature_engineering import compute_rolling_stats, merge_context
+from analyzer.derived import add_derived_context_features
 from analyzer.streaks import annotate_streaks
 from analyzer.ranking import assign_tiers
 from analyzer.evaluation import evaluate_predictions
@@ -272,6 +273,7 @@ def main():
 
     # ---- Context merge
     ctx_df = merge_context(feat_df, struct_df)
+    ctx_df = add_derived_context_features(ctx_df)
     print(f"🧩 Context-merged rows: {len(ctx_df)}")
 
     # ---- Streaks & Ranking
