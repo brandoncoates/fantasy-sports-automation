@@ -133,6 +133,7 @@ jobs:
             --tiers-hit "data/analysis/tiers_hitters_${{ env.DATE }}.csv" \
             --tiers-sp  "data/analysis/tiers_starting_pitchers_${{ env.DATE }}.csv" \
             --eval-yday "data/analysis/evaluation_${{ env.YDAY }}.csv" \
+            --ranked-full "data/analysis/ranked_full_${{ env.DATE }}.csv" \
             --out "data/analysis/daily_report_${{ env.DATE }}.json" \
             --hitter-target-min "${{ vars.HITTER_TIER_MIN || '6.0' }}" \
             --sp-target-min "${{ vars.SP_TIER_MIN || '6.0' }}" \
