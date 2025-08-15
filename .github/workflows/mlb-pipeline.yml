@@ -142,6 +142,7 @@ jobs:
       - name: Upload daily outputs to S3
         run: |
           aws s3 cp "structured_players_${{ env.DATE }}.json" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/daily_report_${{ env.DATE }}.json" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
 
       - name: List S3 daily folder
         run: aws s3 ls "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${DATE}/" || true
