@@ -1,32 +1,34 @@
 ﻿#!/usr/bin/env python3
 """
 Daily report builder (recap + today's targets/fades).
-Robust header parsing + logging so we don't silently default tiers/scores.
+Robust header parsing + logging; uses ranked_full as a score fallback.
 """
 from __future__ import annotations
 import argparse, csv, json, os, sys
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, Any, Tuple
 
-__VERSION__ = "v2025-08-15b"
+__VERSION__ = "v2025-08-15c"
 
+# ---------- tiny utils ----------
 def _norm_key(k): return (k or "").strip().lower()
 def _norm_val(v): return (v or "").strip()
 
-def read_csv_rows(path):
+def read_csv_rows(path: str):
     if not path or not os.path.exists(path):
         print(f"[builder] WARN: CSV not found: {path}", file=sys.stderr)
         return []
     rows = []
     with open(path, newline="", encoding="utf-8") as f:
         rdr = csv.DictReader(f)
-        # normalize headers for downstream lookups
+        if not rdr.fieldnames:
+            return rows
         rdr.fieldnames = [_norm_key(h) for h in rdr.fieldnames]
         for r in rdr:
             rows.append({_norm_key(k): _norm_val(v) for k, v in r.items()})
     return rows
 
-def read_json(path):
+def read_json(path: str):
     if not path or not os.path.exists(path):
         print(f"[builder] WARN: JSON not found: {path}", file=sys.stderr)
         return {}
@@ -50,7 +52,70 @@ def pick(r: Dict[str, Any], *keys: str):
             return v
     return None
 
-def today_lists(tiers_hit, tiers_sp, structured, ht_min, sp_min, hf_max, spf_max):
+# ---------- ranked_full fallback ----------
+def build_ranked_lookup(path: str) -> Tuple[dict, dict]:
+    """
+    Build score lookups from ranked_full CSV.
+    Returns (by_id, by_name_lower).
+    """
+    if not path or not os.path.exists(path):
+        return {}, {}
+    by_id, by_name = {}, {}
+    with open(path, newline="", encoding="utf-8") as f:
+        rdr = csv.DictReader(f)
+        if not rdr.fieldnames:
+            return by_id, by_name
+        rdr.fieldnames = [_norm_key(c) for c in rdr.fieldnames]
+        # reasonable score columns to try
+        score_keys = [
+            "score","model_score","final_score","composite_score","raw_score",
+            "proj_points","expected_hits","x_hits","h_score","hitter_score","p_score","pitcher_score"
+        ]
+        for row in rdr:
+            r = {_norm_key(k): _norm_val(v) for k, v in row.items()}
+            pid = str(r.get("player_id") or "")
+            name = r.get("name") or r.get("player_name") or ""
+            s = None
+            for k in score_keys:
+                s = to_float(r.get(k))
+                if s is not None:
+                    break
+            if s is None:
+                # last resort: any *score* column
+                for k, v in r.items():
+                    if "score" in k:
+                        s = to_float(v)
+                        if s is not None:
+                            break
+            if s is None:
+                continue
+            if pid:
+                by_id[pid] = s
+            if name:
+                by_name[name.lower()] = s
+    return by_id, by_name
+
+def extract_score(row: Dict[str, Any]):
+    # Primary names
+    for k in ("raw_score","score","final_score","composite_score","model_score"):
+        v = to_float(row.get(k))
+        if v is not None:
+            return v
+    # Any *score* column with a numeric
+    best = None
+    for k, v in row.items():
+        if "score" in k:
+            fv = to_float(v)
+            if fv is not None and (best is None or abs(fv) > abs(best)):
+                best = fv
+    return best
+
+# ---------- core builders ----------
+def today_lists(tiers_hit, tiers_sp, structured, ht_min, sp_min, hf_max, spf_max,
+                ranked_by_id=None, ranked_by_name=None):
+    ranked_by_id = ranked_by_id or {}
+    ranked_by_name = ranked_by_name or {}
+
     # probable SP ids from structured
     sp_ids = set()
     if isinstance(structured, dict):
@@ -64,18 +129,16 @@ def today_lists(tiers_hit, tiers_sp, structured, ht_min, sp_min, hf_max, spf_max
     def split(rows, pitcher=False):
         targets, fades = [], []
         for r in rows:
-            # support both 'raw_score' and 'score' in CSVs
             tier  = to_float(pick(r, "tier", "tier_score"))
-            score = to_float(pick(r, "raw_score", "score"), 0.0)
             pid   = str(pick(r, "player_id", "id") or "")
             if pitcher:
                 is_sp_today = booly(r.get("starting_pitcher_today"))
                 if not (is_sp_today or (pid and pid in sp_ids)):
                     continue
             if tier is None:
-                # skip if we truly can't read a tier from the row
                 continue
 
+            score = extract_score(r)
             entry = {
                 "player_id": pid,
                 "name": pick(r, "name", "player_name"),
@@ -85,6 +148,16 @@ def today_lists(tiers_hit, tiers_sp, structured, ht_min, sp_min, hf_max, spf_max
                 "tier": float(tier),
                 "score": float(score) if score is not None else 0.0,
             }
+            # ranked_full fallback if missing/zero
+            if (entry["score"] is None) or (float(entry["score"]) == 0.0):
+                rid = entry["player_id"]
+                nm  = (entry["name"] or "").lower()
+                rf = ranked_by_id.get(rid) if rid else None
+                if rf is None and nm:
+                    rf = ranked_by_name.get(nm)
+                if rf is not None:
+                    entry["score"] = float(rf)
+
             if pitcher:
                 if sp_min is not None and tier >= sp_min:
                     targets.append(entry)
@@ -107,7 +180,7 @@ def today_lists(tiers_hit, tiers_sp, structured, ht_min, sp_min, hf_max, spf_max
 
 def recap_section(eval_rows, buckets_today):
     recap = {"hitters":{"targets":[],"fades":[],"notable_non_picks":[]},
-             "pitchers":{"targets":[],"fades":[]}};
+             "pitchers":{"targets":[],"fades":[]}}
     if not eval_rows:
         return recap, {"targets_precision": None, "fades_accuracy": None, "overall_hit_rate": None}
 
@@ -139,7 +212,7 @@ def recap_section(eval_rows, buckets_today):
         elif cat in ("fade","fades"):
             recap[bucket]["fades"].append(row)
 
-    # Nick Kurtz rule: hitters we didn't pick but had big nights (>=3 hits)
+    # Nick Kurtz rule: hitters not picked with big nights (>=3 hits)
     for r in eval_rows:
         r = { _norm_key(k): _norm_val(v) for k,v in r.items() }
         row = to_row(r)
@@ -162,20 +235,22 @@ def recap_section(eval_rows, buckets_today):
     }
     return recap, metrics
 
+# ---------- debug ----------
 def log_sanity(tiers_hit, tiers_sp):
-    # Print a few sample rows to CI logs for sanity
-    def topn(rows, n=3):
+    def sample(rows, n=3):
         out = []
         for r in rows[:n]:
             out.append({
-                "name": r.get("name"), "tier": r.get("tier"),
+                "name": r.get("name") or r.get("player_name"),
+                "tier": r.get("tier") or r.get("tier_score"),
                 "raw_score": r.get("raw_score") or r.get("score")
             })
         return out
     print(f"[builder] version {__VERSION__}")
-    print(f"[builder] hitters sample: {json.dumps(topn(tiers_hit), ensure_ascii=False)}")
-    print(f"[builder] pitchers sample: {json.dumps(topn(tiers_sp), ensure_ascii=False)}")
+    print(f"[builder] hitters sample: {json.dumps(sample(tiers_hit), ensure_ascii=False)}")
+    print(f"[builder] pitchers sample: {json.dumps(sample(tiers_sp), ensure_ascii=False)}")
 
+# ---------- main ----------
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", required=True)
@@ -190,6 +265,8 @@ def main():
     ap.add_argument("--hitter-fade-max",   type=float, default=4.0)
     ap.add_argument("--sp-fade-max",       type=float, default=4.0)
     ap.add_argument("--box-yday", required=False, default=None)
+    ap.add_argument("--ranked-full", required=False, dest="ranked_full", default=None,
+                    help="Optional ranked_full CSV for score fallback")
     args = ap.parse_args()
 
     tiers_hit = read_csv_rows(args.tiers_hit)
@@ -197,28 +274,37 @@ def main():
     structured = read_json(args.structured) if args.structured else {}
     eval_rows = read_csv_rows(args.eval_yday)
 
+    ranked_by_id, ranked_by_name = build_ranked_lookup(args.ranked_full) if args.ranked_full else ({}, {})
+    print(f"[builder] ranked_full: by_id={len(ranked_by_id)} by_name={len(ranked_by_name)}")
+
     log_sanity(tiers_hit, tiers_sp)
 
     today = today_lists(
         tiers_hit, tiers_sp, structured,
-        args.hitter_target_min, args.sp_target_min, args.hitter_fade_max, args.sp_fade_max
+        args.hitter_target_min, args.sp_target_min,
+        args.hitter_fade_max, args.sp_fade_max,
+        ranked_by_id=ranked_by_id, ranked_by_name=ranked_by_name
     )
     recap, metrics = recap_section(eval_rows, today)
 
     payload = {"version": __VERSION__, "date": args.date, "recap": recap, "today": today, "metrics": metrics}
     Path(os.path.dirname(args.out)).mkdir(parents=True, exist_ok=True)
 
-    # Guardrail: if everything in hitters targets is exactly (7.0, 0.0), warn loudly
+    # Guardrail: warn if many hitter targets are (7.0, 0.0)
     ht = today["hitters"]["targets"] or []
     if ht:
         n_bad = sum(1 for x in ht if float(x.get("tier", 0)) == 7.0 and float(x.get("score", 0)) == 0.0)
-        share = n_bad/len(ht)
-        if share >= 0.8:
-            print(f"::warning::Suspicious output: {n_bad}/{len(ht)} hitter targets have (tier=7.0, score=0.0). Check CSV header mapping.", file=sys.stderr)
+        if n_bad and n_bad/len(ht) >= 0.8:
+            print(f"::warning::Suspicious output: {n_bad}/{len(ht)} hitter targets have (tier=7.0, score=0.0).", file=sys.stderr)
 
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
+    # small visibility
     print(f"[builder] Wrote {args.out}")
+    try:
+        print("[builder] sample hitter targets:", json.dumps((today["hitters"]["targets"] or [])[:5], ensure_ascii=False))
+    except Exception:
+        pass
     print(f"[builder] metrics: {json.dumps(metrics)}")
 
 if __name__ == "__main__":
