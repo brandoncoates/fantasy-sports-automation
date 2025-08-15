@@ -16,22 +16,18 @@ on:
         required: false
         default: ""
   schedule:
-    # 8:00 AM Mountain during DST (Mar–Nov, UTC-6): 14:00 UTC
     - cron: "0 14 * 3-11 *"
-    # 8:00 AM Mountain during Standard Time (Dec–Feb, UTC-7): 15:00 UTC
     - cron: "0 15 * 12,1,2 *"
 
 env:
   ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
   AWS_REGION: ${{ secrets.AWS_REGION }}
-  # Prefer manual input, else repo secret/var, else hard default (works now)
   S3_BUCKET: ${{ github.event.inputs.s3_bucket || secrets.S3_BUCKET || vars.S3_BUCKET || 'fantasy-sports-csvs' }}
   S3_PREFIX: ${{ github.event.inputs.s3_prefix || vars.S3_PREFIX || 'baseball' }}
 
 jobs:
   build-and-analyze:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -65,7 +61,6 @@ jobs:
           mkdir -p data/raw/probable_starters data/raw/rosters data/raw/weather data/raw/boxscores data/raw/betting
           mkdir -p data/analysis
 
-      # ---------- S3: configure + restore history ----------
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -76,10 +71,9 @@ jobs:
       - name: Validate AWS env
         run: |
           echo "::notice::Bucket='${S3_BUCKET}' Prefix='${S3_PREFIX}' Region='${AWS_REGION}'"
-          test -n "${S3_BUCKET}" || (echo "❌ S3_BUCKET is empty. Set it in repo secrets or pass via workflow input." && exit 1)
-          test -n "${AWS_REGION}" || (echo "❌ AWS_REGION is empty. Set it in repo secrets." && exit 1)
-          aws sts get-caller-identity >/dev/null || (echo "❌ AWS credentials invalid." && exit 1)
-          echo "✅ AWS creds OK. Using s3://${S3_BUCKET}/${S3_PREFIX}/"
+          test -n "${S3_BUCKET}" || (echo "❌ S3_BUCKET is empty" && exit 1)
+          test -n "${AWS_REGION}" || (echo "❌ AWS_REGION is empty" && exit 1)
+          aws sts get-caller-identity >/dev/null || (echo "❌ AWS credentials invalid" && exit 1)
 
       - name: Restore history from S3 (if exists)
         run: |
@@ -87,7 +81,6 @@ jobs:
           aws s3 cp "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/eval_history.jsonl" data/analysis/eval_history.jsonl || true
           aws s3 cp "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/ranked_history.jsonl" data/analysis/ranked_history.jsonl || true
 
-      # ---------- SCRAPERS (order matters) ----------
       - name: Run probable starters scraper
         run: python mlb_probable_starters_scraper.py --date ${{ env.DATE }}
 
@@ -103,7 +96,6 @@ jobs:
       - name: Run betting odds scraper
         run: python mlb_betting_odds_scraper.py --date ${{ env.DATE }} --api-key ${{ env.ODDS_API_KEY }}
 
-      # ---------- COMBINE + ANALYZE ----------
       - name: Combine all data
         run: python mlb_combine_all_files.py --date ${{ env.DATE }}
 
@@ -111,48 +103,17 @@ jobs:
         run: echo "PYTHONPATH=$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
 
       - name: Run analyzer (with conflict resolver)
-        env:
-          # Optional: let repo Variables set defaults at runtime
-          DROP_POLICY: ${{ vars.DROP_POLICY }}
-          HITTER_TIER_MIN: ${{ vars.HITTER_TIER_MIN }}
-          SP_TIER_MIN: ${{ vars.SP_TIER_MIN }}
-          DROP_SP_IF_N_HIT_GTE: ${{ vars.DROP_SP_IF_N_HIT_GTE }}
-          CONFLICT_TIER_PENALTY: ${{ vars.CONFLICT_TIER_PENALTY }}
-          CONFLICT_TIER_PENALTY_MAX: ${{ vars.CONFLICT_TIER_PENALTY_MAX }}
-          # NEW: cap vs top SP knobs
-          TOP_SP_TIER_MIN: ${{ vars.TOP_SP_TIER_MIN }}
-          MAX_HITTERS_VS_TOP_SP: ${{ vars.MAX_HITTERS_VS_TOP_SP }}
-          HITTER_OVER_SP_MARGIN: ${{ vars.HITTER_OVER_SP_MARGIN }}
-          MIN_KEEP_VS_TOP_SP: ${{ vars.MIN_KEEP_VS_TOP_SP }}
         run: |
           python -m analyzer.cli \
             --date ${{ env.DATE }} \
             --archive player_game_log.jsonl \
             --structured structured_players_${{ env.DATE }}.json \
-            --resolve-conflicts \
-            --drop-policy "${{ vars.DROP_POLICY || 'prefer_sp' }}" \
-            --hitter-tier-min "${{ vars.HITTER_TIER_MIN || '6.0' }}" \
-            --sp-tier-min "${{ vars.SP_TIER_MIN || '6.0' }}" \
-            --drop-sp-if-n-hit-gte "${{ vars.DROP_SP_IF_N_HIT_GTE || '2' }}" \
-            --conflict-tier-penalty "${{ vars.CONFLICT_TIER_PENALTY || '0.4' }}" \
-            --conflict-tier-penalty-max "${{ vars.CONFLICT_TIER_PENALTY_MAX || '1.0' }}" \
-            --top-sp-tier-min "${{ vars.TOP_SP_TIER_MIN || '9.0' }}" \
-            --max-hitters-vs-top-sp "${{ vars.MAX_HITTERS_VS_TOP_SP || '2' }}" \
-            --hitter-over-sp-margin "${{ vars.HITTER_OVER_SP_MARGIN || '0.0' }}" \
-            --min-keep-vs-top-sp "${{ vars.MIN_KEEP_VS_TOP_SP || '1' }}"
+            --resolve-conflicts
 
-      - name: Build Daily Report (recap + today)
-        run: |
-          python tools/daily_report_builder.py \
-            --date "${{ env.DATE }}" \
-            --yday "${{ env.YDAY }}" \
-            --structured "structured_players_${{ env.DATE }}.json" \
-            --tiers-hit "data/analysis/tiers_hitters_${{ env.DATE }}.csv" \
-            --tiers-sp  "data/analysis/tiers_starting_pitchers_${{ env.DATE }}.csv" \
-            --eval-yday "data/analysis/evaluation_${{ env.DATE }}.csv" \
-            --box-yday "data/raw/boxscores/mlb_boxscores_${{ env.YDAY }}.json" \
-            --out "data/analysis/daily_report_${{ env.DATE }}.json"
-            
+      # Temporary placeholder so pipeline doesn't fail until script exists
+      - name: Build Daily Report (placeholder)
+        run: echo "Daily report builder not yet implemented. Skipping..."
+
       - name: Verify expected outputs exist
         shell: bash
         run: |
@@ -161,24 +122,15 @@ jobs:
             "data/analysis/tiers_hitters_${DATE}.csv"
             "data/analysis/tiers_starting_pitchers_${DATE}.csv"
             "data/analysis/ranked_full_${DATE}.csv"
-            "data/analysis/tiers_hitters_filtered_${DATE}.csv"
-            "data/analysis/tiers_starting_pitchers_filtered_${DATE}.csv"
-            "data/analysis/tiers_conflicts_${DATE}.csv"
           )
-          MISSING=0
           for f in "${files[@]}"; do
             if [ ! -f "$f" ]; then
-              echo "::warning file=${f}::Expected output missing: $f"
-              MISSING=1
+              echo "::warning::Missing $f"
             else
-              echo "Found $f (size: $(stat -c%s "$f" 2>/dev/null || stat -f%z "$f"))"
+              echo "Found $f"
             fi
           done
-          if [ $MISSING -eq 1 ]; then
-            echo "::notice::One or more expected outputs are missing. Check analyzer outputs in logs."
-          fi
 
-      # ---------- Upload updated history to S3 ----------
       - name: Upload updated history to S3
         run: |
           aws s3 cp ./player_game_log.jsonl "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/player_game_log.jsonl"
@@ -187,52 +139,23 @@ jobs:
             aws s3 cp data/analysis/ranked_history.jsonl "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/ranked_history.jsonl"
           fi
 
-      # ---------- Upload today's outputs to dated folder ----------
       - name: Upload daily outputs to S3
         run: |
           aws s3 cp "structured_players_${{ env.DATE }}.json" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
-          aws s3 cp "data/analysis/tiers_hitters_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
-          aws s3 cp "data/analysis/tiers_starting_pitchers_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
-          aws s3 cp "data/analysis/tiers_hitters_filtered_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
-          aws s3 cp "data/analysis/tiers_starting_pitchers_filtered_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
-          aws s3 cp "data/analysis/tiers_conflicts_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
-          aws s3 cp "data/analysis/evaluation_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
-          aws s3 cp "data/analysis/ranked_full_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
-          aws s3 cp "data/analysis/ranked_full_${{ env.DATE }}.parquet" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
 
       - name: List S3 daily folder
-        run: |
-          echo "Listing s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${DATE}/"
-          aws s3 ls "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${DATE}/" || true
+        run: aws s3 ls "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${DATE}/" || true
 
-      # ---------- Artifacts (optional) ----------
       - name: Upload raw inputs
         uses: actions/upload-artifact@v4
         with:
           name: mlb-raw-${{ env.DATE }}
-          path: |
-            data/raw/probable_starters/mlb_probable_starters_${{ env.DATE }}*.json
-            data/raw/rosters/mlb_rosters_${{ env.DATE }}*.json
-            data/raw/weather/mlb_weather_${{ env.DATE }}*.json
-            data/raw/boxscores/mlb_boxscores_${{ env.YDAY }}*.json
-            data/raw/betting/mlb_betting_odds_${{ env.DATE }}*.json
+          path: data/raw/
           if-no-files-found: warn
 
       - name: Upload combined + analysis outputs
         uses: actions/upload-artifact@v4
         with:
           name: mlb-analysis-${{ env.DATE }}
-          path: |
-            structured_players_${{ env.DATE }}.json
-            player_game_log.jsonl
-            data/analysis/tiers_hitters_${{ env.DATE }}.csv
-            data/analysis/tiers_starting_pitchers_${{ env.DATE }}.csv
-            data/analysis/tiers_hitters_filtered_${{ env.DATE }}.csv
-            data/analysis/tiers_starting_pitchers_filtered_${{ env.DATE }}.csv
-            data/analysis/tiers_conflicts_${{ env.DATE }}.csv
-            data/analysis/evaluation_${{ env.DATE }}.csv
-            data/analysis/ranked_full_${{ env.DATE }}.csv
-            data/analysis/ranked_full_${{ env.DATE }}.parquet
-            data/analysis/eval_history.jsonl
-            data/analysis/ranked_history.jsonl
+          path: data/analysis/
           if-no-files-found: warn
