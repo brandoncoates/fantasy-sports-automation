@@ -110,9 +110,21 @@ jobs:
             --structured structured_players_${{ env.DATE }}.json \
             --resolve-conflicts
 
-      - name: Build Daily Report
-        run: python tools/daily_report_builder.py --date ${{ env.DATE }}
-
+      - name: Build Daily Report (recap + today)
+        run: |
+          python tools/daily_report_builder.py \
+            --date "${{ env.DATE }}" \
+            --yday "${{ env.YDAY }}" \
+            --structured "structured_players_${{ env.DATE }}.json" \
+            --tiers-hit "data/analysis/tiers_hitters_${{ env.DATE }}.csv" \
+            --tiers-sp  "data/analysis/tiers_starting_pitchers_${{ env.DATE }}.csv" \
+            --eval-yday "data/analysis/evaluation_${{ env.DATE }}.csv" \
+            --out "data/analysis/daily_report_${{ env.DATE }}.json" \
+            --hitter-target-min "${{ vars.HITTER_TIER_MIN || '6.0' }}" \
+            --sp-target-min "${{ vars.SP_TIER_MIN || '6.0' }}" \
+            --hitter-fade-max "${{ vars.HITTER_FADE_MAX || '4.0' }}" \
+            --sp-fade-max "${{ vars.SP_FADE_MAX || '4.0' }}"
+            
       - name: Verify expected outputs exist
         shell: bash
         run: |
