@@ -110,9 +110,8 @@ jobs:
             --structured structured_players_${{ env.DATE }}.json \
             --resolve-conflicts
 
-      # Temporary placeholder so pipeline doesn't fail until script exists
-      - name: Build Daily Report (placeholder)
-        run: echo "Daily report builder not yet implemented. Skipping..."
+      - name: Build Daily Report
+        run: python tools/daily_report_builder.py --date ${{ env.DATE }}
 
       - name: Verify expected outputs exist
         shell: bash
@@ -122,6 +121,7 @@ jobs:
             "data/analysis/tiers_hitters_${DATE}.csv"
             "data/analysis/tiers_starting_pitchers_${DATE}.csv"
             "data/analysis/ranked_full_${DATE}.csv"
+            "data/analysis/daily_report_${DATE}.json"
           )
           for f in "${files[@]}"; do
             if [ ! -f "$f" ]; then
@@ -142,6 +142,14 @@ jobs:
       - name: Upload daily outputs to S3
         run: |
           aws s3 cp "structured_players_${{ env.DATE }}.json" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/tiers_hitters_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/tiers_starting_pitchers_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/tiers_hitters_filtered_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/tiers_starting_pitchers_filtered_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/tiers_conflicts_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/evaluation_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/ranked_full_${{ env.DATE }}.csv" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
+          aws s3 cp "data/analysis/ranked_full_${{ env.DATE }}.parquet" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
           aws s3 cp "data/analysis/daily_report_${{ env.DATE }}.json" "s3://${S3_BUCKET}/${S3_PREFIX}/mlb-history/daily/${{ env.DATE }}/" --only-show-errors || true
 
       - name: List S3 daily folder
@@ -158,5 +166,18 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mlb-analysis-${{ env.DATE }}
-          path: data/analysis/
+          path: |
+            structured_players_${{ env.DATE }}.json
+            player_game_log.jsonl
+            data/analysis/tiers_hitters_${{ env.DATE }}.csv
+            data/analysis/tiers_starting_pitchers_${{ env.DATE }}.csv
+            data/analysis/tiers_hitters_filtered_${{ env.DATE }}.csv
+            data/analysis/tiers_starting_pitchers_filtered_${{ env.DATE }}.csv
+            data/analysis/tiers_conflicts_${{ env.DATE }}.csv
+            data/analysis/evaluation_${{ env.DATE }}.csv
+            data/analysis/ranked_full_${{ env.DATE }}.csv
+            data/analysis/ranked_full_${{ env.DATE }}.parquet
+            data/analysis/eval_history.jsonl
+            data/analysis/ranked_history.jsonl
+            data/analysis/daily_report_${{ env.DATE }}.json
           if-no-files-found: warn
