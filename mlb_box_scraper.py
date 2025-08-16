@@ -35,7 +35,7 @@ def main():
     # interpret pipeline date in Eastern; scrape yesterday (ET)
     et = ZoneInfo("America/New_York")
     pipeline_dt = datetime.strptime(pipeline_date_str, "%Y-%m-%d").replace(tzinfo=et)
-    scrape_dt = (pipeline_dt - timedelta(days=1))
+    scrape_dt = pipeline_dt
     scrape_date_str = scrape_dt.strftime("%Y-%m-%d")
 
     args.outdir.mkdir(parents=True, exist_ok=True)
