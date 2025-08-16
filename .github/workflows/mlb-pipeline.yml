@@ -43,18 +43,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Determine pipeline DATE and YDAY
+      - name: Determine pipeline DATE and YDAY (America/New_York)
         shell: bash
         run: |
           if [ -n "${{ github.event.inputs.date }}" ]; then
             D="${{ github.event.inputs.date }}"
           else
-            D="$(date -u +%Y-%m-%d)"
+            D="$(TZ=America/New_York date +%Y-%m-%d)"
           fi
-          Y="$(date -u -d "$D - 1 day" +%Y-%m-%d)"
+          Y="$(date -d "$D - 1 day" +%Y-%m-%d)"
           echo "DATE=$D"  >> "$GITHUB_ENV"
           echo "YDAY=$Y"  >> "$GITHUB_ENV"
-          echo "Using DATE=$D, YDAY=$Y"
+          echo "Using DATE=$D (ET), YDAY=$Y"
 
       - name: Prepare directories
         run: |
@@ -93,8 +93,8 @@ jobs:
       - name: Run weather scraper
         run: python mlb_weather_scraper.py --date ${{ env.DATE }}
 
-      - name: Run box scores scraper (yesterday)
-        run: python mlb_box_scraper.py --date ${{ env.YDAY }}
+      - name: Run box scores scraper (today / actual game date)
+        run: python mlb_box_scraper.py --date ${{ env.DATE }}
 
       - name: Run betting odds scraper
         run: python mlb_betting_odds_scraper.py --date ${{ env.DATE }} --api-key ${{ env.ODDS_API_KEY }}
@@ -104,7 +104,7 @@ jobs:
         run: python mlb_combine_all_files.py --date ${{ env.DATE }}
 
       - name: Configure PYTHONPATH for analyzer
-        run: echo "PYTHONPATH=$GITHUB_WORKSPACE/src" >> $GITHUB_ENV
+        run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
       - name: Run analyzer (with conflict resolver)
         run: |

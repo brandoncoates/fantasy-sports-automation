@@ -6,14 +6,20 @@ Robust header parsing + logging + fallbacks so we don't silently default tiers/s
 from __future__ import annotations
 import argparse, csv, json, os, sys
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple
 
-__VERSION__ = "v2025-08-15e"
+__VERSION__ = "v2025-08-16a"
 
+# --------------------------
+# Normalization helpers
+# --------------------------
 def _norm_key(k): return (k or "").strip().lower()
 def _norm_val(v): return (v or "").strip()
 
-def read_csv_rows(path):
+# --------------------------
+# File readers
+# --------------------------
+def read_csv_rows(path: str) -> List[Dict[str, Any]]:
     if not path or not os.path.exists(path):
         print(f"[builder] WARN: CSV not found: {path}", file=sys.stderr)
         return []
@@ -25,21 +31,24 @@ def read_csv_rows(path):
             rows.append({_norm_key(k): _norm_val(v) for k, v in r.items()})
     return rows
 
-def read_json(path):
+def read_json(path: str) -> Dict[str, Any]:
     if not path or not os.path.exists(path):
         print(f"[builder] WARN: JSON not found: {path}", file=sys.stderr)
         return {}
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def to_float(x, default=None):
+# --------------------------
+# Converters
+# --------------------------
+def to_float(x, default=None) -> float | None:
     try:
         return float(x)
     except Exception:
         return default
 
-def booly(x):
-    s = str(x).strip().lower()
+def booly(x) -> bool:
+    s = str(x or "").strip().lower()
     return s in ("1","true","t","yes","y")
 
 def pick(r: Dict[str, Any], *keys: str):
@@ -49,7 +58,10 @@ def pick(r: Dict[str, Any], *keys: str):
             return v
     return None
 
-def build_ranked_lookup(ranked_rows: List[Dict[str, Any]]):
+# --------------------------
+# Ranked lookup
+# --------------------------
+def build_ranked_lookup(ranked_rows: List[Dict[str, Any]]) -> Tuple[Dict[str,Any],Dict[str,Any]]:
     by_id, by_name = {}, {}
     for r in ranked_rows or []:
         rid = str(r.get("player_id") or r.get("id") or "").strip()
@@ -60,14 +72,17 @@ def build_ranked_lookup(ranked_rows: List[Dict[str, Any]]):
             by_name[nm] = r
     return by_id, by_name
 
+# --------------------------
+# Score extraction
+# --------------------------
 def extract_any_score(row: Dict[str, Any]) -> float | None:
-    # 1) common aliases
+    # common aliases
     s = to_float(pick(row,
                       "raw_score","score","final_score","composite_score",
                       "model_score","proj_score","pred_score","fantasy_score"), None)
     if s is not None:
         return s
-    # 2) any column containing 'score'
+    # any column containing 'score'
     for k, v in row.items():
         if "score" in (k or ""):
             fv = to_float(v, None)
@@ -75,9 +90,11 @@ def extract_any_score(row: Dict[str, Any]) -> float | None:
                 return fv
     return None
 
+# --------------------------
+# Build today's lists
+# --------------------------
 def today_lists(tiers_hit, tiers_sp, structured, ht_min, sp_min, hf_max, spf_max,
                 ranked_by_id, ranked_by_name):
-    # probable SP ids from structured (optional)
     sp_ids = set()
     if isinstance(structured, dict):
         for v in structured.values():
@@ -95,36 +112,28 @@ def today_lists(tiers_hit, tiers_sp, structured, ht_min, sp_min, hf_max, spf_max
             name  = (pick(r, "name", "player_name") or "").strip()
             name_key = name.lower()
 
-            # skip non-starters if pitcher list
             if pitcher:
                 is_sp_today = booly(r.get("starting_pitcher_today"))
                 if not (is_sp_today or (pid and pid in sp_ids)):
                     continue
-
             if tier is None:
                 continue
 
-            # --- SCORE EXTRACTION: broadened + multi-source fallback ---
+            # --- SCORE EXTRACTION w/ fallback ---
             score = extract_any_score(r)
-
             if score is None:
                 rr = ranked_by_id.get(pid) if pid else None
                 if rr is None and name_key:
                     rr = ranked_by_name.get(name_key)
                 if rr is not None:
                     score = extract_any_score(rr)
-
-            # If still None, scan all columns in current row
             if score is None:
-                for _k, _v in r.items():
+                for _k,_v in r.items():
                     if "score" in (_k or "") and to_float(_v) is not None:
-                        score = float(_v)
-                        break
-
-            # Final fallback: use tier if no usable score or score == 0.0
+                        score = float(_v); break
             if score is None or score == 0.0:
                 score = float(tier)
-            # -----------------------------------------------------------
+            # -----------------------------------
 
             entry = {
                 "player_id": pid,
@@ -155,6 +164,9 @@ def today_lists(tiers_hit, tiers_sp, structured, ht_min, sp_min, hf_max, spf_max
     return {"hitters": {"targets": h_t, "fades": h_f},
             "pitchers":{"targets": p_t, "fades": p_f}}
 
+# --------------------------
+# Recap section
+# --------------------------
 def recap_section(eval_rows, buckets_today):
     recap = {"hitters":{"targets":[],"fades":[],"notable_non_picks":[]},
              "pitchers":{"targets":[],"fades":[]}}
@@ -167,8 +179,7 @@ def recap_section(eval_rows, buckets_today):
             for p in buckets_today.get(sec,{}).get(lst,[]):
                 picked.add(((str(p.get("player_id") or "")).lower(), (p.get("name") or "").lower()))
 
-    def bucket_for_pos(pos):
-        return "pitchers" if (pos or "").upper() in ("SP","P") else "hitters"
+    def bucket_for_pos(pos): return "pitchers" if (pos or "").upper() in ("SP","P") else "hitters"
 
     def to_row(r):
         return {
@@ -212,20 +223,22 @@ def recap_section(eval_rows, buckets_today):
     }
     return recap, metrics
 
+# --------------------------
+# Sanity logging
+# --------------------------
 def log_sanity(tiers_hit, tiers_sp, ranked_by_id, ranked_by_name):
     def topn(rows, n=3):
-        out = []
-        for r in rows[:n]:
-            out.append({
-                "name": r.get("name"), "tier": r.get("tier"),
-                "raw_score": r.get("raw_score") or r.get("score")
-            })
-        return out
+        return [{"name": r.get("name"),
+                 "tier": r.get("tier"),
+                 "raw_score": r.get("raw_score") or r.get("score")} for r in rows[:n]]
     print(f"[builder] version {__VERSION__}")
     print(f"[builder] ranked_full: by_id={len(ranked_by_id)} by_name={len(ranked_by_name)}")
     print(f"[builder] hitters sample: {json.dumps(topn(tiers_hit), ensure_ascii=False)}")
     print(f"[builder] pitchers sample: {json.dumps(topn(tiers_sp), ensure_ascii=False)}")
 
+# --------------------------
+# Main
+# --------------------------
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", required=True)
