@@ -104,15 +104,29 @@ jobs:
         run: python mlb_combine_all_files.py --date ${{ env.DATE }}
 
       - name: Configure PYTHONPATH for analyzer
-        run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+        shell: bash
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE:$GITHUB_WORKSPACE/src" >> "$GITHUB_ENV"
 
       - name: Run analyzer (with conflict resolver)
+        shell: bash
         run: |
-          python -m analyzer.cli \
-            --date ${{ env.DATE }} \
-            --archive player_game_log.jsonl \
-            --structured structured_players_${{ env.DATE }}.json \
-            --resolve-conflicts
+          set -e
+          if python -c "import analyzer, analyzer.cli" 2>/dev/null; then
+            echo "Running analyzer as package (python -m analyzer.cli)"
+            python -m analyzer.cli \
+              --date ${{ env.DATE }} \
+              --archive player_game_log.jsonl \
+              --structured structured_players_${{ env.DATE }}.json \
+              --resolve-conflicts
+          else
+            echo "Package import failed; running analyzer by path (python analyzer/cli.py)"
+            python analyzer/cli.py \
+              --date ${{ env.DATE }} \
+              --archive player_game_log.jsonl \
+              --structured structured_players_${{ env.DATE }}.json \
+              --resolve-conflicts
+          fi
 
       # ---------- Pull yesterday's evaluation CSV for recap ----------
       - name: Download yesterday evaluation from S3 (if exists)
