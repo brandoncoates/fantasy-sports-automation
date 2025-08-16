@@ -1,19 +1,45 @@
 #!/usr/bin/env python3
 """
 Fetch MLB active rosters for a given date and save locally, injecting any missing probable starters.
+Now includes:
+- Retry logic for team and player API calls (3 attempts with exponential backoff)
+- Per-team progress logging
+- Sanity check: fail if suspiciously low roster count
 """
 import argparse
 import json
 import requests
+import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from shared.normalize_name import normalize_name
 
+MAX_RETRIES = 3
+BACKOFF_BASE = 2  # exponential backoff base (2, 4, 8s)
+
 def default_date_et():
     eastern_now = datetime.now(ZoneInfo("America/New_York"))
     return eastern_now.strftime("%Y-%m-%d")
+
+def safe_request(url, timeout=10, retries=MAX_RETRIES, label="request"):
+    """Perform a GET request with retry/backoff."""
+    for attempt in range(1, retries + 1):
+        try:
+            resp = requests.get(url, timeout=timeout)
+            resp.raise_for_status()
+            return resp
+        except requests.RequestException as e:
+            wait = BACKOFF_BASE ** (attempt - 1)
+            print(f"⚠️  {label} failed (attempt {attempt}/{retries}): {e}")
+            if attempt < retries:
+                print(f"   ⏳ Retrying in {wait}s...")
+                time.sleep(wait)
+            else:
+                print(f"❌ {label} permanently failed after {retries} attempts")
+                return None
+    return None
 
 def load_probable_starters(date_str: str, repo_root: Path):
     path = repo_root / "data" / "raw" / "probable_starters" / f"mlb_probable_starters_{date_str}.json"
@@ -27,22 +53,16 @@ def load_probable_starters(date_str: str, repo_root: Path):
         return []
 
 def main():
-    # repo_root = project root (folder containing this script)
     repo_root = Path(__file__).resolve().parent
-
     default_outdir = repo_root / "data" / "raw" / "rosters"
 
     parser = argparse.ArgumentParser(
         description="Fetch MLB active rosters for a given date and save locally."
     )
-    parser.add_argument(
-        "--date", type=str, default=default_date_et(),
-        help="Date in YYYY-MM-DD format (default: today ET)"
-    )
-    parser.add_argument(
-        "--outdir", type=Path, default=default_outdir,
-        help="Output directory for JSON files"
-    )
+    parser.add_argument("--date", type=str, default=default_date_et(),
+                        help="Date in YYYY-MM-DD format (default: today ET)")
+    parser.add_argument("--outdir", type=Path, default=default_outdir,
+                        help="Output directory for JSON files")
     args = parser.parse_args()
 
     target_date = args.date
@@ -52,27 +72,22 @@ def main():
 
     # === STEP 1: Fetch teams list ===
     teams_url = "https://statsapi.mlb.com/api/v1/teams?sportId=1"
-    try:
-        resp = requests.get(teams_url, timeout=10)
-        resp.raise_for_status()
-        teams = resp.json().get("teams", [])
-    except requests.RequestException as e:
-        print(f"❌ Error fetching teams: {e}")
-        return
+    resp = safe_request(teams_url, timeout=10, label="fetch teams list")
+    if not resp:
+        raise RuntimeError("Could not fetch teams list from MLB StatsAPI")
+    teams = resp.json().get("teams", [])
 
     # === STEP 2: Fetch active rosters ===
     records = []
-    for team in teams:
+    for idx, team in enumerate(teams, start=1):
         team_id = team.get("id")
         team_name = team.get("name")
+        print(f"➡️  [{idx}/{len(teams)}] Fetching roster for {team_name}...")
         roster_url = f"https://statsapi.mlb.com/api/v1/teams/{team_id}/roster?rosterType=active"
-        try:
-            r = requests.get(roster_url, timeout=10)
-            r.raise_for_status()
-            roster = r.json().get("roster", [])
-        except requests.RequestException as e:
-            print(f"❌ Failed to fetch roster for {team_name}: {e}")
+        r = safe_request(roster_url, timeout=10, label=f"{team_name} roster")
+        if not r:
             continue
+        roster = r.json().get("roster", [])
 
         for player in roster:
             person = player.get("person", {})
@@ -86,14 +101,14 @@ def main():
 
             bats = throws = None
             details_url = f"https://statsapi.mlb.com/api/v1/people/{player_id}"
-            try:
-                d = requests.get(details_url, timeout=5)
-                d.raise_for_status()
-                info = d.json().get("people", [{}])[0]
-                bats = info.get("batSide", {}).get("code", "")
-                throws = info.get("pitchHand", {}).get("code", "")
-            except requests.RequestException:
-                pass
+            d = safe_request(details_url, timeout=5, retries=2, label=f"{name} details")
+            if d:
+                try:
+                    info = d.json().get("people", [{}])[0]
+                    bats = info.get("batSide", {}).get("code", "")
+                    throws = info.get("pitchHand", {}).get("code", "")
+                except Exception:
+                    pass
 
             records.append({
                 "date":               target_date,
@@ -129,13 +144,14 @@ def main():
                 "throws":             None
             })
 
-    # Debug & save
-    print(f"🔍 Rosters scraped: {len(records)} entries")
-    if not records:
-        raise RuntimeError(f"No roster records; expected {local_path}")
+    # === STEP 4: Debug & save ===
+    total = len(records)
+    print(f"🔍 Rosters scraped: {total} entries")
+    if total < 740:
+        raise RuntimeError(f"Roster count too low ({total}). Incomplete scrape, not saving {local_path}")
     with open(local_path, "w", encoding="utf-8") as f:
         json.dump(records, f, indent=2)
-    print(f"💾 Saved rosters to {local_path} ({len(records)} records)")
+    print(f"💾 Saved rosters to {local_path} ({total} records)")
 
 if __name__ == "__main__":
     main()
