@@ -1,0 +1,3804 @@
+{
+  "version": "v2025-08-15c",
+  "date": "2025-08-15",
+  "recap": {
+    "hitters": {
+      "targets": [],
+      "fades": [],
+      "notable_non_picks": []
+    },
+    "pitchers": {
+      "targets": [],
+      "fades": []
+    }
+  },
+  "today": {
+    "hitters": {
+      "targets": [
+        {
+          "player_id": "668845",
+          "name": "Aaron Schunk",
+          "team": "Colorado Rockies",
+          "opp": "Arizona Diamondbacks",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "647351",
+          "name": "Abraham Toro",
+          "team": "Boston Red Sox",
+          "opp": "Miami Marlins",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "624428",
+          "name": "Adam Frazier",
+          "team": "Kansas City Royals",
+          "opp": "Chicago White Sox",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "680718",
+          "name": "Addison Barger",
+          "team": "Toronto Blue Jays",
+          "opp": "Texas Rangers",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "702176",
+          "name": "Alan Roden",
+          "team": "Minnesota Twins",
+          "opp": "Detroit Tigers",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "676475",
+          "name": "Alec Burleson",
+          "team": "St. Louis Cardinals",
+          "opp": "New York Yankees",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "672386",
+          "name": "Alejandro Kirk",
+          "team": "Toronto Blue Jays",
+          "opp": "Texas Rangers",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "608324",
+          "name": "Alex Bregman",
+          "team": "Boston Red Sox",
+          "opp": "Miami Marlins",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "669743",
+          "name": "Alex Call",
+          "team": "Los Angeles Dodgers",
+          "opp": "San Diego Padres",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "690976",
+          "name": "Alex Freeland",
+          "team": "Los Angeles Dodgers",
+          "opp": "San Diego Padres",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "645305",
+          "name": "Ali Sánchez",
+          "team": "Boston Red Sox",
+          "opp": "Miami Marlins",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "668800",
+          "name": "Andrew Knizner",
+          "team": "San Francisco Giants",
+          "opp": "Tampa Bay Rays",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "665926",
+          "name": "Andrés Giménez",
+          "team": "Toronto Blue Jays",
+          "opp": "Texas Rangers",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "681624",
+          "name": "Andy Pages",
+          "team": "Los Angeles Dodgers",
+          "opp": "San Diego Padres",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "682657",
+          "name": "Angel Martínez",
+          "team": "Cleveland Guardians",
+          "opp": "Atlanta Braves",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "669720",
+          "name": "Austin Hays",
+          "team": "Cincinnati Reds",
+          "opp": "Milwaukee Brewers",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "595978",
+          "name": "Austin Hedges",
+          "team": "Cleveland Guardians",
+          "opp": "Atlanta Braves",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "668885",
+          "name": "Austin Martin",
+          "team": "Minnesota Twins",
+          "opp": "Detroit Tigers",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "666182",
+          "name": "Bo Bichette",
+          "team": "Toronto Blue Jays",
+          "opp": "Texas Rangers",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "666310",
+          "name": "Bo Naylor",
+          "team": "Cleveland Guardians",
+          "opp": "Atlanta Braves",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "677951",
+          "name": "Bobby Witt Jr.",
+          "team": "Kansas City Royals",
+          "opp": "Chicago White Sox",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "691781",
+          "name": "Brady House",
+          "team": "Washington Nationals",
+          "opp": "Philadelphia Phillies",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "607043",
+          "name": "Brandon Nimmo",
+          "team": "New York Mets",
+          "opp": "Seattle Mariners",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "690924",
+          "name": "Braxton Fulford",
+          "team": "Colorado Rockies",
+          "opp": "Arizona Diamondbacks",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "677587",
+          "name": "Brayan Rocchio",
+          "team": "Cleveland Guardians",
+          "opp": "Atlanta Braves",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "680977",
+          "name": "Brendan Donovan",
+          "team": "St. Louis Cardinals",
+          "opp": "New York Yankees",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "667670",
+          "name": "Brent Rooker",
+          "team": "Athletics",
+          "opp": "Los Angeles Angels",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "686668",
+          "name": "Brenton Doyle",
+          "team": "Colorado Rockies",
+          "opp": "Arizona Diamondbacks",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "683146",
+          "name": "Brett Baty",
+          "team": "New York Mets",
+          "opp": "Seattle Mariners",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "686797",
+          "name": "Brooks Lee",
+          "team": "Minnesota Twins",
+          "opp": "Detroit Tigers",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "621439",
+          "name": "Byron Buxton",
+          "team": "Minnesota Twins",
+          "opp": "Detroit Tigers",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "692216",
+          "name": "C.J. Kayfus",
+          "team": "Cleveland Guardians",
+          "opp": "Atlanta Braves",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "682928",
+          "name": "CJ Abrams",
+          "team": "Washington Nationals",
+          "opp": "Philadelphia Phillies",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "701358",
+          "name": "Cam Smith",
+          "team": "Houston Astros",
+          "opp": "Baltimore Orioles",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "621043",
+          "name": "Carlos Correa",
+          "team": "Houston Astros",
+          "opp": "Baltimore Orioles",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "666126",
+          "name": "Carlos Cortes",
+          "team": "Athletics",
+          "opp": "Los Angeles Angels",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "665966",
+          "name": "Carlos Narváez",
+          "team": "Boston Red Sox",
+          "opp": "Miami Marlins",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "467793",
+          "name": "Carlos Santana",
+          "team": "Cleveland Guardians",
+          "opp": "Atlanta Braves",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "608348",
+          "name": "Carson Kelly",
+          "team": "Chicago Cubs",
+          "opp": "Pittsburgh Pirates",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "669477",
+          "name": "Casey Schmitt",
+          "team": "San Francisco Giants",
+          "opp": "Tampa Bay Rays",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "678882",
+          "name": "Ceddanne Rafaela",
+          "team": "Boston Red Sox",
+          "opp": "Miami Marlins",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "656775",
+          "name": "Cedric Mullins",
+          "team": "New York Mets",
+          "opp": "Seattle Mariners",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "676801",
+          "name": "Chas McCormick",
+          "team": "Houston Astros",
+          "opp": "Baltimore Orioles",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "683766",
+          "name": "Christian Koss",
+          "team": "San Francisco Giants",
+          "opp": "Tampa Bay Rays",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "572233",
+          "name": "Christian Walker",
+          "team": "Houston Astros",
+          "opp": "Baltimore Orioles",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "687515",
+          "name": "Colby Thomas",
+          "team": "Athletics",
+          "opp": "Los Angeles Angels",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "657136",
+          "name": "Connor Wong",
+          "team": "Boston Red Sox",
+          "opp": "Miami Marlins",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "687221",
+          "name": "Dalton Rushing",
+          "team": "Los Angeles Dodgers",
+          "opp": "San Diego Padres",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "682177",
+          "name": "Daniel Schneemann",
+          "team": "Cleveland Guardians",
+          "opp": "Atlanta Braves",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "621020",
+          "name": "Dansby Swanson",
+          "team": "Chicago Cubs",
+          "opp": "Pittsburgh Pirates",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "687231",
+          "name": "Darell Hernaiz",
+          "team": "Athletics",
+          "opp": "Los Angeles Angels",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "662139",
+          "name": "Daulton Varsho",
+          "team": "Toronto Blue Jays",
+          "opp": "Texas Rangers",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "681807",
+          "name": "David Fry",
+          "team": "Cleveland Guardians",
+          "opp": "Atlanta Braves",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "676914",
+          "name": "Davis Schneider",
+          "team": "Toronto Blue Jays",
+          "opp": "Texas Rangers",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "695734",
+          "name": "Daylen Lile",
+          "team": "Washington Nationals",
+          "opp": "Philadelphia Phillies",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "642086",
+          "name": "Dominic Smith",
+          "team": "San Francisco Giants",
+          "opp": "Tampa Bay Rays",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "687551",
+          "name": "Drew Gilbert",
+          "team": "San Francisco Giants",
+          "opp": "Tampa Bay Rays",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "686452",
+          "name": "Drew Millas",
+          "team": "Washington Nationals",
+          "opp": "Philadelphia Phillies",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "686611",
+          "name": "Dylan Crews",
+          "team": "Washington Nationals",
+          "opp": "Philadelphia Phillies",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "666397",
+          "name": "Edouard Julien",
+          "team": "Minnesota Twins",
+          "opp": "Detroit Tigers",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "682829",
+          "name": "Elly De La Cruz",
+          "team": "Cincinnati Reds",
+          "opp": "Milwaukee Brewers",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "676391",
+          "name": "Ernie Clement",
+          "team": "Toronto Blue Jays",
+          "opp": "Texas Rangers",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "678662",
+          "name": "Ezequiel Tovar",
+          "team": "Colorado Rockies",
+          "opp": "Arizona Diamondbacks",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "682626",
+          "name": "Francisco Alvarez",
+          "team": "New York Mets",
+          "opp": "Seattle Mariners",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "596019",
+          "name": "Francisco Lindor",
+          "team": "New York Mets",
+          "opp": "Seattle Mariners",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "518692",
+          "name": "Freddie Freeman",
+          "team": "Los Angeles Dodgers",
+          "opp": "San Diego Padres",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "672356",
+          "name": "Gabriel Arias",
+          "team": "Cleveland Guardians",
+          "opp": "Atlanta Braves",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "641658",
+          "name": "Garrett Hampson",
+          "team": "St. Louis Cardinals",
+          "opp": "New York Yankees",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "666158",
+          "name": "Gavin Lux",
+          "team": "Cincinnati Reds",
+          "opp": "Milwaukee Brewers",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "570482",
+          "name": "Gio Urshela",
+          "team": "Athletics",
+          "opp": "Los Angeles Angels",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "687529",
+          "name": "Grant McCray",
+          "team": "San Francisco Giants",
+          "opp": "Tampa Bay Rays",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "671218",
+          "name": "Heliot Ramos",
+          "team": "San Francisco Giants",
+          "opp": "Tampa Bay Rays",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "696100",
+          "name": "Hunter Goodman",
+          "team": "Colorado Rockies",
+          "opp": "Arizona Diamondbacks",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "664023",
+          "name": "Ian Happ",
+          "team": "Chicago Cubs",
+          "opp": "Pittsburgh Pirates",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "671056",
+          "name": "Iván Herrera",
+          "team": "St. Louis Cardinals",
+          "opp": "New York Yankees",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "668709",
+          "name": "JJ Bleday",
+          "team": "Athletics",
+          "opp": "Los Angeles Angels",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "689200",
+          "name": "Jacob Melton",
+          "team": "Houston Astros",
+          "opp": "Baltimore Orioles",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "696285",
+          "name": "Jacob Young",
+          "team": "Washington Nationals",
+          "opp": "Philadelphia Phillies",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "641584",
+          "name": "Jake Fraley",
+          "team": "Cincinnati Reds",
+          "opp": "Milwaukee Brewers",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "695578",
+          "name": "James Wood",
+          "team": "Washington Nationals",
+          "opp": "Philadelphia Phillies",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "680776",
+          "name": "Jarren Duran",
+          "team": "Boston Red Sox",
+          "opp": "Miami Marlins",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "643446",
+          "name": "Jeff McNeil",
+          "team": "New York Mets",
+          "opp": "Seattle Mariners",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "665161",
+          "name": "Jeremy Peña",
+          "team": "Houston Astros",
+          "opp": "Baltimore Orioles",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "660821",
+          "name": "Jesús Sánchez",
+          "team": "Houston Astros",
+          "opp": "Baltimore Orioles",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "694388",
+          "name": "Joey Loperfido",
+          "team": "Toronto Blue Jays",
+          "opp": "Texas Rangers",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "670231",
+          "name": "John Rave",
+          "team": "Kansas City Royals",
+          "opp": "Chicago White Sox",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "663697",
+          "name": "Jonathan India",
+          "team": "Kansas City Royals",
+          "opp": "Chicago White Sox",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "687597",
+          "name": "Jordan Beck",
+          "team": "Colorado Rockies",
+          "opp": "Arizona Diamondbacks",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "691023",
+          "name": "Jordan Walker",
+          "team": "St. Louis Cardinals",
+          "opp": "New York Yankees",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "514888",
+          "name": "Jose Altuve",
+          "team": "Houston Astros",
+          "opp": "Baltimore Orioles",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "608070",
+          "name": "Jose Ramirez",
+          "team": "Cleveland Guardians",
+          "opp": "Atlanta Braves",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "624431",
+          "name": "Jose Trevino",
+          "team": "Cincinnati Reds",
+          "opp": "Milwaukee Brewers",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "605137",
+          "name": "Josh Bell",
+          "team": "Washington Nationals",
+          "opp": "Philadelphia Phillies",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "677588",
+          "name": "José Tena",
+          "team": "Washington Nationals",
+          "opp": "Philadelphia Phillies",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "665742",
+          "name": "Juan Soto",
+          "team": "New York Mets",
+          "opp": "Seattle Mariners",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "808982",
+          "name": "Jung Hoo Lee",
+          "team": "San Francisco Giants",
+          "opp": "Tampa Bay Rays",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "681909",
+          "name": "Justin Dean",
+          "team": "Los Angeles Dodgers",
+          "opp": "San Diego Padres",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "457759",
+          "name": "Justin Turner",
+          "team": "Chicago Cubs",
+          "opp": "Pittsburgh Pirates",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "663647",
+          "name": "Ke'Bryan Hayes",
+          "team": "Cincinnati Reds",
+          "opp": "Milwaukee Brewers",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "665019",
+          "name": "Kody Clemens",
+          "team": "Minnesota Twins",
+          "opp": "Detroit Tigers",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "571657",
+          "name": "Kyle Farmer",
+          "team": "Colorado Rockies",
+          "opp": "Arizona Diamondbacks",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "664728",
+          "name": "Kyle Isbel",
+          "team": "Kansas City Royals",
+          "opp": "Chicago White Sox",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "691720",
+          "name": "Kyle Karros",
+          "team": "Colorado Rockies",
+          "opp": "Arizona Diamondbacks",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "700932",
+          "name": "Kyle Manzardo",
+          "team": "Cleveland Guardians",
+          "opp": "Atlanta Braves",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "663656",
+          "name": "Kyle Tucker",
+          "team": "Chicago Cubs",
+          "opp": "Pittsburgh Pirates",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "663457",
+          "name": "Lars Nootbaar",
+          "team": "St. Louis Cardinals",
+          "opp": "New York Yankees",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "671732",
+          "name": "Lawrence Butler",
+          "team": "Athletics",
+          "opp": "Los Angeles Angels",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "671277",
+          "name": "Luis García Jr.",
+          "team": "Washington Nationals",
+          "opp": "Philadelphia Phillies",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "620443",
+          "name": "Luis Torrens",
+          "team": "New York Mets",
+          "opp": "Seattle Mariners",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "649966",
+          "name": "Luis Urías",
+          "team": "Athletics",
+          "opp": "Los Angeles Angels",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "807712",
+          "name": "Luke Keaschall",
+          "team": "Minnesota Twins",
+          "opp": "Detroit Tigers",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "571912",
+          "name": "Luke Maile",
+          "team": "Kansas City Royals",
+          "opp": "Chicago White Sox",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "672580",
+          "name": "Maikel Garcia",
+          "team": "Kansas City Royals",
+          "opp": "Chicago White Sox",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "668901",
+          "name": "Mark Vientos",
+          "team": "New York Mets",
+          "opp": "Seattle Mariners",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "807799",
+          "name": "Masataka Yoshida",
+          "team": "Boston Red Sox",
+          "opp": "Miami Marlins",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "691026",
+          "name": "Masyn Winn",
+          "team": "St. Louis Cardinals",
+          "opp": "New York Yankees",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "656305",
+          "name": "Matt Chapman",
+          "team": "San Francisco Giants",
+          "opp": "Tampa Bay Rays",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "680574",
+          "name": "Matt McLain",
+          "team": "Cincinnati Reds",
+          "opp": "Milwaukee Brewers",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "807713",
+          "name": "Matt Shaw",
+          "team": "Chicago Cubs",
+          "opp": "Pittsburgh Pirates",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "670242",
+          "name": "Matt Wallner",
+          "team": "Minnesota Twins",
+          "opp": "Detroit Tigers",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "643289",
+          "name": "Mauricio Dubón",
+          "team": "Houston Astros",
+          "opp": "Baltimore Orioles",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "571970",
+          "name": "Max Muncy",
+          "team": "Los Angeles Dodgers",
+          "opp": "San Diego Padres",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "680474",
+          "name": "Max Schuemann",
+          "team": "Athletics",
+          "opp": "Los Angeles Angels",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "683737",
+          "name": "Michael Busch",
+          "team": "Chicago Cubs",
+          "opp": "Pittsburgh Pirates",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "624424",
+          "name": "Michael Conforto",
+          "team": "Los Angeles Dodgers",
+          "opp": "San Diego Padres",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "681508",
+          "name": "Mickey Gasper",
+          "team": "Minnesota Twins",
+          "opp": "Detroit Tigers",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "666160",
+          "name": "Mickey Moniak",
+          "team": "Colorado Rockies",
+          "opp": "Arizona Diamondbacks",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "609280",
+          "name": "Miguel Andujar",
+          "team": "Cincinnati Reds",
+          "opp": "Milwaukee Brewers",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "500743",
+          "name": "Miguel Rojas",
+          "team": "Los Angeles Dodgers",
+          "opp": "San Diego Padres",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "573262",
+          "name": "Mike Yastrzemski",
+          "team": "Kansas City Royals",
+          "opp": "Chicago White Sox",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "605141",
+          "name": "Mookie Betts",
+          "team": "Los Angeles Dodgers",
+          "opp": "San Diego Padres",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "664702",
+          "name": "Myles Straw",
+          "team": "Toronto Blue Jays",
+          "opp": "Texas Rangers",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "664770",
+          "name": "Nathan Lukes",
+          "team": "Toronto Blue Jays",
+          "opp": "Texas Rangers",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "701762",
+          "name": "Nick Kurtz",
+          "team": "Athletics",
+          "opp": "Los Angeles Angels",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "679845",
+          "name": "Nick Loftin",
+          "team": "Kansas City Royals",
+          "opp": "Chicago White Sox",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "663538",
+          "name": "Nico Hoerner",
+          "team": "Chicago Cubs",
+          "opp": "Pittsburgh Pirates",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "682622",
+          "name": "Noelvi Marte",
+          "team": "Cincinnati Reds",
+          "opp": "Milwaukee Brewers",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "669357",
+          "name": "Nolan Gorman",
+          "team": "St. Louis Cardinals",
+          "opp": "New York Yankees",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "666134",
+          "name": "Nolan Jones",
+          "team": "Cleveland Guardians",
+          "opp": "Atlanta Braves",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "683357",
+          "name": "Owen Caissie",
+          "team": "Chicago Cubs",
+          "opp": "Pittsburgh Pirates",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "672275",
+          "name": "Patrick Bailey",
+          "team": "San Francisco Giants",
+          "opp": "Tampa Bay Rays",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "657557",
+          "name": "Paul DeJong",
+          "team": "Washington Nationals",
+          "opp": "Philadelphia Phillies",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "686780",
+          "name": "Pedro Pagés",
+          "team": "St. Louis Cardinals",
+          "opp": "New York Yankees",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "624413",
+          "name": "Pete Alonso",
+          "team": "New York Mets",
+          "opp": "Seattle Mariners",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "691718",
+          "name": "Pete Crow-Armstrong",
+          "team": "Chicago Cubs",
+          "opp": "Pittsburgh Pirates",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "646240",
+          "name": "Rafael Devers",
+          "team": "San Francisco Giants",
+          "opp": "Tampa Bay Rays",
+          "pos": "DH",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "602104",
+          "name": "Ramón Urías",
+          "team": "Houston Astros",
+          "opp": "Baltimore Orioles",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "545341",
+          "name": "Randal Grichuk",
+          "team": "Kansas City Royals",
+          "opp": "Chicago White Sox",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "624512",
+          "name": "Reese McGuire",
+          "team": "Chicago Cubs",
+          "opp": "Pittsburgh Pirates",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "656180",
+          "name": "Riley Adams",
+          "team": "Washington Nationals",
+          "opp": "Philadelphia Phillies",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "608701",
+          "name": "Rob Refsnyder",
+          "team": "Boston Red Sox",
+          "opp": "Miami Marlins",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "690987",
+          "name": "Robert Hassell III",
+          "team": "Washington Nationals",
+          "opp": "Philadelphia Phillies",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "701350",
+          "name": "Roman Anthony",
+          "team": "Boston Red Sox",
+          "opp": "Miami Marlins",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "663853",
+          "name": "Romy Gonzalez",
+          "team": "Boston Red Sox",
+          "opp": "Miami Marlins",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "677595",
+          "name": "Ronny Mauricio",
+          "team": "New York Mets",
+          "opp": "Seattle Mariners",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "668904",
+          "name": "Royce Lewis",
+          "team": "Minnesota Twins",
+          "opp": "Detroit Tigers",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "680837",
+          "name": "Ryan Fitzgerald",
+          "team": "Minnesota Twins",
+          "opp": "Detroit Tigers",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "680777",
+          "name": "Ryan Jeffers",
+          "team": "Minnesota Twins",
+          "opp": "Detroit Tigers",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "690022",
+          "name": "Ryan Ritter",
+          "team": "Colorado Rockies",
+          "opp": "Arizona Diamondbacks",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "521692",
+          "name": "Salvador Perez",
+          "team": "Kansas City Royals",
+          "opp": "Chicago White Sox",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "669289",
+          "name": "Santiago Espinal",
+          "team": "Cincinnati Reds",
+          "opp": "Milwaukee Brewers",
+          "pos": "3B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "673548",
+          "name": "Seiya Suzuki",
+          "team": "Chicago Cubs",
+          "opp": "Pittsburgh Pirates",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "669127",
+          "name": "Shea Langeliers",
+          "team": "Athletics",
+          "opp": "Los Angeles Angels",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "660271",
+          "name": "Shohei Ohtani",
+          "team": "Los Angeles Dodgers",
+          "opp": "San Diego Padres",
+          "pos": "TWP",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "668715",
+          "name": "Spencer Steer",
+          "team": "Cincinnati Reds",
+          "opp": "Milwaukee Brewers",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "516782",
+          "name": "Starling Marte",
+          "team": "New York Mets",
+          "opp": "Seattle Mariners",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "680757",
+          "name": "Steven Kwan",
+          "team": "Cleveland Guardians",
+          "opp": "Atlanta Braves",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "670770",
+          "name": "TJ Friedl",
+          "team": "Cincinnati Reds",
+          "opp": "Milwaukee Brewers",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "666211",
+          "name": "Taylor Trammell",
+          "team": "Houston Astros",
+          "opp": "Baltimore Orioles",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "606192",
+          "name": "Teoscar Hernández",
+          "team": "Los Angeles Dodgers",
+          "opp": "San Diego Padres",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "695336",
+          "name": "Thomas Saggese",
+          "team": "St. Louis Cardinals",
+          "opp": "New York Yankees",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "663616",
+          "name": "Trevor Larnach",
+          "team": "Minnesota Twins",
+          "opp": "Detroit Tigers",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "596115",
+          "name": "Trevor Story",
+          "team": "Boston Red Sox",
+          "opp": "Miami Marlins",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "664034",
+          "name": "Ty France",
+          "team": "Toronto Blue Jays",
+          "opp": "Texas Rangers",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "666149",
+          "name": "Tyler Fitzgerald",
+          "team": "San Francisco Giants",
+          "opp": "Tampa Bay Rays",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "671289",
+          "name": "Tyler Freeman",
+          "team": "Colorado Rockies",
+          "opp": "Arizona Diamondbacks",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "623168",
+          "name": "Tyler Heineman",
+          "team": "Toronto Blue Jays",
+          "opp": "Texas Rangers",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "691016",
+          "name": "Tyler Soderstrom",
+          "team": "Athletics",
+          "opp": "Los Angeles Angels",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "663886",
+          "name": "Tyler Stephenson",
+          "team": "Cincinnati Reds",
+          "opp": "Milwaukee Brewers",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "686475",
+          "name": "Tyler Tolbert",
+          "team": "Kansas City Royals",
+          "opp": "Chicago White Sox",
+          "pos": "2B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "621438",
+          "name": "Tyrone Taylor",
+          "team": "New York Mets",
+          "opp": "Seattle Mariners",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "605170",
+          "name": "Victor Caratini",
+          "team": "Houston Astros",
+          "opp": "Baltimore Orioles",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "687363",
+          "name": "Victor Scott II",
+          "team": "St. Louis Cardinals",
+          "opp": "New York Yankees",
+          "pos": "CF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "686469",
+          "name": "Vinnie Pasquantino",
+          "team": "Kansas City Royals",
+          "opp": "Chicago White Sox",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "665489",
+          "name": "Vladimir Guerrero Jr.",
+          "team": "Toronto Blue Jays",
+          "opp": "Texas Rangers",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "682653",
+          "name": "Warming Bernabel",
+          "team": "Colorado Rockies",
+          "opp": "Arizona Diamondbacks",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "669257",
+          "name": "Will Smith",
+          "team": "Los Angeles Dodgers",
+          "opp": "San Diego Padres",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "650489",
+          "name": "Willi Castro",
+          "team": "Chicago Cubs",
+          "opp": "Pittsburgh Pirates",
+          "pos": "LF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "680862",
+          "name": "Willie MacIver",
+          "team": "Athletics",
+          "opp": "Los Angeles Angels",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "575929",
+          "name": "Willson Contreras",
+          "team": "St. Louis Cardinals",
+          "opp": "New York Yankees",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "642715",
+          "name": "Willy Adames",
+          "team": "San Francisco Giants",
+          "opp": "Tampa Bay Rays",
+          "pos": "SS",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "527038",
+          "name": "Wilmer Flores",
+          "team": "San Francisco Giants",
+          "opp": "Tampa Bay Rays",
+          "pos": "1B",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "677800",
+          "name": "Wilyer Abreu",
+          "team": "Boston Red Sox",
+          "opp": "Miami Marlins",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "673237",
+          "name": "Yainer Diaz",
+          "team": "Houston Astros",
+          "opp": "Baltimore Orioles",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "692585",
+          "name": "Yanquiel Fernández",
+          "team": "Colorado Rockies",
+          "opp": "Arizona Diamondbacks",
+          "pos": "RF",
+          "tier": 8.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "650968",
+          "name": "Yohel Pozo",
+          "team": "St. Louis Cardinals",
+          "opp": "New York Yankees",
+          "pos": "C",
+          "tier": 8.0,
+          "score": 0.0
+        }
+      ],
+      "fades": [
+        {
+          "player_id": "592450",
+          "name": "Aaron Judge",
+          "team": "New York Yankees",
+          "opp": "St. Louis Cardinals",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "668939",
+          "name": "Adley Rutschman",
+          "team": "Baltimore Orioles",
+          "opp": "Houston Astros",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "680728",
+          "name": "Adrian Del Castillo",
+          "team": "Arizona Diamondbacks",
+          "opp": "Colorado Rockies",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "682663",
+          "name": "Agustín Ramírez",
+          "team": "Miami Marlins",
+          "opp": "Boston Red Sox",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "677950",
+          "name": "Alek Thomas",
+          "team": "Arizona Diamondbacks",
+          "opp": "Colorado Rockies",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "656577",
+          "name": "Alex Jackson",
+          "team": "Baltimore Orioles",
+          "opp": "Houston Astros",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "672744",
+          "name": "Alexander Canario",
+          "team": "Pittsburgh Pirates",
+          "opp": "Chicago Cubs",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "643217",
+          "name": "Andrew Benintendi",
+          "team": "Chicago White Sox",
+          "opp": "Kansas City Royals",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "457705",
+          "name": "Andrew McCutchen",
+          "team": "Pittsburgh Pirates",
+          "opp": "Chicago Cubs",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "683734",
+          "name": "Andrew Vaughn",
+          "team": "Milwaukee Brewers",
+          "opp": "Cincinnati Reds",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "655316",
+          "name": "Andruw Monasterio",
+          "team": "Milwaukee Brewers",
+          "opp": "Cincinnati Reds",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "628451",
+          "name": "Andy Ibáñez",
+          "team": "Detroit Tigers",
+          "opp": "Minnesota Twins",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "678011",
+          "name": "Anthony Seigler",
+          "team": "Milwaukee Brewers",
+          "opp": "Cincinnati Reds",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "683011",
+          "name": "Anthony Volpe",
+          "team": "New York Yankees",
+          "opp": "St. Louis Cardinals",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "669224",
+          "name": "Austin Wells",
+          "team": "New York Yankees",
+          "opp": "St. Louis Cardinals",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "700250",
+          "name": "Ben Rice",
+          "team": "New York Yankees",
+          "opp": "St. Louis Cardinals",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "677942",
+          "name": "Blaze Alexander",
+          "team": "Arizona Diamondbacks",
+          "opp": "Colorado Rockies",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "663604",
+          "name": "Brandon Lockridge",
+          "team": "Milwaukee Brewers",
+          "opp": "Cincinnati Reds",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "664040",
+          "name": "Brandon Lowe",
+          "team": "Tampa Bay Rays",
+          "opp": "San Francisco Giants",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "669016",
+          "name": "Brandon Marsh",
+          "team": "Philadelphia Phillies",
+          "opp": "Washington Nationals",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "668930",
+          "name": "Brice Turang",
+          "team": "Milwaukee Brewers",
+          "opp": "Cincinnati Reds",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "681460",
+          "name": "Brooks Baldwin",
+          "team": "Chicago White Sox",
+          "opp": "Kansas City Royals",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "668804",
+          "name": "Bryan Reynolds",
+          "team": "Pittsburgh Pirates",
+          "opp": "Chicago Cubs",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "547180",
+          "name": "Bryce Harper",
+          "team": "Philadelphia Phillies",
+          "opp": "Washington Nationals",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "669369",
+          "name": "Bryce Johnson",
+          "team": "San Diego Padres",
+          "opp": "Los Angeles Dodgers",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "669326",
+          "name": "Bryce Teodosio",
+          "team": "Los Angeles Angels",
+          "opp": "Oakland Athletics",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "681082",
+          "name": "Bryson Stott",
+          "team": "Philadelphia Phillies",
+          "opp": "Washington Nationals",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "663728",
+          "name": "Cal Raleigh",
+          "team": "Seattle Mariners",
+          "opp": "New York Mets",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "702332",
+          "name": "Caleb Durbin",
+          "team": "Milwaukee Brewers",
+          "opp": "Cincinnati Reds",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "802415",
+          "name": "Chandler Simpson",
+          "team": "Tampa Bay Rays",
+          "opp": "San Francisco Giants",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "695681",
+          "name": "Christian Moore",
+          "team": "Los Angeles Angels",
+          "opp": "Oakland Athletics",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "592885",
+          "name": "Christian Yelich",
+          "team": "Milwaukee Brewers",
+          "opp": "Cincinnati Reds",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "666624",
+          "name": "Christopher Morel",
+          "team": "Tampa Bay Rays",
+          "opp": "San Francisco Giants",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "691723",
+          "name": "Coby Mayo",
+          "team": "Baltimore Orioles",
+          "opp": "Houston Astros",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "641355",
+          "name": "Cody Bellinger",
+          "team": "New York Yankees",
+          "opp": "St. Louis Cardinals",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "702284",
+          "name": "Cole Young",
+          "team": "Seattle Mariners",
+          "opp": "New York Mets",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "695657",
+          "name": "Colson Montgomery",
+          "team": "Chicago White Sox",
+          "opp": "Kansas City Royals",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "690993",
+          "name": "Colt Keith",
+          "team": "Detroit Tigers",
+          "opp": "Minnesota Twins",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "663731",
+          "name": "Connor Kaiser",
+          "team": "Arizona Diamondbacks",
+          "opp": "Colorado Rockies",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "682998",
+          "name": "Corbin Carroll",
+          "team": "Arizona Diamondbacks",
+          "opp": "Colorado Rockies",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "608369",
+          "name": "Corey Seager",
+          "team": "Texas Rangers",
+          "opp": "Toronto Blue Jays",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "678554",
+          "name": "Curtis Mead",
+          "team": "Chicago White Sox",
+          "opp": "Kansas City Royals",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "667472",
+          "name": "Dane Myers",
+          "team": "Miami Marlins",
+          "opp": "Boston Red Sox",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "669288",
+          "name": "Daniel Johnson",
+          "team": "Baltimore Orioles",
+          "opp": "Houston Astros",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "643376",
+          "name": "Danny Jansen",
+          "team": "Milwaukee Brewers",
+          "opp": "Cincinnati Reds",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "656537",
+          "name": "Derek Hill",
+          "team": "Miami Marlins",
+          "opp": "Boston Red Sox",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "693307",
+          "name": "Dillon Dingler",
+          "team": "Detroit Tigers",
+          "opp": "Minnesota Twins",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "686527",
+          "name": "Dominic Canzone",
+          "team": "Seattle Mariners",
+          "opp": "New York Mets",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "456781",
+          "name": "Donovan Solano",
+          "team": "Seattle Mariners",
+          "opp": "New York Mets",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "686948",
+          "name": "Drake Baldwin",
+          "team": "Atlanta Braves",
+          "opp": "Cleveland Guardians",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "666185",
+          "name": "Dylan Carlson",
+          "team": "Baltimore Orioles",
+          "opp": "Houston Astros",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "664238",
+          "name": "Dylan Moore",
+          "team": "Seattle Mariners",
+          "opp": "New York Mets",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "700337",
+          "name": "Edgar Quero",
+          "team": "Chicago White Sox",
+          "opp": "Kansas City Royals",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "624641",
+          "name": "Edmundo Sosa",
+          "team": "Philadelphia Phillies",
+          "opp": "Washington Nationals",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "642201",
+          "name": "Eli White",
+          "team": "Atlanta Braves",
+          "opp": "Cleveland Guardians",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "553869",
+          "name": "Elias Díaz",
+          "team": "San Diego Padres",
+          "opp": "Los Angeles Dodgers",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "676572",
+          "name": "Eric Wagaman",
+          "team": "Miami Marlins",
+          "opp": "Boston Red Sox",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "553993",
+          "name": "Eugenio Suárez",
+          "team": "Seattle Mariners",
+          "opp": "New York Mets",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "694497",
+          "name": "Evan Carter",
+          "team": "Texas Rangers",
+          "opp": "Toronto Blue Jays",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "677592",
+          "name": "Everson Pereira",
+          "team": "Tampa Bay Rays",
+          "opp": "San Francisco Giants",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "677649",
+          "name": "Ezequiel Duran",
+          "team": "Texas Rangers",
+          "opp": "Toronto Blue Jays",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "665487",
+          "name": "Fernando Tatis Jr.",
+          "team": "San Diego Padres",
+          "opp": "Los Angeles Dodgers",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "666023",
+          "name": "Freddy Fermin",
+          "team": "San Diego Padres",
+          "opp": "Los Angeles Dodgers",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "657757",
+          "name": "Gavin Sheets",
+          "team": "San Diego Padres",
+          "opp": "Los Angeles Dodgers",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "672695",
+          "name": "Geraldo Perdomo",
+          "team": "Arizona Diamondbacks",
+          "opp": "Colorado Rockies",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "519317",
+          "name": "Giancarlo Stanton",
+          "team": "New York Yankees",
+          "opp": "St. Louis Cardinals",
+          "pos": "DH",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "650402",
+          "name": "Gleyber Torres",
+          "team": "Detroit Tigers",
+          "opp": "Minnesota Twins",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "688363",
+          "name": "Graham Pauley",
+          "team": "Miami Marlins",
+          "opp": "Boston Red Sox",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "656185",
+          "name": "Greg Allen",
+          "team": "Baltimore Orioles",
+          "opp": "Houston Astros",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "683002",
+          "name": "Gunnar Henderson",
+          "team": "Baltimore Orioles",
+          "opp": "Houston Astros",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "673490",
+          "name": "Ha-Seong Kim",
+          "team": "Tampa Bay Rays",
+          "opp": "San Francisco Giants",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "664056",
+          "name": "Harrison Bader",
+          "team": "Philadelphia Phillies",
+          "opp": "Washington Nationals",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "680779",
+          "name": "Henry Davis",
+          "team": "Pittsburgh Pirates",
+          "opp": "Chicago Cubs",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "681715",
+          "name": "Heriberto Hernández",
+          "team": "Miami Marlins",
+          "opp": "Boston Red Sox",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "676439",
+          "name": "Hunter Feduccia",
+          "team": "Tampa Bay Rays",
+          "opp": "San Francisco Giants",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "643396",
+          "name": "Isiah Kiner-Falefa",
+          "team": "Pittsburgh Pirates",
+          "opp": "Chicago Cubs",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "641555",
+          "name": "J.C. Escarra",
+          "team": "New York Yankees",
+          "opp": "St. Louis Cardinals",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "641487",
+          "name": "J.P. Crawford",
+          "team": "Seattle Mariners",
+          "opp": "New York Mets",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "592663",
+          "name": "JT Realmuto",
+          "team": "Philadelphia Phillies",
+          "opp": "Washington Nationals",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "669261",
+          "name": "Jack Suwinski",
+          "team": "Pittsburgh Pirates",
+          "opp": "Chicago Cubs",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "702616",
+          "name": "Jackson Holliday",
+          "team": "Baltimore Orioles",
+          "opp": "Houston Astros",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "701538",
+          "name": "Jackson Merrill",
+          "team": "San Diego Padres",
+          "opp": "Los Angeles Dodgers",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "676070",
+          "name": "Jacob Amaya",
+          "team": "Chicago White Sox",
+          "opp": "Kansas City Royals",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "663330",
+          "name": "Jahmai Jones",
+          "team": "Detroit Tigers",
+          "opp": "Minnesota Twins",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "669394",
+          "name": "Jake Burger",
+          "team": "Texas Rangers",
+          "opp": "Toronto Blue Jays",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "630105",
+          "name": "Jake Cronenworth",
+          "team": "San Diego Padres",
+          "opp": "Los Angeles Dodgers",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "663968",
+          "name": "Jake Mangum",
+          "team": "Tampa Bay Rays",
+          "opp": "San Francisco Giants",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "664983",
+          "name": "Jake McCarthy",
+          "team": "Arizona Diamondbacks",
+          "opp": "Colorado Rockies",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "668670",
+          "name": "Jake Rogers",
+          "team": "Detroit Tigers",
+          "opp": "Minnesota Twins",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "805300",
+          "name": "Jakob Marsee",
+          "team": "Miami Marlins",
+          "opp": "Boston Red Sox",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "543510",
+          "name": "James McCann",
+          "team": "Arizona Diamondbacks",
+          "opp": "Colorado Rockies",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "669707",
+          "name": "Jared Triolo",
+          "team": "Pittsburgh Pirates",
+          "opp": "Chicago Cubs",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "691176",
+          "name": "Jasson Domínguez",
+          "team": "New York Yankees",
+          "opp": "St. Louis Cardinals",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "595879",
+          "name": "Javier Báez",
+          "team": "Detroit Tigers",
+          "opp": "Minnesota Twins",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "691594",
+          "name": "Javier Sanoja",
+          "team": "Miami Marlins",
+          "opp": "Boston Red Sox",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "665862",
+          "name": "Jazz Chisholm Jr.",
+          "team": "New York Yankees",
+          "opp": "St. Louis Cardinals",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "669236",
+          "name": "Jeremiah Jackson",
+          "team": "Baltimore Orioles",
+          "opp": "Houston Astros",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "666176",
+          "name": "Jo Adell",
+          "team": "Los Angeles Angels",
+          "opp": "Oakland Athletics",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "592626",
+          "name": "Joc Pederson",
+          "team": "Texas Rangers",
+          "opp": "Toronto Blue Jays",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "663698",
+          "name": "Joey Bart",
+          "team": "Pittsburgh Pirates",
+          "opp": "Chicago Cubs",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "687401",
+          "name": "Joey Ortiz",
+          "team": "Milwaukee Brewers",
+          "opp": "Cincinnati Reds",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "641680",
+          "name": "Jonah Heim",
+          "team": "Texas Rangers",
+          "opp": "Toronto Blue Jays",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "676059",
+          "name": "Jordan Westburg",
+          "team": "Baltimore Orioles",
+          "opp": "Houston Astros",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "678489",
+          "name": "Jorge Barrosa",
+          "team": "Arizona Diamondbacks",
+          "opp": "Colorado Rockies",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "593871",
+          "name": "Jorge Polanco",
+          "team": "Seattle Mariners",
+          "opp": "New York Mets",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "645444",
+          "name": "Jose Herrera",
+          "team": "Arizona Diamondbacks",
+          "opp": "Colorado Rockies",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "578428",
+          "name": "Jose Iglesias",
+          "team": "San Diego Padres",
+          "opp": "Los Angeles Dodgers",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "673962",
+          "name": "Josh Jung",
+          "team": "Texas Rangers",
+          "opp": "Toronto Blue Jays",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "666139",
+          "name": "Josh Lowe",
+          "team": "Tampa Bay Rays",
+          "opp": "San Francisco Giants",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "647304",
+          "name": "Josh Naylor",
+          "team": "Seattle Mariners",
+          "opp": "New York Mets",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "668942",
+          "name": "Josh Rojas",
+          "team": "Chicago White Sox",
+          "opp": "Kansas City Royals",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "669701",
+          "name": "Josh Smith",
+          "team": "Texas Rangers",
+          "opp": "Toronto Blue Jays",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "676609",
+          "name": "José Caballero",
+          "team": "New York Yankees",
+          "opp": "St. Louis Cardinals",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "677594",
+          "name": "Julio Rodríguez",
+          "team": "Seattle Mariners",
+          "opp": "New York Mets",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "691406",
+          "name": "Junior Caminero",
+          "team": "Tampa Bay Rays",
+          "opp": "San Francisco Giants",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "595777",
+          "name": "Jurickson Profar",
+          "team": "Atlanta Braves",
+          "opp": "Cleveland Guardians",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "681481",
+          "name": "Kerry Carpenter",
+          "team": "Detroit Tigers",
+          "opp": "Minnesota Twins",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "606466",
+          "name": "Ketel Marte",
+          "team": "Arizona Diamondbacks",
+          "opp": "Colorado Rockies",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "543309",
+          "name": "Kyle Higashioka",
+          "team": "Texas Rangers",
+          "opp": "Toronto Blue Jays",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "656941",
+          "name": "Kyle Schwarber",
+          "team": "Philadelphia Phillies",
+          "opp": "Washington Nationals",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "669065",
+          "name": "Kyle Stowers",
+          "team": "Miami Marlins",
+          "opp": "Boston Red Sox",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "691019",
+          "name": "Kyle Teel",
+          "team": "Chicago White Sox",
+          "opp": "Kansas City Royals",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "672820",
+          "name": "Lenyn Sosa",
+          "team": "Chicago White Sox",
+          "opp": "Kansas City Royals",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "689414",
+          "name": "Liam Hicks",
+          "team": "Miami Marlins",
+          "opp": "Boston Red Sox",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "678894",
+          "name": "Liover Peguero",
+          "team": "Pittsburgh Pirates",
+          "opp": "Chicago Cubs",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "681351",
+          "name": "Logan O'Hoppe",
+          "team": "Los Angeles Angels",
+          "opp": "Oakland Athletics",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "666971",
+          "name": "Lourdes Gurriel Jr.",
+          "team": "Arizona Diamondbacks",
+          "opp": "Colorado Rockies",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "650333",
+          "name": "Luis Arraez",
+          "team": "San Diego Padres",
+          "opp": "Los Angeles Dodgers",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "650859",
+          "name": "Luis Rengifo",
+          "team": "Los Angeles Angels",
+          "opp": "Oakland Athletics",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "673357",
+          "name": "Luis Robert Jr.",
+          "team": "Chicago White Sox",
+          "opp": "Kansas City Royals",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "676679",
+          "name": "Luis Vázquez",
+          "team": "Baltimore Orioles",
+          "opp": "Houston Astros",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "663897",
+          "name": "Luke Williams",
+          "team": "Atlanta Braves",
+          "opp": "Cleveland Guardians",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "592518",
+          "name": "Manny Machado",
+          "team": "San Diego Padres",
+          "opp": "Los Angeles Dodgers",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "542303",
+          "name": "Marcell Ozuna",
+          "team": "Atlanta Braves",
+          "opp": "Cleveland Guardians",
+          "pos": "DH",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "543760",
+          "name": "Marcus Semien",
+          "team": "Texas Rangers",
+          "opp": "Toronto Blue Jays",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "621566",
+          "name": "Matt Olson",
+          "team": "Atlanta Braves",
+          "opp": "Cleveland Guardians",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "596146",
+          "name": "Max Kepler",
+          "team": "Philadelphia Phillies",
+          "opp": "Washington Nationals",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "572191",
+          "name": "Michael A. Taylor",
+          "team": "Chicago White Sox",
+          "opp": "Kansas City Royals",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "671739",
+          "name": "Michael Harris II",
+          "team": "Atlanta Braves",
+          "opp": "Cleveland Guardians",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "678246",
+          "name": "Miguel Vargas",
+          "team": "Chicago White Sox",
+          "opp": "Kansas City Royals",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "643565",
+          "name": "Mike Tauchman",
+          "team": "Chicago White Sox",
+          "opp": "Kansas City Royals",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "545361",
+          "name": "Mike Trout",
+          "team": "Los Angeles Angels",
+          "opp": "Oakland Athletics",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "670156",
+          "name": "Miles Mastrobuoni",
+          "team": "Seattle Mariners",
+          "opp": "New York Mets",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "641598",
+          "name": "Mitch Garver",
+          "team": "Seattle Mariners",
+          "opp": "New York Mets",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "805373",
+          "name": "Nacho Alvarez Jr.",
+          "team": "Atlanta Braves",
+          "opp": "Cleveland Guardians",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "669397",
+          "name": "Nick Allen",
+          "team": "Atlanta Braves",
+          "opp": "Cleveland Guardians",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "592206",
+          "name": "Nick Castellanos",
+          "team": "Philadelphia Phillies",
+          "opp": "Washington Nationals",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "663743",
+          "name": "Nick Fortes",
+          "team": "Tampa Bay Rays",
+          "opp": "San Francisco Giants",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "693304",
+          "name": "Nick Gonzales",
+          "team": "Pittsburgh Pirates",
+          "opp": "Chicago Cubs",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "694359",
+          "name": "Niko Kavadas",
+          "team": "Los Angeles Angels",
+          "opp": "Oakland Athletics",
+          "pos": "OF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "694384",
+          "name": "Nolan Schanuel",
+          "team": "Los Angeles Angels",
+          "opp": "Oakland Athletics",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "672724",
+          "name": "Oswald Peraza",
+          "team": "Los Angeles Angels",
+          "opp": "Oakland Athletics",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "805249",
+          "name": "Otto Kemp",
+          "team": "Philadelphia Phillies",
+          "opp": "Washington Nationals",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "672640",
+          "name": "Otto Lopez",
+          "team": "Miami Marlins",
+          "opp": "Boston Red Sox",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "645277",
+          "name": "Ozzie Albies",
+          "team": "Atlanta Braves",
+          "opp": "Cleveland Guardians",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "502671",
+          "name": "Paul Goldschmidt",
+          "team": "New York Yankees",
+          "opp": "St. Louis Cardinals",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "665561",
+          "name": "Rafael Marchán",
+          "team": "Philadelphia Phillies",
+          "opp": "Washington Nationals",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "657656",
+          "name": "Ramón Laureano",
+          "team": "San Diego Padres",
+          "opp": "Los Angeles Dodgers",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "668227",
+          "name": "Randy Arozarena",
+          "team": "Seattle Mariners",
+          "opp": "New York Mets",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "682985",
+          "name": "Riley Greene",
+          "team": "Detroit Tigers",
+          "opp": "Minnesota Twins",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "660670",
+          "name": "Ronald Acuña Jr.",
+          "team": "Atlanta Braves",
+          "opp": "Cleveland Guardians",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "682927",
+          "name": "Ronny Simon",
+          "team": "Pittsburgh Pirates",
+          "opp": "Chicago Cubs",
+          "pos": "2B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "642133",
+          "name": "Rowdy Tellez",
+          "team": "Texas Rangers",
+          "opp": "Toronto Blue Jays",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "641857",
+          "name": "Ryan McMahon",
+          "team": "New York Yankees",
+          "opp": "St. Louis Cardinals",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "663624",
+          "name": "Ryan Mountcastle",
+          "team": "Baltimore Orioles",
+          "opp": "Houston Astros",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "676116",
+          "name": "Ryan Noda",
+          "team": "Baltimore Orioles",
+          "opp": "Houston Astros",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "656811",
+          "name": "Ryan O'Hearn",
+          "team": "San Diego Padres",
+          "opp": "Los Angeles Dodgers",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "686217",
+          "name": "Sal Frelick",
+          "team": "Milwaukee Brewers",
+          "opp": "Cincinnati Reds",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "664059",
+          "name": "Sam Haggerty",
+          "team": "Texas Rangers",
+          "opp": "Toronto Blue Jays",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "669221",
+          "name": "Sean Murphy",
+          "team": "Atlanta Braves",
+          "opp": "Cleveland Guardians",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "687462",
+          "name": "Spencer Horwitz",
+          "team": "Pittsburgh Pirates",
+          "opp": "Chicago Cubs",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "679529",
+          "name": "Spencer Torkelson",
+          "team": "Detroit Tigers",
+          "opp": "Minnesota Twins",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "672642",
+          "name": "Steward Berroa",
+          "team": "Milwaukee Brewers",
+          "opp": "Cincinnati Reds",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "621493",
+          "name": "Taylor Ward",
+          "team": "Los Angeles Angels",
+          "opp": "Oakland Athletics",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "502054",
+          "name": "Tommy Pham",
+          "team": "Pittsburgh Pirates",
+          "opp": "Chicago Cubs",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "518595",
+          "name": "Travis d'Arnaud",
+          "team": "Los Angeles Angels",
+          "opp": "Oakland Athletics",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "607208",
+          "name": "Trea Turner",
+          "team": "Philadelphia Phillies",
+          "opp": "Washington Nationals",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "663757",
+          "name": "Trent Grisham",
+          "team": "New York Yankees",
+          "opp": "St. Louis Cardinals",
+          "pos": "CF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "700242",
+          "name": "Trey Sweeney",
+          "team": "Detroit Tigers",
+          "opp": "Minnesota Twins",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "656484",
+          "name": "Tristan Gray",
+          "team": "Tampa Bay Rays",
+          "opp": "San Francisco Giants",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "687859",
+          "name": "Troy Johnston",
+          "team": "Miami Marlins",
+          "opp": "Boston Red Sox",
+          "pos": "OF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "672012",
+          "name": "Tyler Black",
+          "team": "Milwaukee Brewers",
+          "opp": "Cincinnati Reds",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "682988",
+          "name": "Tyler Locklear",
+          "team": "Arizona Diamondbacks",
+          "opp": "Colorado Rockies",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "660644",
+          "name": "Vidal Bruján",
+          "team": "Atlanta Braves",
+          "opp": "Cleveland Guardians",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "672761",
+          "name": "Wenceel Pérez",
+          "team": "Detroit Tigers",
+          "opp": "Minnesota Twins",
+          "pos": "RF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "642215",
+          "name": "Weston Wilson",
+          "team": "Philadelphia Phillies",
+          "opp": "Washington Nationals",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "661388",
+          "name": "William Contreras",
+          "team": "Milwaukee Brewers",
+          "opp": "Cincinnati Reds",
+          "pos": "C",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "694671",
+          "name": "Wyatt Langford",
+          "team": "Texas Rangers",
+          "opp": "Toronto Blue Jays",
+          "pos": "LF",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "593428",
+          "name": "Xander Bogaerts",
+          "team": "San Diego Padres",
+          "opp": "Los Angeles Dodgers",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "669364",
+          "name": "Xavier Edwards",
+          "team": "Miami Marlins",
+          "opp": "Boston Red Sox",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "650490",
+          "name": "Yandy Díaz",
+          "team": "Tampa Bay Rays",
+          "opp": "San Francisco Giants",
+          "pos": "1B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "660162",
+          "name": "Yoán Moncada",
+          "team": "Los Angeles Angels",
+          "opp": "Oakland Athletics",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "656716",
+          "name": "Zach McKinstry",
+          "team": "Detroit Tigers",
+          "opp": "Minnesota Twins",
+          "pos": "3B",
+          "tier": 2.0,
+          "score": -0.15
+        },
+        {
+          "player_id": "687263",
+          "name": "Zach Neto",
+          "team": "Los Angeles Angels",
+          "opp": "Oakland Athletics",
+          "pos": "SS",
+          "tier": 2.0,
+          "score": -0.15
+        }
+      ]
+    },
+    "pitchers": {
+      "targets": [],
+      "fades": [
+        {
+          "player_id": "650644",
+          "name": "Aaron Civale",
+          "team": "Chicago White Sox",
+          "opp": "Kansas City Royals",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "669467",
+          "name": "Andre Pallante",
+          "team": "St. Louis Cardinals",
+          "opp": "New York Yankees",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "694297",
+          "name": "Brandon Pfaadt",
+          "team": "Arizona Diamondbacks",
+          "opp": "Colorado Rockies",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "687064",
+          "name": "Brandon Young",
+          "team": "Baltimore Orioles",
+          "opp": "Houston Astros",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "677952",
+          "name": "Braxton Ashcraft",
+          "team": "Pittsburgh Pirates",
+          "opp": "Chicago Cubs",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "450203",
+          "name": "Charlie Morton",
+          "team": "Detroit Tigers",
+          "opp": "Minnesota Twins",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "605135",
+          "name": "Chris Bassitt",
+          "team": "Toronto Blue Jays",
+          "opp": "Texas Rangers",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "477132",
+          "name": "Clayton Kershaw",
+          "team": "Los Angeles Dodgers",
+          "opp": "San Diego Padres",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "607067",
+          "name": "Colin Rea",
+          "team": "Chicago Cubs",
+          "opp": "Pittsburgh Pirates",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "664285",
+          "name": "Framber Valdez",
+          "team": "Houston Astros",
+          "opp": "Baltimore Orioles",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "694462",
+          "name": "Hurston Waldrep",
+          "team": "Atlanta Braves",
+          "opp": "Cleveland Guardians",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "678022",
+          "name": "Jack Perkins",
+          "team": "Athletics",
+          "opp": "Los Angeles Angels",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "694819",
+          "name": "Jacob Misiorowski",
+          "team": "Milwaukee Brewers",
+          "opp": "Cincinnati Reds",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "594798",
+          "name": "Jacob deGrom",
+          "team": "Texas Rangers",
+          "opp": "Toronto Blue Jays",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "671212",
+          "name": "Joe Boyle",
+          "team": "Tampa Bay Rays",
+          "opp": "San Francisco Giants",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "676282",
+          "name": "Joey Cantillo",
+          "team": "Cleveland Guardians",
+          "opp": "Atlanta Braves",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "manual-Landen Roupp",
+          "name": "Landen Roupp",
+          "team": "San Francisco Giants",
+          "opp": "Tampa Bay Rays",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "608337",
+          "name": "Lucas Giolito",
+          "team": "Boston Red Sox",
+          "opp": "Miami Marlins",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "622491",
+          "name": "Luis Castillo",
+          "team": "Seattle Mariners",
+          "opp": "New York Mets",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "661563",
+          "name": "Luis Gil",
+          "team": "New York Yankees",
+          "opp": "St. Louis Cardinals",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "669022",
+          "name": "MacKenzie Gore",
+          "team": "Washington Nationals",
+          "opp": "Philadelphia Phillies",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "607259",
+          "name": "Nick Martinez",
+          "team": "Cincinnati Reds",
+          "opp": "Milwaukee Brewers",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "702070",
+          "name": "Noah Cameron",
+          "team": "Kansas City Royals",
+          "opp": "Chicago White Sox",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "701487",
+          "name": "Pierson Ohl",
+          "team": "Minnesota Twins",
+          "opp": "Detroit Tigers",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "645261",
+          "name": "Sandy Alcantara",
+          "team": "Miami Marlins",
+          "opp": "Boston Red Sox",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "640455",
+          "name": "Sean Manaea",
+          "team": "New York Mets",
+          "opp": "Seattle Mariners",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "685299",
+          "name": "Tanner Gordon",
+          "team": "Colorado Rockies",
+          "opp": "Arizona Diamondbacks",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "579328",
+          "name": "Yusei Kikuchi",
+          "team": "Los Angeles Angels",
+          "opp": "Oakland Athletics",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        },
+        {
+          "player_id": "554430",
+          "name": "Zack Wheeler",
+          "team": "Philadelphia Phillies",
+          "opp": "Washington Nationals",
+          "pos": "P",
+          "tier": 0.0,
+          "score": 0.0
+        }
+      ]
+    }
+  },
+  "metrics": {
+    "targets_precision": null,
+    "fades_accuracy": null,
+    "overall_hit_rate": null
+  }
+}

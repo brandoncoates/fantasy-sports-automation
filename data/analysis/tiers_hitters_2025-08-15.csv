@@ -1,0 +1,391 @@
+player_id,name,date,raw_score,tier,team,opponent_team,home_or_away,position,starting_pitcher_today
+456781,Donovan Solano,2025-08-15,-0.15,2,Seattle Mariners,New York Mets,away,1B,False
+457705,Andrew McCutchen,2025-08-15,-0.15,2,Pittsburgh Pirates,Chicago Cubs,away,RF,False
+457759,Justin Turner,2025-08-15,0.0,8,Chicago Cubs,Pittsburgh Pirates,home,1B,False
+467793,Carlos Santana,2025-08-15,0.0,8,Cleveland Guardians,Atlanta Braves,home,1B,False
+500743,Miguel Rojas,2025-08-15,0.0,8,Los Angeles Dodgers,San Diego Padres,home,2B,False
+502054,Tommy Pham,2025-08-15,-0.15,2,Pittsburgh Pirates,Chicago Cubs,away,LF,False
+502671,Paul Goldschmidt,2025-08-15,-0.15,2,New York Yankees,St. Louis Cardinals,away,1B,False
+514888,Jose Altuve,2025-08-15,0.0,8,Houston Astros,Baltimore Orioles,home,LF,False
+516782,Starling Marte,2025-08-15,0.0,8,New York Mets,Seattle Mariners,home,LF,False
+518595,Travis d'Arnaud,2025-08-15,-0.15,2,Los Angeles Angels,Oakland Athletics,away,C,False
+518692,Freddie Freeman,2025-08-15,0.0,8,Los Angeles Dodgers,San Diego Padres,home,1B,False
+519317,Giancarlo Stanton,2025-08-15,-0.15,2,New York Yankees,St. Louis Cardinals,away,DH,False
+521692,Salvador Perez,2025-08-15,0.0,8,Kansas City Royals,Chicago White Sox,home,C,False
+527038,Wilmer Flores,2025-08-15,0.0,8,San Francisco Giants,Tampa Bay Rays,home,1B,False
+542303,Marcell Ozuna,2025-08-15,-0.15,2,Atlanta Braves,Cleveland Guardians,away,DH,False
+543309,Kyle Higashioka,2025-08-15,-0.15,2,Texas Rangers,Toronto Blue Jays,away,C,False
+543510,James McCann,2025-08-15,-0.15,2,Arizona Diamondbacks,Colorado Rockies,away,C,False
+543760,Marcus Semien,2025-08-15,-0.15,2,Texas Rangers,Toronto Blue Jays,away,2B,False
+545341,Randal Grichuk,2025-08-15,0.0,8,Kansas City Royals,Chicago White Sox,home,RF,False
+545361,Mike Trout,2025-08-15,-0.15,2,Los Angeles Angels,Oakland Athletics,away,RF,False
+547180,Bryce Harper,2025-08-15,-0.15,2,Philadelphia Phillies,Washington Nationals,away,1B,False
+553869,Elias Díaz,2025-08-15,-0.15,2,San Diego Padres,Los Angeles Dodgers,away,C,False
+553993,Eugenio Suárez,2025-08-15,-0.15,2,Seattle Mariners,New York Mets,away,3B,False
+570482,Gio Urshela,2025-08-15,0.0,8,Athletics,Los Angeles Angels,home,3B,False
+571657,Kyle Farmer,2025-08-15,0.0,8,Colorado Rockies,Arizona Diamondbacks,home,2B,False
+571912,Luke Maile,2025-08-15,0.0,8,Kansas City Royals,Chicago White Sox,home,C,False
+571970,Max Muncy,2025-08-15,0.0,8,Los Angeles Dodgers,San Diego Padres,home,3B,False
+572191,Michael A. Taylor,2025-08-15,-0.15,2,Chicago White Sox,Kansas City Royals,away,RF,False
+572233,Christian Walker,2025-08-15,0.0,8,Houston Astros,Baltimore Orioles,home,1B,False
+573262,Mike Yastrzemski,2025-08-15,0.0,8,Kansas City Royals,Chicago White Sox,home,RF,False
+575929,Willson Contreras,2025-08-15,0.0,8,St. Louis Cardinals,New York Yankees,home,1B,False
+578428,Jose Iglesias,2025-08-15,-0.15,2,San Diego Padres,Los Angeles Dodgers,away,2B,False
+592206,Nick Castellanos,2025-08-15,-0.15,2,Philadelphia Phillies,Washington Nationals,away,RF,False
+592450,Aaron Judge,2025-08-15,-0.15,2,New York Yankees,St. Louis Cardinals,away,RF,False
+592518,Manny Machado,2025-08-15,-0.15,2,San Diego Padres,Los Angeles Dodgers,away,3B,False
+592626,Joc Pederson,2025-08-15,-0.15,2,Texas Rangers,Toronto Blue Jays,away,1B,False
+592663,JT Realmuto,2025-08-15,-0.15,2,Philadelphia Phillies,Washington Nationals,away,C,False
+592885,Christian Yelich,2025-08-15,-0.15,2,Milwaukee Brewers,Cincinnati Reds,away,LF,False
+593428,Xander Bogaerts,2025-08-15,-0.15,2,San Diego Padres,Los Angeles Dodgers,away,SS,False
+593871,Jorge Polanco,2025-08-15,-0.15,2,Seattle Mariners,New York Mets,away,2B,False
+595777,Jurickson Profar,2025-08-15,-0.15,2,Atlanta Braves,Cleveland Guardians,away,LF,False
+595879,Javier Báez,2025-08-15,-0.15,2,Detroit Tigers,Minnesota Twins,away,CF,False
+595978,Austin Hedges,2025-08-15,0.0,8,Cleveland Guardians,Atlanta Braves,home,C,False
+596019,Francisco Lindor,2025-08-15,0.0,8,New York Mets,Seattle Mariners,home,SS,False
+596115,Trevor Story,2025-08-15,0.0,8,Boston Red Sox,Miami Marlins,home,SS,False
+596146,Max Kepler,2025-08-15,-0.15,2,Philadelphia Phillies,Washington Nationals,away,LF,False
+602104,Ramón Urías,2025-08-15,0.0,8,Houston Astros,Baltimore Orioles,home,3B,False
+605137,Josh Bell,2025-08-15,0.0,8,Washington Nationals,Philadelphia Phillies,home,1B,False
+605141,Mookie Betts,2025-08-15,0.0,8,Los Angeles Dodgers,San Diego Padres,home,SS,False
+605170,Victor Caratini,2025-08-15,0.0,8,Houston Astros,Baltimore Orioles,home,C,False
+606192,Teoscar Hernández,2025-08-15,0.0,8,Los Angeles Dodgers,San Diego Padres,home,RF,False
+606466,Ketel Marte,2025-08-15,-0.15,2,Arizona Diamondbacks,Colorado Rockies,away,2B,False
+607043,Brandon Nimmo,2025-08-15,0.0,8,New York Mets,Seattle Mariners,home,LF,False
+607208,Trea Turner,2025-08-15,-0.15,2,Philadelphia Phillies,Washington Nationals,away,SS,False
+608070,Jose Ramirez,2025-08-15,0.0,8,Cleveland Guardians,Atlanta Braves,home,3B,False
+608324,Alex Bregman,2025-08-15,0.0,8,Boston Red Sox,Miami Marlins,home,3B,False
+608348,Carson Kelly,2025-08-15,0.0,8,Chicago Cubs,Pittsburgh Pirates,home,C,False
+608369,Corey Seager,2025-08-15,-0.15,2,Texas Rangers,Toronto Blue Jays,away,SS,False
+608701,Rob Refsnyder,2025-08-15,0.0,8,Boston Red Sox,Miami Marlins,home,RF,False
+609280,Miguel Andujar,2025-08-15,0.0,8,Cincinnati Reds,Milwaukee Brewers,home,LF,False
+620443,Luis Torrens,2025-08-15,0.0,8,New York Mets,Seattle Mariners,home,C,False
+621020,Dansby Swanson,2025-08-15,0.0,8,Chicago Cubs,Pittsburgh Pirates,home,SS,False
+621043,Carlos Correa,2025-08-15,0.0,8,Houston Astros,Baltimore Orioles,home,SS,False
+621438,Tyrone Taylor,2025-08-15,0.0,8,New York Mets,Seattle Mariners,home,CF,False
+621439,Byron Buxton,2025-08-15,0.0,8,Minnesota Twins,Detroit Tigers,home,CF,False
+621493,Taylor Ward,2025-08-15,-0.15,2,Los Angeles Angels,Oakland Athletics,away,LF,False
+621566,Matt Olson,2025-08-15,-0.15,2,Atlanta Braves,Cleveland Guardians,away,1B,False
+623168,Tyler Heineman,2025-08-15,0.0,8,Toronto Blue Jays,Texas Rangers,home,C,False
+624413,Pete Alonso,2025-08-15,0.0,8,New York Mets,Seattle Mariners,home,1B,False
+624424,Michael Conforto,2025-08-15,0.0,8,Los Angeles Dodgers,San Diego Padres,home,LF,False
+624428,Adam Frazier,2025-08-15,0.0,8,Kansas City Royals,Chicago White Sox,home,2B,False
+624431,Jose Trevino,2025-08-15,0.0,8,Cincinnati Reds,Milwaukee Brewers,home,C,False
+624512,Reese McGuire,2025-08-15,0.0,8,Chicago Cubs,Pittsburgh Pirates,home,C,False
+624641,Edmundo Sosa,2025-08-15,-0.15,2,Philadelphia Phillies,Washington Nationals,away,2B,False
+628451,Andy Ibáñez,2025-08-15,-0.15,2,Detroit Tigers,Minnesota Twins,away,3B,False
+630105,Jake Cronenworth,2025-08-15,-0.15,2,San Diego Padres,Los Angeles Dodgers,away,2B,False
+641355,Cody Bellinger,2025-08-15,-0.15,2,New York Yankees,St. Louis Cardinals,away,LF,False
+641487,J.P. Crawford,2025-08-15,-0.15,2,Seattle Mariners,New York Mets,away,SS,False
+641555,J.C. Escarra,2025-08-15,-0.15,2,New York Yankees,St. Louis Cardinals,away,C,False
+641584,Jake Fraley,2025-08-15,0.0,8,Cincinnati Reds,Milwaukee Brewers,home,RF,False
+641598,Mitch Garver,2025-08-15,-0.15,2,Seattle Mariners,New York Mets,away,C,False
+641658,Garrett Hampson,2025-08-15,0.0,8,St. Louis Cardinals,New York Yankees,home,2B,False
+641680,Jonah Heim,2025-08-15,-0.15,2,Texas Rangers,Toronto Blue Jays,away,C,False
+641857,Ryan McMahon,2025-08-15,-0.15,2,New York Yankees,St. Louis Cardinals,away,3B,False
+642086,Dominic Smith,2025-08-15,0.0,8,San Francisco Giants,Tampa Bay Rays,home,1B,False
+642133,Rowdy Tellez,2025-08-15,-0.15,2,Texas Rangers,Toronto Blue Jays,away,1B,False
+642201,Eli White,2025-08-15,-0.15,2,Atlanta Braves,Cleveland Guardians,away,RF,False
+642215,Weston Wilson,2025-08-15,-0.15,2,Philadelphia Phillies,Washington Nationals,away,LF,False
+642715,Willy Adames,2025-08-15,0.0,8,San Francisco Giants,Tampa Bay Rays,home,SS,False
+643217,Andrew Benintendi,2025-08-15,-0.15,2,Chicago White Sox,Kansas City Royals,away,LF,False
+643289,Mauricio Dubón,2025-08-15,0.0,8,Houston Astros,Baltimore Orioles,home,2B,False
+643376,Danny Jansen,2025-08-15,-0.15,2,Milwaukee Brewers,Cincinnati Reds,away,C,False
+643396,Isiah Kiner-Falefa,2025-08-15,-0.15,2,Pittsburgh Pirates,Chicago Cubs,away,SS,False
+643446,Jeff McNeil,2025-08-15,0.0,8,New York Mets,Seattle Mariners,home,2B,False
+643565,Mike Tauchman,2025-08-15,-0.15,2,Chicago White Sox,Kansas City Royals,away,RF,False
+645277,Ozzie Albies,2025-08-15,-0.15,2,Atlanta Braves,Cleveland Guardians,away,2B,False
+645305,Ali Sánchez,2025-08-15,0.0,8,Boston Red Sox,Miami Marlins,home,C,False
+645444,Jose Herrera,2025-08-15,-0.15,2,Arizona Diamondbacks,Colorado Rockies,away,C,False
+646240,Rafael Devers,2025-08-15,0.0,8,San Francisco Giants,Tampa Bay Rays,home,DH,False
+647304,Josh Naylor,2025-08-15,-0.15,2,Seattle Mariners,New York Mets,away,1B,False
+647351,Abraham Toro,2025-08-15,0.0,8,Boston Red Sox,Miami Marlins,home,1B,False
+649966,Luis Urías,2025-08-15,0.0,8,Athletics,Los Angeles Angels,home,2B,False
+650333,Luis Arraez,2025-08-15,-0.15,2,San Diego Padres,Los Angeles Dodgers,away,1B,False
+650402,Gleyber Torres,2025-08-15,-0.15,2,Detroit Tigers,Minnesota Twins,away,2B,False
+650489,Willi Castro,2025-08-15,0.0,8,Chicago Cubs,Pittsburgh Pirates,home,LF,False
+650490,Yandy Díaz,2025-08-15,-0.15,2,Tampa Bay Rays,San Francisco Giants,away,1B,False
+650859,Luis Rengifo,2025-08-15,-0.15,2,Los Angeles Angels,Oakland Athletics,away,3B,False
+650968,Yohel Pozo,2025-08-15,0.0,8,St. Louis Cardinals,New York Yankees,home,C,False
+655316,Andruw Monasterio,2025-08-15,-0.15,2,Milwaukee Brewers,Cincinnati Reds,away,SS,False
+656180,Riley Adams,2025-08-15,0.0,8,Washington Nationals,Philadelphia Phillies,home,C,False
+656185,Greg Allen,2025-08-15,-0.15,2,Baltimore Orioles,Houston Astros,away,CF,False
+656305,Matt Chapman,2025-08-15,0.0,8,San Francisco Giants,Tampa Bay Rays,home,3B,False
+656484,Tristan Gray,2025-08-15,-0.15,2,Tampa Bay Rays,San Francisco Giants,away,3B,False
+656537,Derek Hill,2025-08-15,-0.15,2,Miami Marlins,Boston Red Sox,away,CF,False
+656577,Alex Jackson,2025-08-15,-0.15,2,Baltimore Orioles,Houston Astros,away,C,False
+656716,Zach McKinstry,2025-08-15,-0.15,2,Detroit Tigers,Minnesota Twins,away,3B,False
+656775,Cedric Mullins,2025-08-15,0.0,8,New York Mets,Seattle Mariners,home,CF,False
+656811,Ryan O'Hearn,2025-08-15,-0.15,2,San Diego Padres,Los Angeles Dodgers,away,1B,False
+656941,Kyle Schwarber,2025-08-15,-0.15,2,Philadelphia Phillies,Washington Nationals,away,LF,False
+657136,Connor Wong,2025-08-15,0.0,8,Boston Red Sox,Miami Marlins,home,C,False
+657557,Paul DeJong,2025-08-15,0.0,8,Washington Nationals,Philadelphia Phillies,home,3B,False
+657656,Ramón Laureano,2025-08-15,-0.15,2,San Diego Padres,Los Angeles Dodgers,away,RF,False
+657757,Gavin Sheets,2025-08-15,-0.15,2,San Diego Padres,Los Angeles Dodgers,away,LF,False
+660162,Yoán Moncada,2025-08-15,-0.15,2,Los Angeles Angels,Oakland Athletics,away,3B,False
+660271,Shohei Ohtani,2025-08-15,0.0,8,Los Angeles Dodgers,San Diego Padres,home,TWP,False
+660644,Vidal Bruján,2025-08-15,-0.15,2,Atlanta Braves,Cleveland Guardians,away,3B,False
+660670,Ronald Acuña Jr.,2025-08-15,-0.15,2,Atlanta Braves,Cleveland Guardians,away,RF,False
+660821,Jesús Sánchez,2025-08-15,0.0,8,Houston Astros,Baltimore Orioles,home,RF,False
+661388,William Contreras,2025-08-15,-0.15,2,Milwaukee Brewers,Cincinnati Reds,away,C,False
+662139,Daulton Varsho,2025-08-15,0.0,8,Toronto Blue Jays,Texas Rangers,home,CF,False
+663330,Jahmai Jones,2025-08-15,-0.15,2,Detroit Tigers,Minnesota Twins,away,RF,False
+663457,Lars Nootbaar,2025-08-15,0.0,8,St. Louis Cardinals,New York Yankees,home,LF,False
+663538,Nico Hoerner,2025-08-15,0.0,8,Chicago Cubs,Pittsburgh Pirates,home,2B,False
+663604,Brandon Lockridge,2025-08-15,-0.15,2,Milwaukee Brewers,Cincinnati Reds,away,LF,False
+663616,Trevor Larnach,2025-08-15,0.0,8,Minnesota Twins,Detroit Tigers,home,RF,False
+663624,Ryan Mountcastle,2025-08-15,-0.15,2,Baltimore Orioles,Houston Astros,away,1B,False
+663647,Ke'Bryan Hayes,2025-08-15,0.0,8,Cincinnati Reds,Milwaukee Brewers,home,3B,False
+663656,Kyle Tucker,2025-08-15,0.0,8,Chicago Cubs,Pittsburgh Pirates,home,RF,False
+663697,Jonathan India,2025-08-15,0.0,8,Kansas City Royals,Chicago White Sox,home,2B,False
+663698,Joey Bart,2025-08-15,-0.15,2,Pittsburgh Pirates,Chicago Cubs,away,C,False
+663728,Cal Raleigh,2025-08-15,-0.15,2,Seattle Mariners,New York Mets,away,C,False
+663731,Connor Kaiser,2025-08-15,-0.15,2,Arizona Diamondbacks,Colorado Rockies,away,SS,False
+663743,Nick Fortes,2025-08-15,-0.15,2,Tampa Bay Rays,San Francisco Giants,away,C,False
+663757,Trent Grisham,2025-08-15,-0.15,2,New York Yankees,St. Louis Cardinals,away,CF,False
+663853,Romy Gonzalez,2025-08-15,0.0,8,Boston Red Sox,Miami Marlins,home,1B,False
+663886,Tyler Stephenson,2025-08-15,0.0,8,Cincinnati Reds,Milwaukee Brewers,home,C,False
+663897,Luke Williams,2025-08-15,-0.15,2,Atlanta Braves,Cleveland Guardians,away,SS,False
+663968,Jake Mangum,2025-08-15,-0.15,2,Tampa Bay Rays,San Francisco Giants,away,LF,False
+664023,Ian Happ,2025-08-15,0.0,8,Chicago Cubs,Pittsburgh Pirates,home,LF,False
+664034,Ty France,2025-08-15,0.0,8,Toronto Blue Jays,Texas Rangers,home,1B,False
+664040,Brandon Lowe,2025-08-15,-0.15,2,Tampa Bay Rays,San Francisco Giants,away,2B,False
+664056,Harrison Bader,2025-08-15,-0.15,2,Philadelphia Phillies,Washington Nationals,away,LF,False
+664059,Sam Haggerty,2025-08-15,-0.15,2,Texas Rangers,Toronto Blue Jays,away,CF,False
+664238,Dylan Moore,2025-08-15,-0.15,2,Seattle Mariners,New York Mets,away,2B,False
+664702,Myles Straw,2025-08-15,0.0,8,Toronto Blue Jays,Texas Rangers,home,CF,False
+664728,Kyle Isbel,2025-08-15,0.0,8,Kansas City Royals,Chicago White Sox,home,CF,False
+664770,Nathan Lukes,2025-08-15,0.0,8,Toronto Blue Jays,Texas Rangers,home,RF,False
+664983,Jake McCarthy,2025-08-15,-0.15,2,Arizona Diamondbacks,Colorado Rockies,away,CF,False
+665019,Kody Clemens,2025-08-15,0.0,8,Minnesota Twins,Detroit Tigers,home,2B,False
+665161,Jeremy Peña,2025-08-15,0.0,8,Houston Astros,Baltimore Orioles,home,SS,False
+665487,Fernando Tatis Jr.,2025-08-15,-0.15,2,San Diego Padres,Los Angeles Dodgers,away,RF,False
+665489,Vladimir Guerrero Jr.,2025-08-15,0.0,8,Toronto Blue Jays,Texas Rangers,home,1B,False
+665561,Rafael Marchán,2025-08-15,-0.15,2,Philadelphia Phillies,Washington Nationals,away,C,False
+665742,Juan Soto,2025-08-15,0.0,8,New York Mets,Seattle Mariners,home,RF,False
+665862,Jazz Chisholm Jr.,2025-08-15,-0.15,2,New York Yankees,St. Louis Cardinals,away,2B,False
+665926,Andrés Giménez,2025-08-15,0.0,8,Toronto Blue Jays,Texas Rangers,home,2B,False
+665966,Carlos Narváez,2025-08-15,0.0,8,Boston Red Sox,Miami Marlins,home,C,False
+666023,Freddy Fermin,2025-08-15,-0.15,2,San Diego Padres,Los Angeles Dodgers,away,C,False
+666126,Carlos Cortes,2025-08-15,0.0,8,Athletics,Los Angeles Angels,home,LF,False
+666134,Nolan Jones,2025-08-15,0.0,8,Cleveland Guardians,Atlanta Braves,home,RF,False
+666139,Josh Lowe,2025-08-15,-0.15,2,Tampa Bay Rays,San Francisco Giants,away,RF,False
+666149,Tyler Fitzgerald,2025-08-15,0.0,8,San Francisco Giants,Tampa Bay Rays,home,2B,False
+666158,Gavin Lux,2025-08-15,0.0,8,Cincinnati Reds,Milwaukee Brewers,home,LF,False
+666160,Mickey Moniak,2025-08-15,0.0,8,Colorado Rockies,Arizona Diamondbacks,home,RF,False
+666176,Jo Adell,2025-08-15,-0.15,2,Los Angeles Angels,Oakland Athletics,away,CF,False
+666182,Bo Bichette,2025-08-15,0.0,8,Toronto Blue Jays,Texas Rangers,home,SS,False
+666185,Dylan Carlson,2025-08-15,-0.15,2,Baltimore Orioles,Houston Astros,away,LF,False
+666211,Taylor Trammell,2025-08-15,0.0,8,Houston Astros,Baltimore Orioles,home,LF,False
+666310,Bo Naylor,2025-08-15,0.0,8,Cleveland Guardians,Atlanta Braves,home,C,False
+666397,Edouard Julien,2025-08-15,0.0,8,Minnesota Twins,Detroit Tigers,home,2B,False
+666624,Christopher Morel,2025-08-15,-0.15,2,Tampa Bay Rays,San Francisco Giants,away,LF,False
+666971,Lourdes Gurriel Jr.,2025-08-15,-0.15,2,Arizona Diamondbacks,Colorado Rockies,away,LF,False
+667472,Dane Myers,2025-08-15,-0.15,2,Miami Marlins,Boston Red Sox,away,CF,False
+667670,Brent Rooker,2025-08-15,0.0,8,Athletics,Los Angeles Angels,home,RF,False
+668227,Randy Arozarena,2025-08-15,-0.15,2,Seattle Mariners,New York Mets,away,LF,False
+668670,Jake Rogers,2025-08-15,-0.15,2,Detroit Tigers,Minnesota Twins,away,C,False
+668709,JJ Bleday,2025-08-15,0.0,8,Athletics,Los Angeles Angels,home,CF,False
+668715,Spencer Steer,2025-08-15,0.0,8,Cincinnati Reds,Milwaukee Brewers,home,1B,False
+668800,Andrew Knizner,2025-08-15,0.0,8,San Francisco Giants,Tampa Bay Rays,home,C,False
+668804,Bryan Reynolds,2025-08-15,-0.15,2,Pittsburgh Pirates,Chicago Cubs,away,RF,False
+668845,Aaron Schunk,2025-08-15,0.0,8,Colorado Rockies,Arizona Diamondbacks,home,SS,False
+668885,Austin Martin,2025-08-15,0.0,8,Minnesota Twins,Detroit Tigers,home,CF,False
+668901,Mark Vientos,2025-08-15,0.0,8,New York Mets,Seattle Mariners,home,3B,False
+668904,Royce Lewis,2025-08-15,0.0,8,Minnesota Twins,Detroit Tigers,home,3B,False
+668930,Brice Turang,2025-08-15,-0.15,2,Milwaukee Brewers,Cincinnati Reds,away,2B,False
+668939,Adley Rutschman,2025-08-15,-0.15,2,Baltimore Orioles,Houston Astros,away,C,False
+668942,Josh Rojas,2025-08-15,-0.15,2,Chicago White Sox,Kansas City Royals,away,3B,False
+669016,Brandon Marsh,2025-08-15,-0.15,2,Philadelphia Phillies,Washington Nationals,away,CF,False
+669065,Kyle Stowers,2025-08-15,-0.15,2,Miami Marlins,Boston Red Sox,away,LF,False
+669127,Shea Langeliers,2025-08-15,0.0,8,Athletics,Los Angeles Angels,home,C,False
+669221,Sean Murphy,2025-08-15,-0.15,2,Atlanta Braves,Cleveland Guardians,away,C,False
+669224,Austin Wells,2025-08-15,-0.15,2,New York Yankees,St. Louis Cardinals,away,C,False
+669236,Jeremiah Jackson,2025-08-15,-0.15,2,Baltimore Orioles,Houston Astros,away,2B,False
+669257,Will Smith,2025-08-15,0.0,8,Los Angeles Dodgers,San Diego Padres,home,C,False
+669261,Jack Suwinski,2025-08-15,-0.15,2,Pittsburgh Pirates,Chicago Cubs,away,RF,False
+669288,Daniel Johnson,2025-08-15,-0.15,2,Baltimore Orioles,Houston Astros,away,CF,False
+669289,Santiago Espinal,2025-08-15,0.0,8,Cincinnati Reds,Milwaukee Brewers,home,3B,False
+669326,Bryce Teodosio,2025-08-15,-0.15,2,Los Angeles Angels,Oakland Athletics,away,CF,False
+669357,Nolan Gorman,2025-08-15,0.0,8,St. Louis Cardinals,New York Yankees,home,2B,False
+669364,Xavier Edwards,2025-08-15,-0.15,2,Miami Marlins,Boston Red Sox,away,SS,False
+669369,Bryce Johnson,2025-08-15,-0.15,2,San Diego Padres,Los Angeles Dodgers,away,CF,False
+669394,Jake Burger,2025-08-15,-0.15,2,Texas Rangers,Toronto Blue Jays,away,1B,False
+669397,Nick Allen,2025-08-15,-0.15,2,Atlanta Braves,Cleveland Guardians,away,SS,False
+669477,Casey Schmitt,2025-08-15,0.0,8,San Francisco Giants,Tampa Bay Rays,home,3B,False
+669701,Josh Smith,2025-08-15,-0.15,2,Texas Rangers,Toronto Blue Jays,away,SS,False
+669707,Jared Triolo,2025-08-15,-0.15,2,Pittsburgh Pirates,Chicago Cubs,away,SS,False
+669720,Austin Hays,2025-08-15,0.0,8,Cincinnati Reds,Milwaukee Brewers,home,LF,False
+669743,Alex Call,2025-08-15,0.0,8,Los Angeles Dodgers,San Diego Padres,home,RF,False
+670156,Miles Mastrobuoni,2025-08-15,-0.15,2,Seattle Mariners,New York Mets,away,3B,False
+670231,John Rave,2025-08-15,0.0,8,Kansas City Royals,Chicago White Sox,home,RF,False
+670242,Matt Wallner,2025-08-15,0.0,8,Minnesota Twins,Detroit Tigers,home,RF,False
+670770,TJ Friedl,2025-08-15,0.0,8,Cincinnati Reds,Milwaukee Brewers,home,CF,False
+671056,Iván Herrera,2025-08-15,0.0,8,St. Louis Cardinals,New York Yankees,home,C,False
+671218,Heliot Ramos,2025-08-15,0.0,8,San Francisco Giants,Tampa Bay Rays,home,LF,False
+671277,Luis García Jr.,2025-08-15,0.0,8,Washington Nationals,Philadelphia Phillies,home,2B,False
+671289,Tyler Freeman,2025-08-15,0.0,8,Colorado Rockies,Arizona Diamondbacks,home,RF,False
+671732,Lawrence Butler,2025-08-15,0.0,8,Athletics,Los Angeles Angels,home,RF,False
+671739,Michael Harris II,2025-08-15,-0.15,2,Atlanta Braves,Cleveland Guardians,away,CF,False
+672012,Tyler Black,2025-08-15,-0.15,2,Milwaukee Brewers,Cincinnati Reds,away,3B,False
+672275,Patrick Bailey,2025-08-15,0.0,8,San Francisco Giants,Tampa Bay Rays,home,C,False
+672356,Gabriel Arias,2025-08-15,0.0,8,Cleveland Guardians,Atlanta Braves,home,SS,False
+672386,Alejandro Kirk,2025-08-15,0.0,8,Toronto Blue Jays,Texas Rangers,home,C,False
+672580,Maikel Garcia,2025-08-15,0.0,8,Kansas City Royals,Chicago White Sox,home,3B,False
+672640,Otto Lopez,2025-08-15,-0.15,2,Miami Marlins,Boston Red Sox,away,2B,False
+672642,Steward Berroa,2025-08-15,-0.15,2,Milwaukee Brewers,Cincinnati Reds,away,RF,False
+672695,Geraldo Perdomo,2025-08-15,-0.15,2,Arizona Diamondbacks,Colorado Rockies,away,SS,False
+672724,Oswald Peraza,2025-08-15,-0.15,2,Los Angeles Angels,Oakland Athletics,away,3B,False
+672744,Alexander Canario,2025-08-15,-0.15,2,Pittsburgh Pirates,Chicago Cubs,away,LF,False
+672761,Wenceel Pérez,2025-08-15,-0.15,2,Detroit Tigers,Minnesota Twins,away,RF,False
+672820,Lenyn Sosa,2025-08-15,-0.15,2,Chicago White Sox,Kansas City Royals,away,2B,False
+673237,Yainer Diaz,2025-08-15,0.0,8,Houston Astros,Baltimore Orioles,home,C,False
+673357,Luis Robert Jr.,2025-08-15,-0.15,2,Chicago White Sox,Kansas City Royals,away,CF,False
+673490,Ha-Seong Kim,2025-08-15,-0.15,2,Tampa Bay Rays,San Francisco Giants,away,SS,False
+673548,Seiya Suzuki,2025-08-15,0.0,8,Chicago Cubs,Pittsburgh Pirates,home,RF,False
+673962,Josh Jung,2025-08-15,-0.15,2,Texas Rangers,Toronto Blue Jays,away,3B,False
+676059,Jordan Westburg,2025-08-15,-0.15,2,Baltimore Orioles,Houston Astros,away,3B,False
+676070,Jacob Amaya,2025-08-15,-0.15,2,Chicago White Sox,Kansas City Royals,away,SS,False
+676116,Ryan Noda,2025-08-15,-0.15,2,Baltimore Orioles,Houston Astros,away,1B,False
+676391,Ernie Clement,2025-08-15,0.0,8,Toronto Blue Jays,Texas Rangers,home,3B,False
+676439,Hunter Feduccia,2025-08-15,-0.15,2,Tampa Bay Rays,San Francisco Giants,away,C,False
+676475,Alec Burleson,2025-08-15,0.0,8,St. Louis Cardinals,New York Yankees,home,1B,False
+676572,Eric Wagaman,2025-08-15,-0.15,2,Miami Marlins,Boston Red Sox,away,1B,False
+676609,José Caballero,2025-08-15,-0.15,2,New York Yankees,St. Louis Cardinals,away,SS,False
+676679,Luis Vázquez,2025-08-15,-0.15,2,Baltimore Orioles,Houston Astros,away,SS,False
+676801,Chas McCormick,2025-08-15,0.0,8,Houston Astros,Baltimore Orioles,home,LF,False
+676914,Davis Schneider,2025-08-15,0.0,8,Toronto Blue Jays,Texas Rangers,home,LF,False
+677587,Brayan Rocchio,2025-08-15,0.0,8,Cleveland Guardians,Atlanta Braves,home,SS,False
+677588,José Tena,2025-08-15,0.0,8,Washington Nationals,Philadelphia Phillies,home,3B,False
+677592,Everson Pereira,2025-08-15,-0.15,2,Tampa Bay Rays,San Francisco Giants,away,CF,False
+677594,Julio Rodríguez,2025-08-15,-0.15,2,Seattle Mariners,New York Mets,away,CF,False
+677595,Ronny Mauricio,2025-08-15,0.0,8,New York Mets,Seattle Mariners,home,3B,False
+677649,Ezequiel Duran,2025-08-15,-0.15,2,Texas Rangers,Toronto Blue Jays,away,SS,False
+677800,Wilyer Abreu,2025-08-15,0.0,8,Boston Red Sox,Miami Marlins,home,RF,False
+677942,Blaze Alexander,2025-08-15,-0.15,2,Arizona Diamondbacks,Colorado Rockies,away,SS,False
+677950,Alek Thomas,2025-08-15,-0.15,2,Arizona Diamondbacks,Colorado Rockies,away,CF,False
+677951,Bobby Witt Jr.,2025-08-15,0.0,8,Kansas City Royals,Chicago White Sox,home,SS,False
+678011,Anthony Seigler,2025-08-15,-0.15,2,Milwaukee Brewers,Cincinnati Reds,away,2B,False
+678246,Miguel Vargas,2025-08-15,-0.15,2,Chicago White Sox,Kansas City Royals,away,3B,False
+678489,Jorge Barrosa,2025-08-15,-0.15,2,Arizona Diamondbacks,Colorado Rockies,away,LF,False
+678554,Curtis Mead,2025-08-15,-0.15,2,Chicago White Sox,Kansas City Royals,away,1B,False
+678662,Ezequiel Tovar,2025-08-15,0.0,8,Colorado Rockies,Arizona Diamondbacks,home,SS,False
+678882,Ceddanne Rafaela,2025-08-15,0.0,8,Boston Red Sox,Miami Marlins,home,CF,False
+678894,Liover Peguero,2025-08-15,-0.15,2,Pittsburgh Pirates,Chicago Cubs,away,SS,False
+679529,Spencer Torkelson,2025-08-15,-0.15,2,Detroit Tigers,Minnesota Twins,away,1B,False
+679845,Nick Loftin,2025-08-15,0.0,8,Kansas City Royals,Chicago White Sox,home,LF,False
+680474,Max Schuemann,2025-08-15,0.0,8,Athletics,Los Angeles Angels,home,3B,False
+680574,Matt McLain,2025-08-15,0.0,8,Cincinnati Reds,Milwaukee Brewers,home,2B,False
+680718,Addison Barger,2025-08-15,0.0,8,Toronto Blue Jays,Texas Rangers,home,3B,False
+680728,Adrian Del Castillo,2025-08-15,-0.15,2,Arizona Diamondbacks,Colorado Rockies,away,C,False
+680757,Steven Kwan,2025-08-15,0.0,8,Cleveland Guardians,Atlanta Braves,home,LF,False
+680776,Jarren Duran,2025-08-15,0.0,8,Boston Red Sox,Miami Marlins,home,LF,False
+680777,Ryan Jeffers,2025-08-15,0.0,8,Minnesota Twins,Detroit Tigers,home,C,False
+680779,Henry Davis,2025-08-15,-0.15,2,Pittsburgh Pirates,Chicago Cubs,away,C,False
+680837,Ryan Fitzgerald,2025-08-15,0.0,8,Minnesota Twins,Detroit Tigers,home,3B,False
+680862,Willie MacIver,2025-08-15,0.0,8,Athletics,Los Angeles Angels,home,C,False
+680977,Brendan Donovan,2025-08-15,0.0,8,St. Louis Cardinals,New York Yankees,home,2B,False
+681082,Bryson Stott,2025-08-15,-0.15,2,Philadelphia Phillies,Washington Nationals,away,2B,False
+681351,Logan O'Hoppe,2025-08-15,-0.15,2,Los Angeles Angels,Oakland Athletics,away,C,False
+681460,Brooks Baldwin,2025-08-15,-0.15,2,Chicago White Sox,Kansas City Royals,away,LF,False
+681481,Kerry Carpenter,2025-08-15,-0.15,2,Detroit Tigers,Minnesota Twins,away,RF,False
+681508,Mickey Gasper,2025-08-15,0.0,8,Minnesota Twins,Detroit Tigers,home,2B,False
+681624,Andy Pages,2025-08-15,0.0,8,Los Angeles Dodgers,San Diego Padres,home,CF,False
+681715,Heriberto Hernández,2025-08-15,-0.15,2,Miami Marlins,Boston Red Sox,away,LF,False
+681807,David Fry,2025-08-15,0.0,8,Cleveland Guardians,Atlanta Braves,home,1B,False
+681909,Justin Dean,2025-08-15,0.0,8,Los Angeles Dodgers,San Diego Padres,home,CF,False
+682177,Daniel Schneemann,2025-08-15,0.0,8,Cleveland Guardians,Atlanta Braves,home,2B,False
+682622,Noelvi Marte,2025-08-15,0.0,8,Cincinnati Reds,Milwaukee Brewers,home,3B,False
+682626,Francisco Alvarez,2025-08-15,0.0,8,New York Mets,Seattle Mariners,home,C,False
+682653,Warming Bernabel,2025-08-15,0.0,8,Colorado Rockies,Arizona Diamondbacks,home,SS,False
+682657,Angel Martínez,2025-08-15,0.0,8,Cleveland Guardians,Atlanta Braves,home,CF,False
+682663,Agustín Ramírez,2025-08-15,-0.15,2,Miami Marlins,Boston Red Sox,away,C,False
+682829,Elly De La Cruz,2025-08-15,0.0,8,Cincinnati Reds,Milwaukee Brewers,home,SS,False
+682927,Ronny Simon,2025-08-15,-0.15,2,Pittsburgh Pirates,Chicago Cubs,away,2B,False
+682928,CJ Abrams,2025-08-15,0.0,8,Washington Nationals,Philadelphia Phillies,home,SS,False
+682985,Riley Greene,2025-08-15,-0.15,2,Detroit Tigers,Minnesota Twins,away,LF,False
+682988,Tyler Locklear,2025-08-15,-0.15,2,Arizona Diamondbacks,Colorado Rockies,away,1B,False
+682998,Corbin Carroll,2025-08-15,-0.15,2,Arizona Diamondbacks,Colorado Rockies,away,RF,False
+683002,Gunnar Henderson,2025-08-15,-0.15,2,Baltimore Orioles,Houston Astros,away,SS,False
+683011,Anthony Volpe,2025-08-15,-0.15,2,New York Yankees,St. Louis Cardinals,away,SS,False
+683146,Brett Baty,2025-08-15,0.0,8,New York Mets,Seattle Mariners,home,3B,False
+683357,Owen Caissie,2025-08-15,0.0,8,Chicago Cubs,Pittsburgh Pirates,home,RF,False
+683734,Andrew Vaughn,2025-08-15,-0.15,2,Milwaukee Brewers,Cincinnati Reds,away,1B,False
+683737,Michael Busch,2025-08-15,0.0,8,Chicago Cubs,Pittsburgh Pirates,home,1B,False
+683766,Christian Koss,2025-08-15,0.0,8,San Francisco Giants,Tampa Bay Rays,home,2B,False
+686217,Sal Frelick,2025-08-15,-0.15,2,Milwaukee Brewers,Cincinnati Reds,away,RF,False
+686452,Drew Millas,2025-08-15,0.0,8,Washington Nationals,Philadelphia Phillies,home,C,False
+686469,Vinnie Pasquantino,2025-08-15,0.0,8,Kansas City Royals,Chicago White Sox,home,1B,False
+686475,Tyler Tolbert,2025-08-15,0.0,8,Kansas City Royals,Chicago White Sox,home,2B,False
+686527,Dominic Canzone,2025-08-15,-0.15,2,Seattle Mariners,New York Mets,away,RF,False
+686611,Dylan Crews,2025-08-15,0.0,8,Washington Nationals,Philadelphia Phillies,home,RF,False
+686668,Brenton Doyle,2025-08-15,0.0,8,Colorado Rockies,Arizona Diamondbacks,home,CF,False
+686780,Pedro Pagés,2025-08-15,0.0,8,St. Louis Cardinals,New York Yankees,home,C,False
+686797,Brooks Lee,2025-08-15,0.0,8,Minnesota Twins,Detroit Tigers,home,3B,False
+686948,Drake Baldwin,2025-08-15,-0.15,2,Atlanta Braves,Cleveland Guardians,away,C,False
+687221,Dalton Rushing,2025-08-15,0.0,8,Los Angeles Dodgers,San Diego Padres,home,C,False
+687231,Darell Hernaiz,2025-08-15,0.0,8,Athletics,Los Angeles Angels,home,3B,False
+687263,Zach Neto,2025-08-15,-0.15,2,Los Angeles Angels,Oakland Athletics,away,SS,False
+687363,Victor Scott II,2025-08-15,0.0,8,St. Louis Cardinals,New York Yankees,home,CF,False
+687401,Joey Ortiz,2025-08-15,-0.15,2,Milwaukee Brewers,Cincinnati Reds,away,SS,False
+687462,Spencer Horwitz,2025-08-15,-0.15,2,Pittsburgh Pirates,Chicago Cubs,away,1B,False
+687515,Colby Thomas,2025-08-15,0.0,8,Athletics,Los Angeles Angels,home,RF,False
+687529,Grant McCray,2025-08-15,0.0,8,San Francisco Giants,Tampa Bay Rays,home,CF,False
+687551,Drew Gilbert,2025-08-15,0.0,8,San Francisco Giants,Tampa Bay Rays,home,CF,False
+687597,Jordan Beck,2025-08-15,0.0,8,Colorado Rockies,Arizona Diamondbacks,home,LF,False
+687859,Troy Johnston,2025-08-15,-0.15,2,Miami Marlins,Boston Red Sox,away,OF,False
+688363,Graham Pauley,2025-08-15,-0.15,2,Miami Marlins,Boston Red Sox,away,3B,False
+689200,Jacob Melton,2025-08-15,0.0,8,Houston Astros,Baltimore Orioles,home,LF,False
+689414,Liam Hicks,2025-08-15,-0.15,2,Miami Marlins,Boston Red Sox,away,C,False
+690022,Ryan Ritter,2025-08-15,0.0,8,Colorado Rockies,Arizona Diamondbacks,home,SS,False
+690924,Braxton Fulford,2025-08-15,0.0,8,Colorado Rockies,Arizona Diamondbacks,home,C,False
+690976,Alex Freeland,2025-08-15,0.0,8,Los Angeles Dodgers,San Diego Padres,home,SS,False
+690987,Robert Hassell III,2025-08-15,0.0,8,Washington Nationals,Philadelphia Phillies,home,CF,False
+690993,Colt Keith,2025-08-15,-0.15,2,Detroit Tigers,Minnesota Twins,away,2B,False
+691016,Tyler Soderstrom,2025-08-15,0.0,8,Athletics,Los Angeles Angels,home,LF,False
+691019,Kyle Teel,2025-08-15,-0.15,2,Chicago White Sox,Kansas City Royals,away,C,False
+691023,Jordan Walker,2025-08-15,0.0,8,St. Louis Cardinals,New York Yankees,home,RF,False
+691026,Masyn Winn,2025-08-15,0.0,8,St. Louis Cardinals,New York Yankees,home,SS,False
+691176,Jasson Domínguez,2025-08-15,-0.15,2,New York Yankees,St. Louis Cardinals,away,LF,False
+691406,Junior Caminero,2025-08-15,-0.15,2,Tampa Bay Rays,San Francisco Giants,away,3B,False
+691594,Javier Sanoja,2025-08-15,-0.15,2,Miami Marlins,Boston Red Sox,away,2B,False
+691718,Pete Crow-Armstrong,2025-08-15,0.0,8,Chicago Cubs,Pittsburgh Pirates,home,CF,False
+691720,Kyle Karros,2025-08-15,0.0,8,Colorado Rockies,Arizona Diamondbacks,home,3B,False
+691723,Coby Mayo,2025-08-15,-0.15,2,Baltimore Orioles,Houston Astros,away,1B,False
+691781,Brady House,2025-08-15,0.0,8,Washington Nationals,Philadelphia Phillies,home,3B,False
+692216,C.J. Kayfus,2025-08-15,0.0,8,Cleveland Guardians,Atlanta Braves,home,1B,False
+692585,Yanquiel Fernández,2025-08-15,0.0,8,Colorado Rockies,Arizona Diamondbacks,home,RF,False
+693304,Nick Gonzales,2025-08-15,-0.15,2,Pittsburgh Pirates,Chicago Cubs,away,2B,False
+693307,Dillon Dingler,2025-08-15,-0.15,2,Detroit Tigers,Minnesota Twins,away,C,False
+694359,Niko Kavadas,2025-08-15,-0.15,2,Los Angeles Angels,Oakland Athletics,away,OF,False
+694384,Nolan Schanuel,2025-08-15,-0.15,2,Los Angeles Angels,Oakland Athletics,away,1B,False
+694388,Joey Loperfido,2025-08-15,0.0,8,Toronto Blue Jays,Texas Rangers,home,LF,False
+694497,Evan Carter,2025-08-15,-0.15,2,Texas Rangers,Toronto Blue Jays,away,CF,False
+694671,Wyatt Langford,2025-08-15,-0.15,2,Texas Rangers,Toronto Blue Jays,away,LF,False
+695336,Thomas Saggese,2025-08-15,0.0,8,St. Louis Cardinals,New York Yankees,home,2B,False
+695578,James Wood,2025-08-15,0.0,8,Washington Nationals,Philadelphia Phillies,home,LF,False
+695657,Colson Montgomery,2025-08-15,-0.15,2,Chicago White Sox,Kansas City Royals,away,SS,False
+695681,Christian Moore,2025-08-15,-0.15,2,Los Angeles Angels,Oakland Athletics,away,2B,False
+695734,Daylen Lile,2025-08-15,0.0,8,Washington Nationals,Philadelphia Phillies,home,RF,False
+696100,Hunter Goodman,2025-08-15,0.0,8,Colorado Rockies,Arizona Diamondbacks,home,C,False
+696285,Jacob Young,2025-08-15,0.0,8,Washington Nationals,Philadelphia Phillies,home,CF,False
+700242,Trey Sweeney,2025-08-15,-0.15,2,Detroit Tigers,Minnesota Twins,away,SS,False
+700250,Ben Rice,2025-08-15,-0.15,2,New York Yankees,St. Louis Cardinals,away,1B,False
+700337,Edgar Quero,2025-08-15,-0.15,2,Chicago White Sox,Kansas City Royals,away,C,False
+700932,Kyle Manzardo,2025-08-15,0.0,8,Cleveland Guardians,Atlanta Braves,home,1B,False
+701350,Roman Anthony,2025-08-15,0.0,8,Boston Red Sox,Miami Marlins,home,RF,False
+701358,Cam Smith,2025-08-15,0.0,8,Houston Astros,Baltimore Orioles,home,RF,False
+701538,Jackson Merrill,2025-08-15,-0.15,2,San Diego Padres,Los Angeles Dodgers,away,CF,False
+701762,Nick Kurtz,2025-08-15,0.0,8,Athletics,Los Angeles Angels,home,1B,False
+702176,Alan Roden,2025-08-15,0.0,8,Minnesota Twins,Detroit Tigers,home,LF,False
+702284,Cole Young,2025-08-15,-0.15,2,Seattle Mariners,New York Mets,away,2B,False
+702332,Caleb Durbin,2025-08-15,-0.15,2,Milwaukee Brewers,Cincinnati Reds,away,3B,False
+702616,Jackson Holliday,2025-08-15,-0.15,2,Baltimore Orioles,Houston Astros,away,2B,False
+802415,Chandler Simpson,2025-08-15,-0.15,2,Tampa Bay Rays,San Francisco Giants,away,CF,False
+805249,Otto Kemp,2025-08-15,-0.15,2,Philadelphia Phillies,Washington Nationals,away,1B,False
+805300,Jakob Marsee,2025-08-15,-0.15,2,Miami Marlins,Boston Red Sox,away,CF,False
+805373,Nacho Alvarez Jr.,2025-08-15,-0.15,2,Atlanta Braves,Cleveland Guardians,away,SS,False
+807712,Luke Keaschall,2025-08-15,0.0,8,Minnesota Twins,Detroit Tigers,home,2B,False
+807713,Matt Shaw,2025-08-15,0.0,8,Chicago Cubs,Pittsburgh Pirates,home,3B,False
+807799,Masataka Yoshida,2025-08-15,0.0,8,Boston Red Sox,Miami Marlins,home,LF,False
+808982,Jung Hoo Lee,2025-08-15,0.0,8,San Francisco Giants,Tampa Bay Rays,home,CF,False

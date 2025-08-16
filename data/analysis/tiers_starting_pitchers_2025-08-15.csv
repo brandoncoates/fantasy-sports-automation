@@ -1,0 +1,30 @@
+player_id,name,date,raw_score,tier,team,opponent_team,home_or_away,position,starting_pitcher_today
+450203,Charlie Morton,2025-08-15,0.0,0,Detroit Tigers,Minnesota Twins,away,P,True
+477132,Clayton Kershaw,2025-08-15,0.0,0,Los Angeles Dodgers,San Diego Padres,home,P,True
+554430,Zack Wheeler,2025-08-15,0.0,0,Philadelphia Phillies,Washington Nationals,away,P,True
+579328,Yusei Kikuchi,2025-08-15,0.0,0,Los Angeles Angels,Oakland Athletics,away,P,True
+594798,Jacob deGrom,2025-08-15,0.0,0,Texas Rangers,Toronto Blue Jays,away,P,True
+605135,Chris Bassitt,2025-08-15,0.0,0,Toronto Blue Jays,Texas Rangers,home,P,True
+607067,Colin Rea,2025-08-15,0.0,0,Chicago Cubs,Pittsburgh Pirates,home,P,True
+607259,Nick Martinez,2025-08-15,0.0,0,Cincinnati Reds,Milwaukee Brewers,home,P,True
+608337,Lucas Giolito,2025-08-15,0.0,0,Boston Red Sox,Miami Marlins,home,P,True
+622491,Luis Castillo,2025-08-15,0.0,0,Seattle Mariners,New York Mets,away,P,True
+640455,Sean Manaea,2025-08-15,0.0,0,New York Mets,Seattle Mariners,home,P,True
+645261,Sandy Alcantara,2025-08-15,0.0,0,Miami Marlins,Boston Red Sox,away,P,True
+650644,Aaron Civale,2025-08-15,0.0,0,Chicago White Sox,Kansas City Royals,away,P,True
+661563,Luis Gil,2025-08-15,0.0,0,New York Yankees,St. Louis Cardinals,away,P,True
+664285,Framber Valdez,2025-08-15,0.0,0,Houston Astros,Baltimore Orioles,home,P,True
+669022,MacKenzie Gore,2025-08-15,0.0,0,Washington Nationals,Philadelphia Phillies,home,P,True
+669467,Andre Pallante,2025-08-15,0.0,0,St. Louis Cardinals,New York Yankees,home,P,True
+671212,Joe Boyle,2025-08-15,0.0,0,Tampa Bay Rays,San Francisco Giants,away,P,True
+676282,Joey Cantillo,2025-08-15,0.0,0,Cleveland Guardians,Atlanta Braves,home,P,True
+677952,Braxton Ashcraft,2025-08-15,0.0,0,Pittsburgh Pirates,Chicago Cubs,away,P,True
+678022,Jack Perkins,2025-08-15,0.0,0,Athletics,Los Angeles Angels,home,P,True
+685299,Tanner Gordon,2025-08-15,0.0,0,Colorado Rockies,Arizona Diamondbacks,home,P,True
+687064,Brandon Young,2025-08-15,0.0,0,Baltimore Orioles,Houston Astros,away,P,True
+694297,Brandon Pfaadt,2025-08-15,0.0,0,Arizona Diamondbacks,Colorado Rockies,away,P,True
+694462,Hurston Waldrep,2025-08-15,0.0,0,Atlanta Braves,Cleveland Guardians,away,P,True
+694819,Jacob Misiorowski,2025-08-15,0.0,0,Milwaukee Brewers,Cincinnati Reds,away,P,True
+701487,Pierson Ohl,2025-08-15,0.0,0,Minnesota Twins,Detroit Tigers,home,P,True
+702070,Noah Cameron,2025-08-15,0.0,0,Kansas City Royals,Chicago White Sox,home,P,True
+manual-Landen Roupp,Landen Roupp,2025-08-15,0.0,0,San Francisco Giants,Tampa Bay Rays,home,P,True
