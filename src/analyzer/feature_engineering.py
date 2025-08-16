@@ -171,15 +171,13 @@ def merge_context(feat_df: pd.DataFrame, structured_df: pd.DataFrame) -> pd.Data
     if not st.empty:
         # Create a unified game-date column on structured side
         st["_merge_date"] = _resolve_game_date_column(st)
-        # If name is missing in feats, we can fill from structured later
         # Normalize date types
         st["_merge_date"] = pd.to_datetime(st["_merge_date"], errors="coerce").dt.date
 
-    # Columns we want from structured; keep only those that exist
+    # Columns we want from structured; keep only those that exist (exclude duplicate 'player_id')
     wanted = [
         'player_id',
-        # join key will be '_merge_date' on structured side, 'date' on feat side
-        'name',                # useful if feat_df doesn't carry it
+        'name',
         'team',
         'opponent_team',
         'home_or_away',
@@ -189,10 +187,10 @@ def merge_context(feat_df: pd.DataFrame, structured_df: pd.DataFrame) -> pd.Data
         'weather_context',
         'betting_context',
     ]
-    keep = [c for c in wanted if c in st.columns] if not st.empty else []
+    keep_no_id = [c for c in wanted if c in st.columns and c != "player_id"] if not st.empty else []
     ctx = pd.DataFrame()
-    if keep:
-        ctx = st[["player_id", "_merge_date", *keep]].copy()
+    if keep_no_id:
+        ctx = st[["player_id", "_merge_date", *keep_no_id]].copy()
         # Drop duplicates by player/date to avoid exploding joins
         ctx = ctx.drop_duplicates(subset=["player_id", "_merge_date"])
 
